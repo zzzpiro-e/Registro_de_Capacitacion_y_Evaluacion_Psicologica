@@ -45,27 +45,31 @@ class DashboardStatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 22),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Color(0xFF3A8124),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
+          Expanded( 
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF3A8124),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2, 
                 ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 34,
-                  fontWeight: FontWeight.w500,
+                const SizedBox(height: 14),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
