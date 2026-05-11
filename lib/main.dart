@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-void main() {
+import 'features/auth/presentation/pages/login_page.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('es_ES', null);
+
   runApp(const MyApp());
 }
 
@@ -9,12 +16,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Proyecto Psicología',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const Scaffold(
-        body: Center(child: Text('Estructura Base Lista')),
-      ),
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: LoginPage(),
     );
   }
 }
