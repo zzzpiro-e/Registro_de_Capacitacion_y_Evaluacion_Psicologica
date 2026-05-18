@@ -23,21 +23,25 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
       passwordError = null;
     });
 
-    // Validación local
+    // 🔹 Validación local de correo
     if (emailController.text.trim().isEmpty) {
-      setState(() => emailError = "Campo obligatorio");
+      setState(() => emailError = "El correo es obligatorio");
       return;
     } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(emailController.text.trim())) {
-      setState(() => emailError = "Formato incorrecto");
+      setState(() => emailError = "Formato de correo inválido");
       return;
     }
 
+    // 🔹 Validación local de contraseña
     if (passwordController.text.trim().isEmpty) {
-      setState(() => passwordError = "Campo obligatorio");
+      setState(() => passwordError = "La contraseña es obligatoria");
+      return;
+    } else if (passwordController.text.trim().length < 6) {
+      setState(() => passwordError = "Debe tener al menos 6 caracteres");
       return;
     }
 
-    // Validación con Firebase
+    // 🔹 Validación con Firebase
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
@@ -48,15 +52,26 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
         MaterialPageRoute(builder: (_) => const DashboardPage()),
       );
     } on FirebaseAuthException catch (e) {
-      // Mostramos error debajo de contraseña
-      setState(() {
-        if (e.code == 'user-not-found' || e.code == 'wrong-password') {
-          passwordError = "Las credenciales no existen";
-        } else {
-          passwordError = "Error: ${e.message}";
-        }
-      });
+  setState(() {
+    switch (e.code) {
+      case 'user-not-found':
+        emailError = "Error al iniciar sesión: credenciales no existen";
+        break;
+      case 'wrong-password':
+        passwordError = "Error al iniciar sesión: contraseña incorrecta";
+        break;
+      case 'invalid-email':
+        emailError = "Formato de correo inválido";
+        break;
+      case 'user-disabled':
+        emailError = "La cuenta está deshabilitada";
+        break;
+      default:
+        // 🔹 Captura cualquier otro error genérico
+        passwordError = "Error al iniciar sesión: credenciales no existen o son inválidas";
     }
+  });
+}
   }
 
   @override
@@ -103,7 +118,7 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
             alignment: Alignment.centerRight,
             child: GestureDetector(
               onTap: () {
-                // Recuperación de contraseña
+                // 🔹 Aquí puedes implementar recuperación de contraseña
               },
               child: const Text(
                 '¿Olvidaste tu contraseña?',
