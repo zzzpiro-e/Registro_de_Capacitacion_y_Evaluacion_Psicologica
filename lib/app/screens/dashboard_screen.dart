@@ -12,9 +12,22 @@ class DashboardPage extends StatelessWidget {
 
       // --- Barra inferior personalizada (única) ---
       bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: 0,
+        currentIndex: 0, // 🔹 índice de la pantalla actual
         onTap: (index) {
-          // 🔹 Aquí puedes agregar navegación entre secciones
+          switch (index) {
+            case 0:
+              Navigator.pushNamed(context, 'dashboard'); // Inicio
+              break;
+            case 1:
+              Navigator.pushNamed(context, 'empleados'); // Empleados
+              break;
+            case 2:
+              Navigator.pushNamed(context, 'capacitaciones'); // Capacitaciones
+              break;
+            case 3:
+              Navigator.pushNamed(context, 'crear'); // Crear
+              break;
+          }
         },
       ),
 

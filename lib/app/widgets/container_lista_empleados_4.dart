@@ -28,7 +28,7 @@ class ContainerListaEmpleadosCuatro extends StatelessWidget {
             color: Colors.grey,
             size: 28,
             onTap: () {
-              Navigator.pushNamed(context, '/inicio');
+              Navigator.pushNamed(context, 'dashboard');
             },
           ),
 

@@ -12,7 +12,7 @@ class ContainerDashboardDos extends StatelessWidget {
           // --- Tarjeta 1: Total Empleados ---
           InkWell(
             onTap: () {
-              Navigator.pushNamed(context, 'empleados'); // 🔹 Navegar a lista_empleados_screen.dart
+              Navigator.pushNamed(context, 'empleados'); 
             },
             child: _buildStatCard(
               icon: Icons.groups_outlined,

@@ -27,7 +27,7 @@ class ContainerDashboardCuatro extends StatelessWidget {
             color: const Color(0xFF2E7D32),
             onTap: () {
               // 🔹 Navegar a pantalla de inicio
-              Navigator.pushNamed(context, '/inicio');
+              Navigator.pushNamed(context, 'inicio');
             },
           ),
           _buildNavItem(
@@ -36,9 +36,10 @@ class ContainerDashboardCuatro extends StatelessWidget {
             label: 'Empleados',
             color: const Color(0xFF2E7D32),
             onTap: () {
-              Navigator.pushNamed(context, '/empleados');
+              Navigator.pushNamed(context, 'empleados'); // 🔹 coincide con AppRoutes
             },
           ),
+
           _buildNavItem(
             context,
             icon: Icons.school_outlined,
