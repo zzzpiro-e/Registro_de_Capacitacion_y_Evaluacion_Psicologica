@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto_flutter/app/widgets/container_dashboard_1.dart';
-import 'package:proyecto_flutter/app/widgets/container_dashboard_2.dart';
-import 'package:proyecto_flutter/app/widgets/container_dashboard_3.dart';
+import 'package:proyecto_flutter/app/widgets/widgets_dashboard.dart';
 import 'package:proyecto_flutter/app/widgets/custom_bottom_nav_bar.dart';
 
 class DashboardPage extends StatelessWidget {

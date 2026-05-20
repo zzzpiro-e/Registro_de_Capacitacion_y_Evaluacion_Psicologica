@@ -10,11 +10,16 @@ class ContainerDashboardDos extends StatelessWidget {
       child: Column(
         children: [
           // --- Tarjeta 1: Total Empleados ---
-          _buildStatCard(
-            icon: Icons.groups_outlined,
-            iconColor: const Color(0xFF2E7D32),
-            title: 'Total Empleados',
-            value: '47',
+          InkWell(
+            onTap: () {
+              Navigator.pushNamed(context, 'empleados'); // 🔹 Navegar a lista_empleados_screen.dart
+            },
+            child: _buildStatCard(
+              icon: Icons.groups_outlined,
+              iconColor: const Color(0xFF2E7D32),
+              title: 'Total Empleados',
+              value: '47',
+            ),
           ),
           const SizedBox(height: 18),
 
