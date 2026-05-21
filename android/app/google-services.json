@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "469737058944",
-    "project_id": "reg-de-cap-y-ev-psico",
-    "storage_bucket": "reg-de-cap-y-ev-psico.firebasestorage.app"
+    "project_number": "748777517673",
+    "project_id": "rrhh-psicologia-app",
+    "storage_bucket": "rrhh-psicologia-app.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:469737058944:android:f078e8ed1a684c255dac65",
+        "mobilesdk_app_id": "1:748777517673:android:cf2ef607c79635c07128f8",
         "android_client_info": {
           "package_name": "com.example.proyecto_flutter"
         }
@@ -15,26 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAw_BWSrJBHmM5tceJhE65kEmUuFilNLvI"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:469737058944:android:fef26446d29d31c15dac65",
-        "android_client_info": {
-          "package_name": "com.example.proyecto_registro_capacitacion"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAw_BWSrJBHmM5tceJhE65kEmUuFilNLvI"
+          "current_key": "AIzaSyBCOAs27FzU8KfbXo5GG0kEXnHXeKRkeQA"
         }
       ],
       "services": {

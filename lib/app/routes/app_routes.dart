@@ -3,6 +3,10 @@ import '../screens/login_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/error_screen.dart';
 import '../screens/lista_empleados_screen.dart';
+import '../screens/perfil_empleados_screen.dart';
+// 🔹 Cuando tengas listas estas pantallas, las importas también:
+// import '../screens/capacitaciones_screen.dart';
+// import '../screens/crear_screen.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
@@ -11,8 +15,9 @@ class AppRoutes {
     'login': (BuildContext context) => const LoginScreen(),
     'dashboard': (BuildContext context) => const DashboardPage(),
     'empleados': (BuildContext context) => const ListaEmpleadosPage(),
-    //'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
-    //'crear': (BuildContext context) => const CrearPage(),
+    'perfil_empleado': (BuildContext context) => const PerfilEmpleadoScreen(),
+    // 'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
+    // 'crear': (BuildContext context) => const CrearPage(),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {

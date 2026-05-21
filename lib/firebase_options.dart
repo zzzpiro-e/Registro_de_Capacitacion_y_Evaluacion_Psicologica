@@ -41,48 +41,47 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyChx8q1qXEqaynDAlhe1sgJG1vBi9dtMEs',
-    appId: '1:469737058944:web:4d3cee11539262d85dac65',
-    messagingSenderId: '469737058944',
-    projectId: 'reg-de-cap-y-ev-psico',
-    authDomain: 'reg-de-cap-y-ev-psico.firebaseapp.com',
-    storageBucket: 'reg-de-cap-y-ev-psico.firebasestorage.app',
-    measurementId: 'G-BMF424G8YW',
+    apiKey: 'AIzaSyC7IGrKKNXWW9zU2-EC4rwT8Jh5rB5HBrQ',
+    appId: '1:748777517673:web:4f65c5763e5123877128f8',
+    messagingSenderId: '748777517673',
+    projectId: 'rrhh-psicologia-app',
+    authDomain: 'rrhh-psicologia-app.firebaseapp.com',
+    storageBucket: 'rrhh-psicologia-app.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAw_BWSrJBHmM5tceJhE65kEmUuFilNLvI',
-    appId: '1:469737058944:android:f078e8ed1a684c255dac65',
-    messagingSenderId: '469737058944',
-    projectId: 'reg-de-cap-y-ev-psico',
-    storageBucket: 'reg-de-cap-y-ev-psico.firebasestorage.app',
+    apiKey: 'AIzaSyBCOAs27FzU8KfbXo5GG0kEXnHXeKRkeQA',
+    appId: '1:748777517673:android:cf2ef607c79635c07128f8',
+    messagingSenderId: '748777517673',
+    projectId: 'rrhh-psicologia-app',
+    storageBucket: 'rrhh-psicologia-app.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBuXL3bwZp1c3KT_0vnbZfHyZjXFPZ_Mhc',
-    appId: '1:469737058944:ios:d5a6de4e157fa03b5dac65',
-    messagingSenderId: '469737058944',
-    projectId: 'reg-de-cap-y-ev-psico',
-    storageBucket: 'reg-de-cap-y-ev-psico.firebasestorage.app',
+    apiKey: 'AIzaSyDXyNF5BzshonaY9yf_xhsbALSXU6sS85U',
+    appId: '1:748777517673:ios:52b2435194db07737128f8',
+    messagingSenderId: '748777517673',
+    projectId: 'rrhh-psicologia-app',
+    storageBucket: 'rrhh-psicologia-app.firebasestorage.app',
     iosBundleId: 'com.example.proyectoFlutter',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyBuXL3bwZp1c3KT_0vnbZfHyZjXFPZ_Mhc',
-    appId: '1:469737058944:ios:d5a6de4e157fa03b5dac65',
-    messagingSenderId: '469737058944',
-    projectId: 'reg-de-cap-y-ev-psico',
-    storageBucket: 'reg-de-cap-y-ev-psico.firebasestorage.app',
+    apiKey: 'AIzaSyDXyNF5BzshonaY9yf_xhsbALSXU6sS85U',
+    appId: '1:748777517673:ios:52b2435194db07737128f8',
+    messagingSenderId: '748777517673',
+    projectId: 'rrhh-psicologia-app',
+    storageBucket: 'rrhh-psicologia-app.firebasestorage.app',
     iosBundleId: 'com.example.proyectoFlutter',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyChx8q1qXEqaynDAlhe1sgJG1vBi9dtMEs',
-    appId: '1:469737058944:web:edacc3cdb6639ffb5dac65',
-    messagingSenderId: '469737058944',
-    projectId: 'reg-de-cap-y-ev-psico',
-    authDomain: 'reg-de-cap-y-ev-psico.firebaseapp.com',
-    storageBucket: 'reg-de-cap-y-ev-psico.firebasestorage.app',
-    measurementId: 'G-7EDE1RYR6D',
+    apiKey: 'AIzaSyC7IGrKKNXWW9zU2-EC4rwT8Jh5rB5HBrQ',
+    appId: '1:748777517673:web:9a19784ea8336fd97128f8',
+    messagingSenderId: '748777517673',
+    projectId: 'rrhh-psicologia-app',
+    authDomain: 'rrhh-psicologia-app.firebaseapp.com',
+    storageBucket: 'rrhh-psicologia-app.firebasestorage.app',
   );
+
 }
