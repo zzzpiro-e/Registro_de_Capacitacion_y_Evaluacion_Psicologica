@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 class ContainerListaEmpleadosUno extends StatelessWidget {
   final String titulo;
+  final VoidCallback? onBackTap; // 🔹 Añadimos la función callback
 
-  const ContainerListaEmpleadosUno({super.key, required this.titulo});
+  const ContainerListaEmpleadosUno({
+    super.key, 
+    required this.titulo,
+    this.onBackTap, // 🔹 La incluimos en el constructor
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +18,13 @@ class ContainerListaEmpleadosUno extends StatelessWidget {
       child: Row(
         children: [
           InkWell(
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              if (onBackTap != null) {
+                onBackTap!(); // 🔹 Si se pasa la acción, se ejecuta
+              } else {
+                Navigator.pop(context); // Comportamiento de respaldo
+              }
+            },
             child: const Icon(
               Icons.arrow_back_ios_new,
               color: Color(0xFF2E7D32),

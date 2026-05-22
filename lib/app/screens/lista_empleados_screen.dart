@@ -3,7 +3,9 @@ import 'package:proyecto_flutter/app/widgets/widgets_lista_empleados.dart';
 import 'package:proyecto_flutter/app/utils/text_utils.dart';
 
 class ListaEmpleadosPage extends StatefulWidget {
-  const ListaEmpleadosPage({super.key});
+  final VoidCallback? onReturnToDashboard;
+
+  const ListaEmpleadosPage({super.key, this.onReturnToDashboard});
 
   @override
   State<ListaEmpleadosPage> createState() => _ListaEmpleadosPageState();
@@ -21,12 +23,9 @@ class _ListaEmpleadosPageState extends State<ListaEmpleadosPage> {
     {'nombre': 'Diego Torres Ramírez', 'rut': '19.876.543-7', 'estado': 'Activo'},
   ];
 
-  // 🔹 Filtrar empleados según búsqueda (normalizando nombres y query)
   List<Map<String, dynamic>> get _empleadosFiltrados {
     if (_query.isEmpty) return _empleados;
-
     final queryNormalizado = TextUtils.quitarTildes(_query);
-
     return _empleados.where((empleado) {
       final nombreNormalizado = TextUtils.quitarTildes(empleado['nombre']);
       final rutNormalizado = empleado['rut'].replaceAll(RegExp(r'[^0-9]'), '');
@@ -38,16 +37,20 @@ class _ListaEmpleadosPageState extends State<ListaEmpleadosPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
-      bottomNavigationBar: const ContainerListaEmpleadosCuatro(),
       body: SafeArea(
         child: Column(
           children: [
-            const ContainerListaEmpleadosUno(titulo: "Empleados"),
+            ContainerListaEmpleadosUno(
+              titulo: "Empleados",
+              onBackTap: widget.onReturnToDashboard, 
+            ),
             ContainerListaEmpleadosDos(
               onSearch: (query) => setState(() => _query = query),
             ),
             Expanded(
-              child: ContainerListaEmpleadosTres(empleados: _empleadosFiltrados),
+              child: ContainerListaEmpleadosTres(
+                empleados: _empleadosFiltrados,
+              ),
             ),
           ],
         ),

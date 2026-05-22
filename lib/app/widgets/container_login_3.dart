@@ -47,10 +47,7 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const DashboardPage()),
-      );
+      Navigator.pushReplacementNamed(context, 'main');
     } on FirebaseAuthException catch (e) {
   setState(() {
     switch (e.code) {
