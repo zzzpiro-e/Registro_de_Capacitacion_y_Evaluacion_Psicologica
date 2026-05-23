@@ -46,7 +46,7 @@ class ContainerDashboardCuatro extends StatelessWidget {
             label: 'Capacitaciones',
             color: const Color(0xFF2E7D32),
             onTap: () {
-              Navigator.pushNamed(context, '/capacitaciones');
+              Navigator.pushNamed(context, 'capacitaciones');
             },
           ),
           _buildNavItem(
@@ -55,7 +55,7 @@ class ContainerDashboardCuatro extends StatelessWidget {
             label: 'Crear',
             color: const Color(0xFF2E7D32),
             onTap: () {
-              Navigator.pushNamed(context, '/crear');
+              Navigator.pushNamed(context, 'crear');
             },
           ),
         ],

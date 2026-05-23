@@ -8,6 +8,7 @@ class ContainerPerfilEmpleadoDos extends StatelessWidget {
   final String fechaIngreso;
   final String salario;
   final String fichaPsicologica;
+  
 
   const ContainerPerfilEmpleadoDos({
     super.key,

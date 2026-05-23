@@ -16,7 +16,7 @@ class DashboardPage extends StatelessWidget {
         onTap: (index) {
           switch (index) {
             case 0:
-              Navigator.pushNamed(context, 'dashboard'); // Inicio
+              Navigator.pushReplacementNamed(context, 'dashboard');
               break;
             case 1:
               Navigator.pushNamed(context, 'empleados'); // Empleados
