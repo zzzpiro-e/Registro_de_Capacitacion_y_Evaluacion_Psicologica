@@ -46,6 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '748777517673',
     projectId: 'rrhh-psicologia-app',
     authDomain: 'rrhh-psicologia-app.firebaseapp.com',
+    databaseURL: 'https://rrhh-psicologia-app-default-rtdb.firebaseio.com',
     storageBucket: 'rrhh-psicologia-app.firebasestorage.app',
   );
 
@@ -54,6 +55,7 @@ class DefaultFirebaseOptions {
     appId: '1:748777517673:android:cf2ef607c79635c07128f8',
     messagingSenderId: '748777517673',
     projectId: 'rrhh-psicologia-app',
+    databaseURL: 'https://rrhh-psicologia-app-default-rtdb.firebaseio.com',
     storageBucket: 'rrhh-psicologia-app.firebasestorage.app',
   );
 
@@ -62,6 +64,7 @@ class DefaultFirebaseOptions {
     appId: '1:748777517673:ios:52b2435194db07737128f8',
     messagingSenderId: '748777517673',
     projectId: 'rrhh-psicologia-app',
+    databaseURL: 'https://rrhh-psicologia-app-default-rtdb.firebaseio.com',
     storageBucket: 'rrhh-psicologia-app.firebasestorage.app',
     iosBundleId: 'com.example.proyectoFlutter',
   );
@@ -71,6 +74,7 @@ class DefaultFirebaseOptions {
     appId: '1:748777517673:ios:52b2435194db07737128f8',
     messagingSenderId: '748777517673',
     projectId: 'rrhh-psicologia-app',
+    databaseURL: 'https://rrhh-psicologia-app-default-rtdb.firebaseio.com',
     storageBucket: 'rrhh-psicologia-app.firebasestorage.app',
     iosBundleId: 'com.example.proyectoFlutter',
   );
@@ -81,6 +85,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '748777517673',
     projectId: 'rrhh-psicologia-app',
     authDomain: 'rrhh-psicologia-app.firebaseapp.com',
+    databaseURL: 'https://rrhh-psicologia-app-default-rtdb.firebaseio.com',
     storageBucket: 'rrhh-psicologia-app.firebasestorage.app',
   );
 

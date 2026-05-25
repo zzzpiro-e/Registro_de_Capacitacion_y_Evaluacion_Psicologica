@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "748777517673",
+    "firebase_url": "https://rrhh-psicologia-app-default-rtdb.firebaseio.com",
     "project_id": "rrhh-psicologia-app",
     "storage_bucket": "rrhh-psicologia-app.firebasestorage.app"
   },

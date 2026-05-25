@@ -5,28 +5,6 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
 
   const ContainerListaEmpleadosTres({super.key, required this.empleados});
 
-  Color _colorEstado(String? estado) {
-    switch (estado?.toLowerCase() ?? '') {
-      case 'activo':
-        return const Color(0xFFDFFFD6); // Verde claro
-      case 'pendiente':
-        return const Color(0xFFFFF3CD); // Amarillo claro
-      default:
-        return Colors.grey.shade200;
-    }
-  }
-
-  Color _colorTextoEstado(String? estado) {
-    switch (estado?.toLowerCase() ?? '') {
-      case 'activo':
-        return const Color(0xFF2E7D32); // Verde institucional
-      case 'pendiente':
-        return const Color(0xFFB8860B); // Amarillo oscuro
-      default:
-        return Colors.black54;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -35,9 +13,12 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
       itemBuilder: (context, index) {
         final empleado = empleados[index];
 
+        final nombres = empleado['nombres'] ?? '';
+        final apellidos = empleado['apellidos'] ?? '';
+        final rut = empleado['rut'] ?? 'Sin RUT';
+
         return InkWell(
           onTap: () {
-            print(empleado);
             Navigator.pushNamed(
               context,
               'perfil_empleado',
@@ -75,13 +56,15 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
 
-                // Nombre y RUT
+                // Nombre completo y RUT
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        empleado['nombre'] ?? 'Sin nombre',
+                        "$nombres $apellidos".trim().isEmpty
+                            ? "Sin nombre"
+                            : "$nombres $apellidos",
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -90,30 +73,13 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        empleado['rut'] ?? 'Sin RUT',
+                        rut,
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black54,
                         ),
                       ),
                     ],
-                  ),
-                ),
-
-                // Estado
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _colorEstado(empleado['estado']),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    empleado['estado'] ?? 'Sin estado',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: _colorTextoEstado(empleado['estado']),
-                    ),
                   ),
                 ),
               ],
