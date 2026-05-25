@@ -24,11 +24,16 @@ class ContainerDashboardDos extends StatelessWidget {
           const SizedBox(height: 18),
 
           // --- Tarjeta 2: Capacitaciones Pendientes ---
-          _buildStatCard(
-            icon: Icons.school_outlined,
-            iconColor: const Color(0xFFFF9800),
-            title: 'Capacitaciones Pendientes',
-            value: '8',
+          InkWell(
+            onTap: () {
+              Navigator.pushNamed(context, 'capacitaciones');
+            },
+            child: _buildStatCard(
+              icon: Icons.school_outlined,
+              iconColor: const Color(0xFFFF9800),
+              title: 'Capacitaciones Pendientes',
+              value: '8',
+            ),
           ),
           const SizedBox(height: 18),
 

@@ -13,7 +13,7 @@ class ContainerPerfilEmpleadoUno extends StatelessWidget {
           InkWell(
             onTap: () {
               // 🔹 Regresa a la pantalla de lista de empleados
-              Navigator.pushNamed(context, 'empleados');
+              Navigator.pop(context);
             },
             child: const Icon(
               Icons.arrow_back_ios_new,

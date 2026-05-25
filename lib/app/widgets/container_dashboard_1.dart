@@ -7,12 +7,12 @@ class ContainerDashboardUno extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Formatear la fecha actual en español
-    final currentDateRaw = DateFormat('EEEE, d MMMM yyyy', 'es_ES').format(DateTime.now());
+    final currentDateRaw = DateFormat('EEEE, d MMMM yyyy', 'es_CL').format(DateTime.now());
     final currentDate = currentDateRaw[0].toUpperCase() + currentDateRaw.substring(1);
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 80),
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
       decoration: const BoxDecoration(
         color: Color(0xFF388E3C), // Verde principal del dashboard
       ),

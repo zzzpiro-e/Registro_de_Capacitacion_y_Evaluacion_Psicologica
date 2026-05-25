@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:proyecto_flutter/app/widgets/widgets_lista_empleados.dart';
 import 'package:proyecto_flutter/app/utils/text_utils.dart';
 
@@ -14,25 +15,6 @@ class ListaEmpleadosPage extends StatefulWidget {
 class _ListaEmpleadosPageState extends State<ListaEmpleadosPage> {
   String _query = '';
 
-  final List<Map<String, dynamic>> _empleados = [
-    {'nombre': 'María González Díaz', 'rut': '12.345.678-9', 'estado': 'Activo'},
-    {'nombre': 'Carlos Rodríguez López', 'rut': '15.789.456-2', 'estado': 'Pendiente'},
-    {'nombre': 'Ana Martínez Silva', 'rut': '18.234.567-1', 'estado': 'Activo'},
-    {'nombre': 'Roberto Fernández Castro', 'rut': '16.987.654-3', 'estado': 'Pendiente'},
-    {'nombre': 'Laura Sánchez Morales', 'rut': '14.567.890-5', 'estado': 'Activo'},
-    {'nombre': 'Diego Torres Ramírez', 'rut': '19.876.543-7', 'estado': 'Activo'},
-  ];
-
-  List<Map<String, dynamic>> get _empleadosFiltrados {
-    if (_query.isEmpty) return _empleados;
-    final queryNormalizado = TextUtils.quitarTildes(_query);
-    return _empleados.where((empleado) {
-      final nombreNormalizado = TextUtils.quitarTildes(empleado['nombre']);
-      final rutNormalizado = empleado['rut'].replaceAll(RegExp(r'[^0-9]'), '');
-      return nombreNormalizado.contains(queryNormalizado) || rutNormalizado.contains(queryNormalizado);
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,14 +24,43 @@ class _ListaEmpleadosPageState extends State<ListaEmpleadosPage> {
           children: [
             ContainerListaEmpleadosUno(
               titulo: "Empleados",
-              onBackTap: widget.onReturnToDashboard, 
+              onBackTap: widget.onReturnToDashboard,
             ),
             ContainerListaEmpleadosDos(
               onSearch: (query) => setState(() => _query = query),
             ),
             Expanded(
-              child: ContainerListaEmpleadosTres(
-                empleados: _empleadosFiltrados,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('empleados').snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text("No hay empleados registrados"));
+                  }
+
+                  // Convertimos documentos en mapas
+                  final empleados = snapshot.data!.docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return {
+                      'nombres': data['nombres'] ?? '',
+                      'apellidos': data['apellidos'] ?? '',
+                      'rut': data['rut'] ?? '',
+                      'estado': data['estado'] ?? '',
+                    };
+                  }).toList();
+
+                  // Aplicamos filtro de búsqueda
+                  final empleadosFiltrados = empleados.where((empleado) {
+                    final nombreCompleto = "${empleado['nombres']} ${empleado['apellidos']}".toLowerCase();
+                    final rutNormalizado = empleado['rut'].replaceAll(RegExp(r'[^0-9]'), '');
+                    final queryNormalizado = TextUtils.quitarTildes(_query.toLowerCase());
+                    return nombreCompleto.contains(queryNormalizado) || rutNormalizado.contains(queryNormalizado);
+                  }).toList();
+
+                  return ContainerListaEmpleadosTres(empleados: empleadosFiltrados);
+                },
               ),
             ),
           ],
