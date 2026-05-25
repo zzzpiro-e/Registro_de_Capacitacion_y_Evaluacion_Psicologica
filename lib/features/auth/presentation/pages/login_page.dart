@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../widgets/auth_text_field.dart';
-import '../../../dashboard/presentation/pages/dashboard_page.dart';
+import 'package:proyecto_flutter/app/screens/dashboard_screen.dart';
+import 'package:proyecto_flutter/app/screens/rrhh_screen.dart';
+import 'package:proyecto_flutter/app/screens/psicologo_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -32,13 +35,13 @@ class _LoginPageState extends State<LoginPage>
       curve: Curves.easeOut,
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.15),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _animationController.forward();
   }
@@ -49,6 +52,59 @@ class _LoginPageState extends State<LoginPage>
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loginAndRedirect() async {
+    final email = _emailController.text.trim().toLowerCase();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Completa correo y contraseña')),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      Widget destination;
+
+      if (email == 'admin@empresa.com') {
+        destination = const DashboardPage();
+      } else if (email == 'rrhh@empresa.com') {
+        destination = const RrhhScreen();
+      } else if (email == 'psicologo@empresa.com') {
+        destination = const PsicologoScreen();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ese correo no tiene panel asignado')),
+        );
+        return;
+      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => destination),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Error al iniciar sesión')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo iniciar sesión')),
+      );
+    }
   }
 
   @override
@@ -249,15 +305,7 @@ class _LoginPageState extends State<LoginPage>
                 elevation: 4,
                 shadowColor: const Color(0xFF43A047).withOpacity(0.4),
               ),
-              onPressed: () {
-                // Por ahora solo navega al dashboard (sin validación de BD)
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const DashboardPage(),
-                  ),
-                );
-              },
+              onPressed: _loginAndRedirect,
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -270,10 +318,7 @@ class _LoginPageState extends State<LoginPage>
                     ),
                   ),
                   SizedBox(width: 10),
-                  Icon(
-                    Icons.arrow_forward,
-                    size: 22,
-                  ),
+                  Icon(Icons.arrow_forward, size: 22),
                 ],
               ),
             ),
@@ -282,9 +327,36 @@ class _LoginPageState extends State<LoginPage>
           const SizedBox(height: 32),
 
           // Divider
-          const Divider(
-            color: Color(0xFFE0E0E0),
-            thickness: 1,
+          const Divider(color: Color(0xFFE0E0E0), thickness: 1),
+
+          const SizedBox(height: 16),
+
+          const SizedBox(height: 8),
+
+          // Botón de acceso rápido al Admin (atajo)
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF2E7D32)),
+                foregroundColor: const Color(0xFF2E7D32),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                // Atajo: navegar directamente al panel de administración
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardPage()),
+                );
+              },
+              child: const Text(
+                'Entrar como Admin (atajo)',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ),
           ),
 
           const SizedBox(height: 16),

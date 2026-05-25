@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:proyecto_flutter/app/screens/dashboard_screen.dart';
 import 'package:proyecto_flutter/app/widgets/auth_text_field.dart';
 
 class ContainerTresLogin extends StatefulWidget {
