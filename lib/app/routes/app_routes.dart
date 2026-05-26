@@ -5,6 +5,7 @@ import '../screens/error_screen.dart';
 import '../screens/lista_empleados_screen.dart';
 import '../screens/perfil_empleados_screen.dart';
 import '../screens/main_screen.dart';
+import '../screens/psicologo_main_screen.dart';
 // 🔹 Cuando tengas listas estas pantallas, las importas también:
 // import '../screens/capacitaciones_screen.dart';
 // import '../screens/crear_screen.dart';
@@ -18,6 +19,7 @@ class AppRoutes {
     'dashboard': (BuildContext context) => const DashboardPage(),
     'empleados': (BuildContext context) => const ListaEmpleadosPage(),
     'perfil_empleado': (BuildContext context) => const PerfilEmpleadoScreen(),
+    'psicologo_main': (BuildContext context) => const PsicologoMainScreen(),
     // 'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
     // 'crear': (BuildContext context) => const CrearPage(),
   };
