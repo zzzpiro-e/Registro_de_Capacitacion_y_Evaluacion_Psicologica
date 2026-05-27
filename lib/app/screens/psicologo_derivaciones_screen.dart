@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'psicologo_detalle_derivacion_screen.dart';
 
 class PsicologoDerivacionesScreen extends StatefulWidget {
   const PsicologoDerivacionesScreen({super.key});
@@ -55,8 +56,13 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                 final derivacion = derivaciones[index];
                 return InkWell(
                   onTap: () {
-                    // Próxima tarea: Navegar al detalle
-                    print("Ver detalle de ${derivacion['nombre']}");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PsicologoDetalleDerivacionScreen(
+                          derivacion: derivacion),
+                      ),
+                    );
                   },
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 14),

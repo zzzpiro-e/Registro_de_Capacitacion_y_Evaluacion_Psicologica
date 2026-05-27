@@ -39,6 +39,11 @@ class CustomPsicologoBottomNavBar extends StatelessWidget {
           activeIcon: Icon(Icons.history),
           label: 'Historial',
         ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
+          label: 'Perfil',
+        ),
       ],
     );
   }
