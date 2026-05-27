@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // 🔹 Importamos Firestore
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:proyecto_flutter/app/widgets/auth_text_field.dart';
 
 class ContainerTresLogin extends StatefulWidget {
@@ -17,14 +17,13 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
   String? emailError;
   String? passwordError;
   bool _isLoading = false; 
-  int _attempts = 0; // 🔹 contador de intentos fallidos
-  final int _maxAttempts = 5; // 🔹 límite máximo
-  DateTime? _blockedUntil; // 🔹 tiempo hasta el cual está bloqueado
+  int _attempts = 0; 
+  final int _maxAttempts = 5; 
+  DateTime? _blockedUntil; 
 
   Future<void> loginUser() async {
     if (_isLoading) return;
 
-    // --- Verificar bloqueo temporal ---
     if (_blockedUntil != null) {
       if (DateTime.now().isBefore(_blockedUntil!)) {
         setState(() {
@@ -32,14 +31,12 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
         });
         return;
       } else {
-        // 🔹 Ya pasaron los 10 minutos, reseteamos
         _blockedUntil = null;
         _attempts = 0;
       }
     }
 
     if (_attempts >= _maxAttempts) {
-      // 🔹 Bloqueamos por 10 minutos
       _blockedUntil = DateTime.now().add(const Duration(minutes: 10));
       setState(() {
         passwordError = "Has alcanzado el máximo de $_maxAttempts intentos. La cuenta está bloqueada por 10 minutos.";
@@ -53,7 +50,6 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
       _isLoading = true;
     });
 
-    // --- Validaciones locales ---
     if (emailController.text.trim().isEmpty) {
       setState(() {
         emailError = "El correo es obligatorio";
@@ -82,9 +78,7 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
       return;
     }
 
-    // --- Firebase login + Consulta de Rol ---
     try {
-      // 1. Iniciamos sesión en Auth
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
@@ -93,8 +87,6 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
       User? user = userCredential.user;
 
       if (user != null) {
-        // 2. Buscamos el documento del usuario en la colección 'usuarios'
-        // ⚠️ Si en tu base de datos la colección se llama 'users', cambia 'usuarios' por 'users'
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('usuarios') 
             .doc(user.uid)
@@ -102,30 +94,28 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
 
         if (userDoc.exists && userDoc.data() != null) {
           Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-          
-          // ⚠️ Revisa si en tu Firestore guardaste el campo como 'rol' o como 'role'
           String role = userData['rol'] ?? userData['role'] ?? ''; 
 
-          // 3. Evaluamos el rol real y dividimos los caminos
           if (role == 'psicologo') {
             Navigator.pushReplacementNamed(context, 'psicologo_main');
           } else if (role == 'rrhh') {
-            Navigator.pushReplacementNamed(context, 'main'); // Ruta del dashboard de RRHH
+            Navigator.pushReplacementNamed(context, 'main'); 
+          } else if (role == 'admin') {
+            Navigator.pushReplacementNamed(context, 'admin_main'); 
           } else {
-            // Por si hay un rol no registrado o vacío, lo manda a la principal
             Navigator.pushReplacementNamed(context, 'main'); 
           }
         } else {
           setState(() {
-            passwordError = "Error: No se encontró el perfil de usuario en la base de datos.";
+            passwordError = "Error: No se encontró el perfil de usuario.";
           });
         }
       }
 
-      _attempts = 0; // 🔹 reiniciamos contador si login fue exitoso
+      _attempts = 0; 
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _attempts++; // 🔹 sumamos intento fallido
+        _attempts++; 
         switch (e.code) {
           case 'user-not-found':
             emailError = "Error al iniciar sesión: credenciales no existen";
@@ -160,7 +150,6 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 48),
-
           const Text(
             'Correo Electrónico',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -173,9 +162,7 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
           ),
           if (emailError != null)
             Text(emailError!, style: const TextStyle(color: Colors.red)),
-
           const SizedBox(height: 34),
-
           const Text(
             'Contraseña',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -189,9 +176,7 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
           ),
           if (passwordError != null)
             Text(passwordError!, style: const TextStyle(color: Colors.red)),
-
           const SizedBox(height: 40),
-
           SizedBox(
             width: double.infinity,
             height: 72,
@@ -212,9 +197,7 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
                       ),
                     )
                   : Text(
-                      isBlocked
-                          ? "Cuenta bloqueada, espera 10 min"
-                          : "Iniciar Sesión",
+                      isBlocked ? "Cuenta bloqueada, espera 10 min" : "Iniciar Sesión",
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -223,7 +206,6 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
                     ),
             ),
           ),
-
           const SizedBox(height: 40),
           const Divider(),
         ],
