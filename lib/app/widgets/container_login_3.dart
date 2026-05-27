@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // 🔹 Importamos Firestore
 import 'package:proyecto_flutter/app/widgets/auth_text_field.dart';
-import 'package:proyecto_flutter/app/services/auth_service.dart';
 
 class ContainerTresLogin extends StatefulWidget {
   const ContainerTresLogin({super.key});
@@ -82,43 +82,47 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
       return;
     }
 
-    // --- Firebase login ---
+    // --- Firebase login + Consulta de Rol ---
     try {
-      // 1. Instanciamos el servicio y llamamos al método que busca el rol
-      final authService = AuthService();
-      String? rol = await authService.loginAndGetRol(
+      // 1. Iniciamos sesión en Auth
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      _attempts = 0; // 🔹 reiniciamos contador si login fue exitoso
+      User? user = userCredential.user;
 
-      // 2. Evaluamos el rol devuelto por Firestore y redirigimos
-      if (rol != null) {
-        switch (rol) {
-          case 'admin':
-            Navigator.pushReplacementNamed(context, 'main');
-            break;
-          case 'rrhh':
-            Navigator.pushReplacementNamed(context, 'main');
-            break;
-          case 'psicologo':
-            Navigator.pushReplacementNamed(context, 'main');
-            break;
-          default:
-            // Si el rol existe pero no coincide con ninguno de los tres
-            setState(() {
-              passwordError = "Rol de usuario no reconocido en el sistema.";
-            });
-            break;
+      if (user != null) {
+        // 2. Buscamos el documento del usuario en la colección 'usuarios'
+        // ⚠️ Si en tu base de datos la colección se llama 'users', cambia 'usuarios' por 'users'
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('usuarios') 
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists && userDoc.data() != null) {
+          Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+          
+          // ⚠️ Revisa si en tu Firestore guardaste el campo como 'rol' o como 'role'
+          String role = userData['rol'] ?? userData['role'] ?? ''; 
+
+          // 3. Evaluamos el rol real y dividimos los caminos
+          if (role == 'psicologo') {
+            Navigator.pushReplacementNamed(context, 'psicologo_main');
+          } else if (role == 'rrhh') {
+            Navigator.pushReplacementNamed(context, 'main'); // Ruta del dashboard de RRHH
+          } else {
+            // Por si hay un rol no registrado o vacío, lo manda a la principal
+            Navigator.pushReplacementNamed(context, 'main'); 
+          }
+        } else {
+          setState(() {
+            passwordError = "Error: No se encontró el perfil de usuario en la base de datos.";
+          });
         }
-      } else {
-        // En caso de que se autentique en Auth pero no exista su documento en Firestore
-        setState(() {
-          passwordError = "No se encontraron datos de perfil para este usuario.";
-        });
       }
 
+      _attempts = 0; // 🔹 reiniciamos contador si login fue exitoso
     } on FirebaseAuthException catch (e) {
       setState(() {
         _attempts++; // 🔹 sumamos intento fallido
@@ -139,17 +143,12 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
             passwordError = "Error al iniciar sesión: credenciales no existen o son inválidas";
         }
       });
-    } catch (e) {
-      // 🔹 Captura cualquier otro error, como problemas de red o Firestore
-      setState(() {
-        passwordError = "Error de conexión o base de datos. Intenta de nuevo.";
-      });
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
-  } // 👈 ¡ESTA ES LA LLAVE QUE FALTABA PARA CERRAR LA FUNCIÓN loginUser!
+  }
 
   @override
   Widget build(BuildContext context) {

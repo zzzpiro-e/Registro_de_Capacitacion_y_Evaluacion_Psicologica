@@ -6,22 +6,8 @@ class PerfilEmpleadoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 Recibir los argumentos de forma segura (añadimos el '?' para evitar el null crash)
-    final args = ModalRoute.of(context)?.settings.arguments;
-    
-    // 🔹 Si viene un empleado de la lista lo usa, si no, usa un mapa por defecto para pruebas
-    final Map<String, dynamic> empleado = (args != null && args is Map<String, dynamic>)
-        ? args
-        : {
-            'nombre': 'Ficha de Prueba (Psicólogo)',
-            'rut': '12.345.678-K',
-            'edad': '30',
-            'cargo': 'Operario',
-            'fechaIngreso': '26-05-2026',
-            'salario': '\$1.100.000',
-            'fichaPsicologica': 'Seleccione un empleado real desde la lista para ver su informe.',
-            'capacitaciones': <Map<String, dynamic>>[] // Lista vacía segura
-          };
+    // 🔹 Recibir los argumentos enviados desde la lista
+    final empleado = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
@@ -34,9 +20,9 @@ class PerfilEmpleadoScreen extends StatelessWidget {
               const ContainerPerfilEmpleadoUno(),
               const SizedBox(height: 16),
 
-              // 🔹 Datos personales y laborales dinámicos seguros
+              // 🔹 Datos personales y laborales dinámicos
               ContainerPerfilEmpleadoDos(
-                nombre: empleado['nombre'] ?? empleado['nombres'] ?? 'Sin nombre', // 👈 Mapea 'nombre' o 'nombres' de tu Firestore
+                nombre: empleado['nombre'] ?? 'Sin nombre',
                 rut: empleado['rut'] ?? 'Sin RUT',
                 edad: empleado['edad'] ?? 'Sin edad',
                 cargo: empleado['cargo'] ?? 'Sin cargo',
@@ -47,11 +33,9 @@ class PerfilEmpleadoScreen extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // 🔹 Historial de capacitaciones dinámico seguro
+              // 🔹 Historial de capacitaciones dinámico
               ContainerPerfilEmpleadoTres(
-                capacitaciones: (empleado['capacitaciones'] is List)
-                    ? List<Map<String, dynamic>>.from(empleado['capacitaciones'])
-                    : [],
+                capacitaciones: (empleado['capacitaciones'] as List<Map<String, dynamic>>?)?? [],
               ),
             ],
           ),

@@ -5,51 +5,47 @@ class ContainerDashboardDos extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 Agregamos el widget Material transparente como base para los InkWell internos
-    return Material(
-      color: Colors.transparent,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24).copyWith(top: 16),
-        child: Column(
-          children: [
-            // --- Tarjeta 1: Total Empleados ---
-            InkWell(
-              onTap: () {
-                Navigator.pushNamed(context, 'empleados'); 
-              },
-              child: _buildStatCard(
-                icon: Icons.groups_outlined,
-                iconColor: const Color(0xFF2E7D32),
-                title: 'Total Empleados',
-                value: '47',
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24).copyWith(top: 16),
+      child: Column(
+        children: [
+          // --- Tarjeta 1: Total Empleados ---
+          InkWell(
+            onTap: () {
+              Navigator.pushNamed(context, 'empleados'); 
+            },
+            child: _buildStatCard(
+              icon: Icons.groups_outlined,
+              iconColor: const Color(0xFF2E7D32),
+              title: 'Total Empleados',
+              value: '47',
             ),
-            const SizedBox(height: 18),
+          ),
+          const SizedBox(height: 18),
 
-            // --- Tarjeta 2: Capacitaciones Pendientes ---
-            InkWell(
-              onTap: () {
-                Navigator.pushNamed(context, 'capacitaciones');
-              },
-              child: _buildStatCard(
-                icon: Icons.school_outlined,
-                iconColor: const Color(0xFFFF9800),
-                title: 'Capacitaciones Pendientes',
-                value: '8',
-              ),
+          // --- Tarjeta 2: Capacitaciones Pendientes ---
+          InkWell(
+            onTap: () {
+              Navigator.pushNamed(context, 'capacitaciones');
+            },
+            child: _buildStatCard(
+              icon: Icons.school_outlined,
+              iconColor: const Color(0xFFFF9800),
+              title: 'Capacitaciones Pendientes',
+              value: '8',
             ),
-            const SizedBox(height: 18),
+          ),
+          const SizedBox(height: 18),
 
-            // --- Tarjeta 3: Capacitaciones Realizadas ---
-            _buildStatCard(
-              icon: Icons.check_circle_outline,
-              iconColor: const Color(0xFF4CAF50),
-              title: 'Capacitaciones Realizadas',
-              value: '23',
-            ),
-            const SizedBox(height: 36),
-          ],
-        ),
+          // --- Tarjeta 3: Capacitaciones Realizadas ---
+          _buildStatCard(
+            icon: Icons.check_circle_outline,
+            iconColor: const Color(0xFF4CAF50),
+            title: 'Capacitaciones Realizadas',
+            value: '23',
+          ),
+          const SizedBox(height: 36),
+        ],
       ),
     );
   }
