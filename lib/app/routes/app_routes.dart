@@ -6,6 +6,11 @@ import '../screens/lista_empleados_screen.dart';
 import '../screens/perfil_empleados_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/psicologo_main_screen.dart';
+<<<<<<< HEAD
+=======
+import 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
+import 'package:proyecto_flutter/app/screens/create_worker_screen.dart';
+>>>>>>> e7238175387ac16ec0c8f29b988f4af6aa9a47dd
 // 🔹 Cuando tengas listas estas pantallas, las importas también:
 // import '../screens/capacitaciones_screen.dart';
 // import '../screens/crear_screen.dart';
@@ -16,10 +21,15 @@ class AppRoutes {
   static Map<String, Widget Function(BuildContext)> routes = {
     'login': (BuildContext context) => const LoginScreen(),
     'main': (BuildContext context) => const MainScreen(),
+    'admin_main':(BuildContext context) => const AdminMainScreen(),
     'dashboard': (BuildContext context) => const DashboardPage(),
     'empleados': (BuildContext context) => const ListaEmpleadosPage(),
     'perfil_empleado': (BuildContext context) => const PerfilEmpleadoScreen(),
     'psicologo_main': (BuildContext context) => const PsicologoMainScreen(),
+<<<<<<< HEAD
+=======
+    'create_worker': (context) => const CreateWorkerScreen(), 
+>>>>>>> e7238175387ac16ec0c8f29b988f4af6aa9a47dd
     // 'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
     // 'crear': (BuildContext context) => const CrearPage(),
   };

@@ -39,6 +39,10 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
     return SafeArea(
       child: Column(
         children: [
+<<<<<<< HEAD
+=======
+          // Header Simple
+>>>>>>> e7238175387ac16ec0c8f29b988f4af6aa9a47dd
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             color: Colors.white,
@@ -54,6 +58,7 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
               itemBuilder: (context, index) {
                 final derivacion = derivaciones[index];
                 return InkWell(
+<<<<<<< HEAD
                   onTap: () async {
                     final nuevoEstado = await Navigator.push(
                       context,
@@ -66,6 +71,16 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                         derivaciones[index]['estado'] = nuevoEstado;
                       });
                     }
+=======
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PsicologoDetalleDerivacionScreen(
+                          derivacion: derivacion),
+                      ),
+                    );
+>>>>>>> e7238175387ac16ec0c8f29b988f4af6aa9a47dd
                   },
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 14),
