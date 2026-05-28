@@ -15,8 +15,7 @@ class DashboardPage extends StatelessWidget {
             ContainerDashboardUno(), // Encabezado con fecha y saludo
             SizedBox(height: 16),
             ContainerDashboardDos(), // Tarjetas de estadísticas
-            SizedBox(height: 16),
-            ContainerDashboardTres(), // Accesos rápidos
+            SizedBox(height: 16), // Accesos rápidos
           ],
         ),
       ),

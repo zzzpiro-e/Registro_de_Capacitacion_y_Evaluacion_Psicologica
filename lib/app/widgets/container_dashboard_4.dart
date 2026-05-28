@@ -24,9 +24,8 @@ class ContainerDashboardCuatro extends StatelessWidget {
             context,
             icon: Icons.home,
             label: 'Inicio',
-            color: const Color(0xFF2E7D32),
+            isActive: false,
             onTap: () {
-              // 🔹 Navegar a pantalla de inicio
               Navigator.pushNamed(context, 'inicio');
             },
           ),
@@ -34,17 +33,16 @@ class ContainerDashboardCuatro extends StatelessWidget {
             context,
             icon: Icons.groups_outlined,
             label: 'Empleados',
-            color: const Color(0xFF2E7D32),
+            isActive: false,
             onTap: () {
-              Navigator.pushNamed(context, 'empleados'); // 🔹 coincide con AppRoutes
+              Navigator.pushNamed(context, 'empleados');
             },
           ),
-
           _buildNavItem(
             context,
             icon: Icons.school_outlined,
             label: 'Capacitaciones',
-            color: const Color(0xFF2E7D32),
+            isActive: false,
             onTap: () {
               Navigator.pushNamed(context, 'capacitaciones');
             },
@@ -53,7 +51,7 @@ class ContainerDashboardCuatro extends StatelessWidget {
             context,
             icon: Icons.add_circle_outline,
             label: 'Crear',
-            color: const Color(0xFF2E7D32),
+            isActive: true, // 🔹 aquí marcamos activo cuando estamos en "Crear"
             onTap: () {
               Navigator.pushNamed(context, 'crear');
             },
@@ -68,23 +66,30 @@ class ContainerDashboardCuatro extends StatelessWidget {
     BuildContext context, {
     required IconData icon,
     required String label,
-    required Color color,
+    required bool isActive,
     required VoidCallback onTap,
   }) {
+    final Color activeColor = const Color(0xFF2E7D32);
+    final Color inactiveColor = Colors.grey;
+
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 32),
+          Icon(
+            icon,
+            color: isActive ? activeColor : inactiveColor,
+            size: isActive ? 34 : 28, // 🔹 más grande si está activo
+          ),
           const SizedBox(height: 6),
           Text(
             label,
             style: TextStyle(
-              color: color,
-              fontSize: 14, // 🔹 un poco más pequeño para evitar overflow
-              fontWeight: FontWeight.w600,
+              color: isActive ? activeColor : inactiveColor,
+              fontSize: 14,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
             ),
           ),
         ],
