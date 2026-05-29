@@ -94,7 +94,7 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         Navigator.pop(context, _estadoActual);
       },
@@ -153,7 +153,13 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -4))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, -4),
+                  )
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
