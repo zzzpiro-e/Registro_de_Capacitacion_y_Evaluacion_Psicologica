@@ -46,6 +46,37 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
 
     return dvIngresado == dvCalculado;
   }
+  // --- Formateo automático del RUT ---
+  void _formatearRut(String value) {
+    String limpio = value.replaceAll(RegExp(r'[^0-9kK]'), '');
+    if (limpio.isEmpty) {
+      _rutController.text = '';
+      return;
+    }
+
+    // separar cuerpo y dígito verificador
+    String cuerpo = limpio.length > 1 ? limpio.substring(0, limpio.length - 1) : limpio;
+    String dv = limpio.length > 1 ? limpio.substring(limpio.length - 1) : '';
+
+    // agregar puntos cada 3 dígitos desde el final
+    final buffer = StringBuffer();
+    int contador = 0;
+    for (int i = cuerpo.length - 1; i >= 0; i--) {
+      buffer.write(cuerpo[i]);
+      contador++;
+      if (contador == 3 && i != 0) {
+        buffer.write('.');
+        contador = 0;
+      }
+    }
+    String cuerpoFormateado = buffer.toString().split('').reversed.join('');
+    String rutFormateado = dv.isNotEmpty ? '$cuerpoFormateado-$dv' : cuerpoFormateado;
+
+    _rutController.value = TextEditingValue(
+      text: rutFormateado,
+      selection: TextSelection.collapsed(offset: rutFormateado.length),
+    );
+  }
 
   // --- Formateo automático del salario ---
   void _formatearSalario(String value) {
@@ -86,6 +117,19 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
     final rutLimpio = _rutController.text.replaceAll('.', '').replaceAll('-', '');
     final fechaIngreso = DateFormat('yyyy-MM-dd/HH:mm').format(DateTime.now());
 
+    // ✅ Verificar si ya existe un empleado con ese RUT
+    final docRef = FirebaseFirestore.instance.collection('empleados').doc(rutLimpio);
+    final docSnapshot = await docRef.get();
+
+    if (docSnapshot.exists) {
+      // Mostrar aviso si el RUT ya está registrado
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Este RUT ya ha sido registrado')),
+      );
+      return; // detener la ejecución
+    }
+
+    // Si no existe, crear el nuevo empleado
     final empleado = {
       'nombres': _nombreController.text.trim(),
       'apellidos': _apellidoController.text.trim(),
@@ -96,7 +140,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
       'estado': 'activo',
     };
 
-    await FirebaseFirestore.instance.collection('empleados').doc(rutLimpio).set(empleado);
+    await docRef.set(empleado);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Empleado guardado correctamente')),
@@ -104,6 +148,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
 
     _formKey.currentState!.reset();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -161,12 +206,24 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
             const SizedBox(height: 6),
             TextFormField(
               controller: _rutController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9kK]')), // ✅ solo números y K/k
+                LengthLimitingTextInputFormatter(9), // ✅ máximo 9 caracteres
+              ],
               decoration: const InputDecoration(
                 hintText: '12.345.678-9',
                 border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
               ),
+              onChanged: _formatearRut, // ✅ formateo automático
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Ingrese el RUT';
+
+                final limpio = value.replaceAll('.', '').replaceAll('-', '');
+                if (limpio.length < 8 || limpio.length > 9) {
+                  return 'El RUT debe tener entre 8 y 9 dígitos';
+                }
+
                 if (!RegExp(r'^[0-9kK.-]+$').hasMatch(value)) {
                   return 'El RUT solo puede contener números y la letra K';
                 }
@@ -175,6 +232,10 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               },
             ),
             const SizedBox(height: 20),
+
+
+
+
 
             // --- Salario ---
             const Text('Salario (CLP)', style: TextStyle(fontWeight: FontWeight.w600)),
