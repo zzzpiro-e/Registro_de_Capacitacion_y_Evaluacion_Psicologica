@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'package:proyecto_flutter/app/routes/app_routes.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
+
+import 'firebase_options.dart';
+import 'package:proyecto_flutter/routes/app_routes.dart';
+import 'shared/widgets/connectivity_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔹 Inicializa Firebase
+  // Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // 🔹 Inicializa localización para español (Chile)
+  // Español Chile
   await initializeDateFormatting('es_CL', null);
 
   runApp(const MainApp());
@@ -27,24 +28,32 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Sistema RRHH',
-      initialRoute: AppRoutes.initialRoute,   // Ruta inicial: login
-      routes: AppRoutes.routes,               // Mapa de rutas definidas
-      onGenerateRoute: AppRoutes.onGenerateRoute, // Ruta de fallback (error)
-      // theme: MyTheme.myTheme,               // Si quieres agregar un tema global
+      title: 'Sistema RRHH - Ingeniería Civil Informática',
+
+      initialRoute: AppRoutes.initialRoute,
+      routes: AppRoutes.routes,
+      onGenerateRoute: AppRoutes.onGenerateRoute,
+
+      
+      builder: (context, child) {
+        return ConnectivityOverlay(
+          child: child!,
+        );
+      },
+
+      scrollBehavior: _NoOverscrollBehavior(),
     );
   }
 }
 
-Future<void> loginUser(String email, String password) async {
-  try {
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    // Si el login es correcto, navega al dashboard
-    print("Login exitoso");
-  } catch (e) {
-    print("Error al iniciar sesión: $e");
+/// Sin glow/overscroll
+class _NoOverscrollBehavior extends MaterialScrollBehavior {
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
   }
 }
