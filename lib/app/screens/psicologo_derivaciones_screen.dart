@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/derivaciones_services.dart'; 
 import 'psicologo_detalle_derivacion_screen.dart';
 
 class PsicologoDerivacionesScreen extends StatefulWidget {
@@ -9,12 +10,8 @@ class PsicologoDerivacionesScreen extends StatefulWidget {
 }
 
 class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScreen> {
-  // Mock Data Temporal
-  final List<Map<String, dynamic>> derivaciones = [
-    {'nombre': 'Carlos Rodríguez López', 'rut': '15.789.456-2', 'motivo': 'Estrés Laboral', 'estado': 'Pendiente', 'fecha': '18 Mayo 2026'},
-    {'nombre': 'Ana Martínez Silva', 'rut': '18.234.567-1', 'motivo': 'Agotamiento', 'estado': 'En Proceso', 'fecha': '15 Mayo 2026'},
-    {'nombre': 'Roberto Fernández', 'rut': '16.987.654-3', 'motivo': 'Conflicto de Equipo', 'estado': 'Completado', 'fecha': '10 Mayo 2026'},
-  ];
+  // Apuntamos directo a la base de datos compartida del servicio
+  final List<Map<String, dynamic>> _listaDerivaciones = DerivacionService.derivaciones;
 
   Color _colorEstado(String estado) {
     switch (estado) {
@@ -50,22 +47,21 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              itemCount: derivaciones.length,
+              itemCount: _listaDerivaciones.length,
               itemBuilder: (context, index) {
-                final derivacion = derivaciones[index];
+                final derivacion = _listaDerivaciones[index];
                 return InkWell(
                   onTap: () async {
-                    final nuevoEstado = await Navigator.push(
+                    // Esperamos el regreso de la pantalla de detalle
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => PsicologoDetalleDerivacionScreen(derivacion: derivacion),
                       ),
                     );
-                    if (nuevoEstado != null && nuevoEstado is String && nuevoEstado != derivacion['estado']) {
-                      setState(() {
-                        derivaciones[index]['estado'] = nuevoEstado;
-                      });
-                    }
+                    
+                    // Al volver, forzamos refresco local por si mutó el estado interno del objeto
+                    setState(() {});
                   },
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 14),

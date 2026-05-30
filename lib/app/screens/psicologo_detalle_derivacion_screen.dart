@@ -47,6 +47,7 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
   void _actualizarEstado(String nuevoEstado) {
     setState(() {
       _estadoActual = nuevoEstado;
+      widget.derivacion['estado'] = nuevoEstado; // Actualiza el estado en la derivación original
     });
     Navigator.pop(context); // Cierra el menú modal
     ScaffoldMessenger.of(context).showSnackBar(
@@ -169,6 +170,7 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
                     onPressed: () {
                       if (_estadoActual == 'Pendiente') {
                         setState(() => _estadoActual = 'En Proceso');
+                        widget.derivacion['estado'] = 'En Proceso'; // Actualiza el estado en la derivación original
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Atención iniciada con éxito'), backgroundColor: Color(0xFF2E7D32)),
                         );

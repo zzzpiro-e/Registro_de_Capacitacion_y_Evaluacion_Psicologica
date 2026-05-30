@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ContainerDashboardDos extends StatelessWidget {
   const ContainerDashboardDos({super.key});
@@ -10,16 +11,40 @@ class ContainerDashboardDos extends StatelessWidget {
       child: Column(
         children: [
           // --- Tarjeta 1: Total Empleados ---
-          InkWell(
-            onTap: () {
-              Navigator.pushNamed(context, 'empleados'); 
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('empleados').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return _buildStatCard(
+                  icon: Icons.groups_outlined,
+                  iconColor: const Color(0xFF2E7D32),
+                  title: 'Total Empleados',
+                  value: '...',
+                );
+              }
+              if (snapshot.hasError) {
+                return _buildStatCard(
+                  icon: Icons.groups_outlined,
+                  iconColor: const Color(0xFF2E7D32),
+                  title: 'Total Empleados',
+                  value: 'Error',
+                );
+              }
+
+              final total = snapshot.data?.docs.length ?? 0;
+
+              return InkWell(
+                onTap: () {
+                  Navigator.pushNamed(context, 'empleados');
+                },
+                child: _buildStatCard(
+                  icon: Icons.groups_outlined,
+                  iconColor: const Color(0xFF2E7D32),
+                  title: 'Total Empleados',
+                  value: total.toString(),
+                ),
+              );
             },
-            child: _buildStatCard(
-              icon: Icons.groups_outlined,
-              iconColor: const Color(0xFF2E7D32),
-              title: 'Total Empleados',
-              value: '47',
-            ),
           ),
           const SizedBox(height: 18),
 
@@ -32,7 +57,7 @@ class ContainerDashboardDos extends StatelessWidget {
               icon: Icons.school_outlined,
               iconColor: const Color(0xFFFF9800),
               title: 'Capacitaciones Pendientes',
-              value: '8',
+              value: '8', // aquí también puedes conectar a Firestore si lo tienes
             ),
           ),
           const SizedBox(height: 18),
@@ -42,7 +67,7 @@ class ContainerDashboardDos extends StatelessWidget {
             icon: Icons.check_circle_outline,
             iconColor: const Color(0xFF4CAF50),
             title: 'Capacitaciones Realizadas',
-            value: '23',
+            value: '23', // igual, puedes hacerlo dinámico
           ),
           const SizedBox(height: 36),
         ],
@@ -118,3 +143,4 @@ class ContainerDashboardDos extends StatelessWidget {
     );
   }
 }
+
