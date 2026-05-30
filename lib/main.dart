@@ -4,7 +4,7 @@ import 'firebase_options.dart';
 import 'package:proyecto_flutter/app/routes/app_routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
+//import 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
