@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../services/derivaciones_services.dart'; 
 
-class PsicologoDashboardScreen extends StatelessWidget {
+
+class PsicologoDashboardScreen extends StatefulWidget {
   const PsicologoDashboardScreen({super.key});
 
+  @override
+  State<PsicologoDashboardScreen> createState() => _PsicologoDashboardScreenState();
+}
+
+class _PsicologoDashboardScreenState extends State<PsicologoDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final currentDateRaw = DateFormat('EEEE, d MMMM yyyy', 'es_CL').format(DateTime.now());
@@ -34,7 +41,7 @@ class PsicologoDashboardScreen extends StatelessWidget {
             
             const SizedBox(height: 24),
 
-            // Contadores de estado
+            // Contadores de estado calculados dinámicamente
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
@@ -44,13 +51,32 @@ class PsicologoDashboardScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Expanded(child: _buildStatCard('Pendientes', '4', Icons.hourglass_empty, const Color(0xFFF57C00))),
+                      Expanded(
+                        child: _buildStatCard(
+                          'Pendientes', 
+                          '${DerivacionService.countPendientes}', 
+                          Icons.hourglass_empty, 
+                          const Color(0xFFF57C00)
+                        )
+                      ),
                       const SizedBox(width: 16),
-                      Expanded(child: _buildStatCard('En Proceso', '2', Icons.autorenew, const Color(0xFF1976D2))),
+                      Expanded(
+                        child: _buildStatCard(
+                          'En Proceso', 
+                          '${DerivacionService.countEnProceso}', 
+                          Icons.autorenew, 
+                          const Color(0xFF1976D2)
+                        )
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildStatCard('Atenciones Finalizadas', '15', Icons.check_circle_outline, const Color(0xFF4CAF50)),
+                  _buildStatCard(
+                    'Atenciones Finalizadas', 
+                    '${DerivacionService.countCompletados}', 
+                    Icons.check_circle_outline, 
+                    const Color(0xFF4CAF50)
+                  ),
                 ],
               ),
             ),
