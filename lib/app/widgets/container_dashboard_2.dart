@@ -14,25 +14,7 @@ class ContainerDashboardDos extends StatelessWidget {
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('empleados').snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _buildStatCard(
-                  icon: Icons.groups_outlined,
-                  iconColor: const Color(0xFF2E7D32),
-                  title: 'Total Empleados',
-                  value: '...',
-                );
-              }
-              if (snapshot.hasError) {
-                return _buildStatCard(
-                  icon: Icons.groups_outlined,
-                  iconColor: const Color(0xFF2E7D32),
-                  title: 'Total Empleados',
-                  value: 'Error',
-                );
-              }
-
-              final total = snapshot.data?.docs.length ?? 0;
-
+              final total = snapshot.hasData ? snapshot.data!.docs.length : 0;
               return InkWell(
                 onTap: () {
                   Navigator.pushNamed(context, 'empleados');
@@ -48,26 +30,81 @@ class ContainerDashboardDos extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          // --- Tarjeta 2: Capacitaciones Pendientes ---
-          InkWell(
-            onTap: () {
-              Navigator.pushNamed(context, 'capacitaciones');
-            },
-            child: _buildStatCard(
-              icon: Icons.school_outlined,
-              iconColor: const Color(0xFFFF9800),
-              title: 'Capacitaciones Pendientes',
-              value: '8', // aquí también puedes conectar a Firestore si lo tienes
-            ),
-          ),
-          const SizedBox(height: 18),
+          // --- Tarjetas de Capacitaciones ---
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('capacitaciones').snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return Column(
+                  children: [
+                    _buildStatCard(
+                      icon: Icons.school_outlined,
+                      iconColor: const Color(0xFFFF9800),
+                      title: 'Capacitaciones Pendientes',
+                      value: '...',
+                    ),
+                    const SizedBox(height: 18),
+                    _buildStatCard(
+                      icon: Icons.check_circle_outline,
+                      iconColor: const Color(0xFF4CAF50),
+                      title: 'Capacitaciones Realizadas',
+                      value: '...',
+                    ),
+                    const SizedBox(height: 18),
+                    _buildStatCard(
+                      icon: Icons.list_alt_outlined,
+                      iconColor: Colors.blueGrey,
+                      title: 'Capacitaciones Totales',
+                      value: '...',
+                    ),
+                  ],
+                );
+              }
 
-          // --- Tarjeta 3: Capacitaciones Realizadas ---
-          _buildStatCard(
-            icon: Icons.check_circle_outline,
-            iconColor: const Color(0xFF4CAF50),
-            title: 'Capacitaciones Realizadas',
-            value: '23', // igual, puedes hacerlo dinámico
+              final docs = snapshot.data!.docs;
+
+              final pendientes = docs.where((doc) {
+                final estado = (doc['estado'] ?? '').toString().trim().toLowerCase();
+                return estado == 'pendiente';
+              }).length;
+
+              final realizadas = docs.where((doc) {
+                final estado = (doc['estado'] ?? '').toString().trim().toLowerCase();
+                return estado == 'realizada';
+              }).length;
+
+              final totales = docs.length;
+
+              return Column(
+                children: [
+                  InkWell(
+                    onTap: () {
+                      Navigator.pushNamed(context, 'capacitaciones');
+                    },
+                    child: _buildStatCard(
+                      icon: Icons.school_outlined,
+                      iconColor: const Color(0xFFFF9800),
+                      title: 'Capacitaciones Pendientes',
+                      value: pendientes.toString(),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _buildStatCard(
+                    icon: Icons.check_circle_outline,
+                    iconColor: const Color(0xFF4CAF50),
+                    title: 'Capacitaciones Realizadas',
+                    value: realizadas.toString(),
+                  ),
+                  const SizedBox(height: 18),
+                  _buildStatCard(
+                    icon: Icons.list_alt_outlined,
+                    iconColor: Colors.blueGrey,
+                    title: 'Capacitaciones Totales',
+                    value: totales.toString(),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 36),
         ],
@@ -97,7 +134,6 @@ class ContainerDashboardDos extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Ícono
           Container(
             width: 64,
             height: 64,
@@ -105,36 +141,26 @@ class ContainerDashboardDos extends StatelessWidget {
               color: iconColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 36,
-            ),
+            child: Icon(icon, color: iconColor, size: 36),
           ),
           const SizedBox(width: 20),
-
-          // Texto
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: iconColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Text(title,
+                    style: TextStyle(
+                      color: iconColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    )),
                 const SizedBox(height: 6),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
+                Text(value,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    )),
               ],
             ),
           ),
@@ -143,4 +169,3 @@ class ContainerDashboardDos extends StatelessWidget {
     );
   }
 }
-

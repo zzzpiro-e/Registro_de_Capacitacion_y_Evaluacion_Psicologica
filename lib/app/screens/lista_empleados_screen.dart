@@ -40,10 +40,11 @@ class _ListaEmpleadosPageState extends State<ListaEmpleadosPage> {
                     return const Center(child: Text("No hay empleados registrados"));
                   }
 
-                  // Convertimos documentos en mapas
+                  // Convertimos documentos en mapas con el ID incluido
                   final empleados = snapshot.data!.docs.map((doc) {
                     final data = doc.data() as Map<String, dynamic>;
                     return {
+                      'id': doc.id, // 🔹 ID del documento
                       'nombres': data['nombres'] ?? '',
                       'apellidos': data['apellidos'] ?? '',
                       'rut': data['rut'] ?? '',
