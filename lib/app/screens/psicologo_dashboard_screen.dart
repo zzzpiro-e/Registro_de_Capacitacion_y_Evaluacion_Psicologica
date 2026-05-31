@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/derivaciones_services.dart'; 
 
-
 class PsicologoDashboardScreen extends StatefulWidget {
   const PsicologoDashboardScreen({super.key});
 
@@ -41,7 +40,7 @@ class _PsicologoDashboardScreenState extends State<PsicologoDashboardScreen> {
             
             const SizedBox(height: 24),
 
-            // Contadores de estado calculados dinámicamente
+            // Contadores de estado vinculados en tiempo real a Firebase
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
@@ -49,33 +48,68 @@ class _PsicologoDashboardScreenState extends State<PsicologoDashboardScreen> {
                 children: [
                   const Text('Resumen de Casos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF202124))),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          'Pendientes', 
-                          '${DerivacionService.countPendientes}', 
-                          Icons.hourglass_empty, 
-                          const Color(0xFFF57C00)
-                        )
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildStatCard(
-                          'En Proceso', 
-                          '${DerivacionService.countEnProceso}', 
-                          Icons.autorenew, 
-                          const Color(0xFF1976D2)
-                        )
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildStatCard(
-                    'Atenciones Finalizadas', 
-                    '${DerivacionService.countCompletados}', 
-                    Icons.check_circle_outline, 
-                    const Color(0xFF4CAF50)
+                  
+                  StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: DerivacionService.obtenerDerivacionesPorPsicologo('psicologo@empresa.cl'), // Filtramos por el correo de la base de datos
+                    builder: (context, snapshot) {
+                      // 1. Mientras conecta a Firebase, mostramos un cargador sutil
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(child: CircularProgressIndicator(color: Color(0xFF388E3C))),
+                        );
+                      }
+
+                      // Valores iniciales por defecto si no hay datos o la colección está vacía
+                      int pendientes = 0;
+                      int enProceso = 0;
+                      int finalizadas = 0;
+
+                      // 2. Si hay datos reales, calculamos las cantidades filtrando la lista por 'estado'
+                      if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                        final listaDerivaciones = snapshot.data!;
+                        
+                        // Filtramos las derivaciones contando cuántas corresponden a cada estado
+                        // (Asegúrate de que coincida con los textos que asigne tu app, ej: "Pendiente", "En Proceso", "Completado")
+                        pendientes = listaDerivaciones.where((d) => d['estado'] == 'Pendiente').length;
+                        enProceso = listaDerivaciones.where((d) => d['estado'] == 'En Proceso').length;
+                        finalizadas = listaDerivaciones.where((d) => d['estado'] == 'Completado').length;
+                      }
+
+                      // 3. Pintamos las tarjetas con los datos reales calculados al vuelo
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatCard(
+                                  'Pendientes', 
+                                  '$pendientes', 
+                                  Icons.hourglass_empty, 
+                                  const Color(0xFFF57C00)
+                                )
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildStatCard(
+                                  'En Proceso', 
+                                  '$enProceso', 
+                                  Icons.autorenew, 
+                                  const Color(0xFF1976D2)
+                                )
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _buildStatCard(
+                            'Atenciones Finalizadas', 
+                            '$finalizadas', 
+                            Icons.check_circle_outline, 
+                            const Color(0xFF4CAF50)
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),

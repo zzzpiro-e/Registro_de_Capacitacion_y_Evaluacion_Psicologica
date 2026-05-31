@@ -10,8 +10,8 @@ class PsicologoDerivacionesScreen extends StatefulWidget {
 }
 
 class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScreen> {
-  // Apuntamos directo a la base de datos compartida del servicio
-  final List<Map<String, dynamic>> _listaDerivaciones = DerivacionService.derivaciones;
+  // MODIFICACIÓN: Se elimina la lista estática en memoria que causaba errores de compilación, 
+  // delegando la persistencia y lectura directamente al canal de Streams de Cloud Firestore.
 
   Color _colorEstado(String estado) {
     switch (estado) {
@@ -44,64 +44,91 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
           ),
           const SizedBox(height: 10),
           
+          // MODIFICACIÓN: Inyección de StreamBuilder para escuchar de manera reactiva y en tiempo real
+          // las mutaciones y nuevos documentos de la base de datos compartida por el psicólogo asignado.
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              itemCount: _listaDerivaciones.length,
-              itemBuilder: (context, index) {
-                final derivacion = _listaDerivaciones[index];
-                return InkWell(
-                  onTap: () async {
-                    // Esperamos el regreso de la pantalla de detalle
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PsicologoDetalleDerivacionScreen(derivacion: derivacion),
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: DerivacionService.obtenerDerivacionesPorPsicologo('psicologo@empresa.cl'),
+              builder: (context, snapshot) {
+                // Indicador de carga asíncrona mientras se establece la conexión con Firebase
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+                  );
+                }
+
+                // Manejo de estado vacío en la interfaz de usuario si no existen registros asignados
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No registras derivaciones activas.',
+                      style: TextStyle(fontSize: 16, color: Colors.black45),
+                    ),
+                  );
+                }
+
+                final listaDerivaciones = snapshot.data!;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  itemCount: listaDerivaciones.length,
+                  itemBuilder: (context, index) {
+                    final derivacion = listaDerivaciones[index];
+                    return InkWell(
+                      onTap: () async {
+                        // Navegación a la pantalla de detalle enviando la estructura del documento actual
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PsicologoDetalleDerivacionScreen(derivacion: derivacion),
+                          ),
+                        );
+                        
+                        // NOTA: El setState local se mantiene de forma segura por arquitectura de ciclo de vida,
+                        // aunque la reactividad principal ahora la maneja automáticamente el flujo del StreamBuilder.
+                        setState(() {});
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(50)),
+                              child: const Icon(Icons.person_outline, color: Color(0xFF2E7D32), size: 28),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(derivacion['nombre'] ?? 'Empleado Desconocido', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                  const SizedBox(height: 4),
+                                  Text("Motivo: ${derivacion['motivo'] ?? 'Sin motivo asignado'}", style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                                  const SizedBox(height: 4),
+                                  Text(derivacion['fecha'] ?? '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(color: _colorEstado(derivacion['estado'] ?? 'Pendiente'), borderRadius: BorderRadius.circular(20)),
+                              child: Text(
+                                derivacion['estado'] ?? 'Pendiente',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _colorTextoEstado(derivacion['estado'] ?? 'Pendiente')),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
-                    
-                    // Al volver, forzamos refresco local por si mutó el estado interno del objeto
-                    setState(() {});
                   },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(50)),
-                          child: const Icon(Icons.person_outline, color: Color(0xFF2E7D32), size: 28),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(derivacion['nombre'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
-                              const SizedBox(height: 4),
-                              Text("Motivo: ${derivacion['motivo']}", style: const TextStyle(fontSize: 14, color: Colors.black54)),
-                              const SizedBox(height: 4),
-                              Text(derivacion['fecha'], style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(color: _colorEstado(derivacion['estado']), borderRadius: BorderRadius.circular(20)),
-                          child: Text(
-                            derivacion['estado'],
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _colorTextoEstado(derivacion['estado'])),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 );
               },
             ),
