@@ -4,6 +4,7 @@ import 'firebase_options.dart';
 import 'package:proyecto_flutter/app/routes/app_routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:proyecto_flutter/app/widgets/container_auth_guardian.dart';
 //import 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
 
 void main() async {
@@ -28,7 +29,7 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Sistema RRHH',
-      initialRoute: AppRoutes.initialRoute,   // Ruta inicial: login
+      home: const ContainerAuthGuardian(),   // Ruta inicial: login
       routes: AppRoutes.routes,               // Mapa de rutas definidas
       onGenerateRoute: AppRoutes.onGenerateRoute, // Ruta de fallback (error)
       // theme: MyTheme.myTheme,               // Si quieres agregar un tema global

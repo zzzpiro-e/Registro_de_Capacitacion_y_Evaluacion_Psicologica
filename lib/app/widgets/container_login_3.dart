@@ -79,36 +79,29 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
     }
 
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      UserCredential credencialUsuario = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      User? user = userCredential.user;
-
-      if (user != null) {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('usuarios') 
-            .doc(user.uid)
+      User? usuario = credencialUsuario.user;
+      if (usuario != null && mounted) {
+        DocumentSnapshot documentoUsuario = await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(usuario.uid)
             .get();
 
-        if (userDoc.exists && userDoc.data() != null) {
-          Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-          String role = userData['rol'] ?? userData['role'] ?? ''; 
+        if (documentoUsuario.exists && documentoUsuario.data() != null && mounted) {
+          Map<String, dynamic> datosUsuario = documentoUsuario.data() as Map<String, dynamic>;
+          String rol = (datosUsuario['rol'] ?? datosUsuario['role'] ?? '').toString().toLowerCase();
 
-          if (role == 'psicologo') {
+          if (rol == 'psicologo') {
             Navigator.pushReplacementNamed(context, 'psicologo_main');
-          } else if (role == 'rrhh') {
-            Navigator.pushReplacementNamed(context, 'main'); 
-          } else if (role == 'admin') {
-            Navigator.pushReplacementNamed(context, 'admin_main'); 
+          } else if (rol == 'admin') {
+            Navigator.pushReplacementNamed(context, 'admin_main');
           } else {
-            Navigator.pushReplacementNamed(context, 'main'); 
+            Navigator.pushReplacementNamed(context, 'main');
           }
-        } else {
-          setState(() {
-            passwordError = "Error: No se encontró el perfil de usuario.";
-          });
         }
       }
 
@@ -134,9 +127,11 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
         }
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
