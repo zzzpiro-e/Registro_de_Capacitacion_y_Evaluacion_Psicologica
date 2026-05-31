@@ -12,21 +12,22 @@ class CrearBurbujas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const Color verdePrincipal = Color(0xFF2E7D32);
+
     return Positioned(
-      // 🔹 justo encima del botón "Crear" (último a la derecha)
       bottom: 80,
       right: 20,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           _bubbleButton(
-            iconColor: const Color(0xFF2E7D32), // verde
+            iconColor: verdePrincipal,
             label: 'Empleado',
             onTap: onCrearEmpleado,
           ),
           const SizedBox(height: 12),
           _bubbleButton(
-            iconColor: Colors.orange, // naranjo
+            iconColor: verdePrincipal,
             label: 'Capacitación',
             onTap: onCrearCapacitacion,
           ),
@@ -46,7 +47,7 @@ class CrearBurbujas extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white, // 🔹 fondo blanco
+          color: Colors.white,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
@@ -59,14 +60,11 @@ class CrearBurbujas extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add, color: iconColor, size: 24), // 🔹 ícono "+"
+            Icon(Icons.add, color: iconColor, size: 24),
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                color: iconColor,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: iconColor, fontWeight: FontWeight.w600),
             ),
           ],
         ),

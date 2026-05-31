@@ -9,13 +9,16 @@ class DashboardPage extends StatelessWidget {
     // Ya no lleva Scaffold aquí, porque el Scaffold principal con el fondo y la barra está en MainScreen
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 20), // Bajamos el padding ya que la barra no empuja tanto
+        padding: const EdgeInsets.only(
+          bottom: 20,
+        ), // Bajamos el padding ya que la barra no empuja tanto
         child: Column(
           children: const [
-            ContainerDashboardUno(), // Encabezado con fecha y saludo
+            ContainerDashboardUno(),
             SizedBox(height: 16),
-            ContainerDashboardDos(), // Tarjetas de estadísticas
-            SizedBox(height: 16), // Accesos rápidos
+            ContainerDashboardDos(),
+            SizedBox(height: 16),
+            ContainerDashboardTres(),
           ],
         ),
       ),

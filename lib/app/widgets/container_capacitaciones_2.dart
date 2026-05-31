@@ -5,15 +5,17 @@ class ContainerCapacitacionesDos extends StatelessWidget {
   const ContainerCapacitacionesDos({super.key});
 
   Future<Map<String, int>> _obtenerConteoCapacitaciones() async {
-    final snapshot = await FirebaseFirestore.instance.collection('capacitaciones').get();
+    final snapshot = await FirebaseFirestore.instance
+        .collection('capacitaciones')
+        .get();
 
     int pendientes = 0;
     int realizadas = 0;
 
     for (var doc in snapshot.docs) {
       final estado = (doc['estado'] ?? '').toString().trim().toLowerCase();
-        if (estado == 'pendiente') pendientes++;
-        if (estado == 'realizada') realizadas++;
+      if (estado == 'pendiente') pendientes++;
+      if (estado == 'realizada') realizadas++;
     }
 
     return {
@@ -33,28 +35,41 @@ class ContainerCapacitacionesDos extends StatelessWidget {
         }
 
         final data = snapshot.data!;
+
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Column(
-            mainAxisSize: MainAxisSize.min, // 🔹 evita overflow
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // 🔹 Fila superior: Pendientes y Realizadas
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: _buildCard('Pendientes', data['pendientes']!, Colors.orange),
+                    child: _buildCard(
+                      'Pendientes',
+                      data['pendientes']!,
+                      Colors.orange,
+                      Icons.schedule,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _buildCard('Realizadas', data['realizadas']!, const Color(0xFF2E7D32)),
+                    child: _buildCard(
+                      'Realizadas',
+                      data['realizadas']!,
+                      const Color(0xFF2E7D32),
+                      Icons.check_circle,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-
-              // 🔹 Fila inferior: Totales (ancho completo)
-              _buildCard('Totales', data['totales']!, Colors.blueGrey, fullWidth: true),
+              _buildCard(
+                'Totales',
+                data['totales']!,
+                const Color(0xFF2E7D32),
+                Icons.school,
+                fullWidth: true,
+              ),
             ],
           ),
         );
@@ -62,38 +77,66 @@ class ContainerCapacitacionesDos extends StatelessWidget {
     );
   }
 
-  Widget _buildCard(String titulo, int cantidad, Color color, {bool fullWidth = false}) {
+  Widget _buildCard(
+    String titulo,
+    int cantidad,
+    Color color,
+    IconData icono, {
+    bool fullWidth = false,
+  }) {
     return Container(
-      height: 80,
+      height: 90,
       width: fullWidth ? double.infinity : null,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, 2)),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
         ],
       ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center, // 🔹 centra verticalmente
+      child: Row(
         children: [
-          Text(
-            titulo,
-            style: const TextStyle(
-              color: Color(0xFF2E7D32),
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(icono, color: color, size: 24),
           ),
-          const SizedBox(height: 4),
-          Text(
-            cantidad.toString(),
-            style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2E7D32),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  cantidad.toString(),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2E7D32),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 }
-

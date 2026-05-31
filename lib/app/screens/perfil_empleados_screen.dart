@@ -7,7 +7,7 @@ class PerfilEmpleadoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 Recibir el ID del empleado enviado desde la lista
+    // Recibir el ID del empleado enviado desde la lista
     final empleadoId = ModalRoute.of(context)!.settings.arguments as String;
 
     return Scaffold(
@@ -18,29 +18,35 @@ class PerfilEmpleadoScreen extends StatelessWidget {
           child: Column(
             children: [
               const ContainerPerfilEmpleadoUno(),
+
               const SizedBox(height: 16),
 
-              // 🔹 Datos personales y laborales desde Firestore
+              // Datos personales y laborales
               ContainerPerfilEmpleadoDos(empleadoId: empleadoId),
 
               const SizedBox(height: 16),
 
-              // 🔹 Perfil Psicológico debajo del recuadro de datos
+              // Perfil psicológico
               ContainerPerfilEmpleadoTres(empleadoId: empleadoId),
+
+              const SizedBox(height: 16),
+
+              // Historial de capacitaciones
+              ContainerPerfilEmpleadoCuatro(empleadoId: empleadoId),
+
+              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
 
-      // 🔹 Aquí va tu barra de navegación personalizada
       bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: 1, // índice que corresponde a "Empleados"
+        currentIndex: 1,
         onTap: (index) {
-          // lógica de navegación según el índice
           if (index == 0) {
             Navigator.pushNamed(context, '/dashboard');
           } else if (index == 1) {
-            // ya estás en empleados, puedes dejarlo vacío
+            // Ya estamos en empleados
           } else if (index == 2) {
             Navigator.pushNamed(context, '/crear');
           } else if (index == 3) {
