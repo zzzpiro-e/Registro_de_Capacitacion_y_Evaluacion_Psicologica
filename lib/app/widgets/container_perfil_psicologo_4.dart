@@ -10,13 +10,13 @@ class ContainerPerfilPsicologoCuatro extends StatelessWidget {
       width: double.infinity,
       height: 54,
       child: ElevatedButton.icon(
-        // 🔹 1. Transformamos la función a asíncrona (async)
+        // Transformamos la función a asíncrona
         onPressed: () async {
           
-          // 🔹 2. Forzamos el cierre de sesión real en los servidores y la caché local
+          // Forzamos el cierre de sesión real en los servidores y la caché local
           await FirebaseAuth.instance.signOut();
 
-          // 🔹 3. Limpiamos TODA la pila de navegación para que no queden rastros en memoria
+          // Limpiamos TODA la pila de navegación para que no queden rastros en memoria
           if (context.mounted) {
             Navigator.of(context).pushNamedAndRemoveUntil('login', (route) => false);
           }
