@@ -22,7 +22,7 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
             Navigator.pushNamed(
               context,
               'perfil_empleado',
-              arguments: empleado,
+              arguments: empleado['id'], // ✅ ahora pasamos solo el ID
             );
           },
           child: Container(

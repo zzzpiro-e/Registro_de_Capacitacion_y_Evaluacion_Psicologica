@@ -8,26 +8,24 @@ import '../screens/main_screen.dart';
 import '../screens/psicologo_main_screen.dart';
 import 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
 import 'package:proyecto_flutter/app/screens/create_worker_screen.dart';
+import 'package:proyecto_flutter/app/screens/crear_empleado_screens.dart';
+import 'package:proyecto_flutter/app/screens/capacitaciones_screen.dart';
+import 'package:proyecto_flutter/app/screens/perfil_rrhh_screens.dart';
 import 'package:proyecto_flutter/app/widgets/container_validador_rol.dart';
-// import '../screens/capacitaciones_screen.dart';
-// import '../screens/crear_screen.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
 
   static Map<String, Widget Function(BuildContext)> routes = {
     'login': (BuildContext context) => const LoginScreen(),
-    // Validar acceso a modulo rrhh solo si el rol es rrhh
     'main': (BuildContext context) => const ContainerRoleValidador(
           rolRequerido: 'rrhh',
           child: MainScreen(),
         ),
-    // Validar acceso a modulo admin solo si el rol es admin
     'admin_main': (BuildContext context) => const ContainerRoleValidador(
           rolRequerido: 'admin',
           child: AdminMainScreen(),
         ),
-    // Validar acceso a modulo psicologo solo si el rol es psicologo
     'psicologo_main': (BuildContext context) => const ContainerRoleValidador(
           rolRequerido: 'psicologo',
           child: PsicologoMainScreen(),
@@ -36,6 +34,9 @@ class AppRoutes {
     'empleados': (BuildContext context) => const ListaEmpleadosPage(),
     'perfil_empleado': (BuildContext context) => const PerfilEmpleadoScreen(),
     'create_worker': (context) => const CreateWorkerScreen(), 
+    'crear_empleado': (context) => const CrearEmpleadoScreen(),
+    'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
+    'perfil_rrhh': (BuildContext context) => const PerfilRRHHScreen(),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
