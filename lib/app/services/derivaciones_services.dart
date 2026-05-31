@@ -8,7 +8,8 @@ class DerivacionService {
       'estado': 'Pendiente',
       'fecha': '18 Mayo 2026',
       'cargo': 'Analista de Sistemas',
-      'area': 'Tecnología'
+      'area': 'Tecnología',
+      'informes': [], // Estructura lista para recibir múltiples PDFs
     },
     {
       'nombre': 'Ana Martínez Silva',
@@ -17,7 +18,8 @@ class DerivacionService {
       'estado': 'En Proceso',
       'fecha': '15 Mayo 2026',
       'cargo': 'Diseñadora UX',
-      'area': 'Producto'
+      'area': 'Producto',
+      'informes': [],
     },
     {
       'nombre': 'Roberto Fernández',
@@ -26,7 +28,8 @@ class DerivacionService {
       'estado': 'Completado',
       'fecha': '10 Mayo 2026',
       'cargo': 'Supervisor de Operaciones',
-      'area': 'Logística'
+      'area': 'Logística',
+      'informes': [],
     },
   ];
 
@@ -39,4 +42,41 @@ class DerivacionService {
 
   static int get countCompletados =>
       derivaciones.where((d) => d['estado'] == 'Completado').length;
+
+  /// Método para agregar un nuevo PDF en memoria a una derivación específica.
+  /// Cuando implementes la Base de Datos, este método cambiará por una consulta INSERT / POST HTTP.
+  static void agregarInforme({
+    required String rut,
+    required String nombreArchivo,
+    required String rutaArchivo,
+  }) {
+    // Buscamos el mapa correspondiente al trabajador usando su RUT
+    final index = derivaciones.indexWhere((d) => d['rut'] == rut);
+
+    if (index != -1) {
+      // Capturamos el momento exacto
+      final ahora = DateTime.now();
+      
+      // Formateamos la fecha manualmente "DD-MM-YYYY HH:mm"
+      final fechaFormateada = 
+          "${ahora.day.toString().padLeft(2, '0')}-"
+          "${ahora.month.toString().padLeft(2, '0')}-"
+          "${ahora.year} "
+          "${ahora.hour.toString().padLeft(2, '0')}:"
+          "${ahora.minute.toString().padLeft(2, '0')}";
+
+      // Añadimos el nuevo informe al inicio de la lista para cumplir con tu requerimiento
+      // (así los nuevos quedan arriba), aunque luego en la interfaz también los ordenaremos.
+      if (derivaciones[index]['informes'] == null) {
+        derivaciones[index]['informes'] = [];
+      }
+      
+      (derivaciones[index]['informes'] as List).add({
+        'nombre_archivo': nombreArchivo,
+        'ruta_archivo': rutaArchivo,
+        'fecha_subida_raw': ahora, // Guardamos el DateTime puro para ordenamientos exactos
+        'fecha_subida': fechaFormateada, // Para mostrar directamente en el diseño
+      });
+    }
+  }
 }

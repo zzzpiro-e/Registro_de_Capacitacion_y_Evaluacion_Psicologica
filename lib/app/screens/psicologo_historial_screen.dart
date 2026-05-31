@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/derivaciones_services.dart'; // Apuntamos a nuestra única fuente de verdad
 import '../widgets/container_historial_card.dart';
 import '../widgets/container_historial_buscador.dart';
 import '../widgets/container_historial_contador.dart';
@@ -13,36 +14,14 @@ class PsicologoHistorialScreen extends StatefulWidget {
 class _PsicologoHistorialScreenState extends State<PsicologoHistorialScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  // Origen de datos estático del historial clínico
-  final List<Map<String, dynamic>> _historialInformes = [
-    {
-      'nombre': 'María González Pérez',
-      'rut': '12.345.678-9',
-      'motivo': 'Evaluación de estrés laboral',
-      'fecha': '19-05-2026',
-    },
-    {
-      'nombre': 'Carlos Rodríguez Silva',
-      'rut': '18.765.432-1',
-      'motivo': 'Conflicto interpersonal',
-      'fecha': '14-05-2026',
-    },
-    {
-      'nombre': 'Ana Martínez López',
-      'rut': '15.987.654-3',
-      'motivo': 'Adaptación a nuevo cargo',
-      'fecha': '09-05-2026',
-    },
-  ];
-
   // Estado que almacena la lista filtrada tras la búsqueda
   List<Map<String, dynamic>> _informesFiltrados = [];
 
   @override
   void initState() {
     super.initState();
-    // Inicialización del estado con el listado completo de informes
-    _informesFiltrados = _historialInformes;
+    // Leemos directamente del servicio compartido para que la data sea consistente en toda la app
+    _informesFiltrados = DerivacionService.derivaciones;
   }
 
   @override
@@ -51,9 +30,9 @@ class _PsicologoHistorialScreenState extends State<PsicologoHistorialScreen> {
     super.dispose();
   }
 
-  // Filtrado lógico de elementos mediante comparación de cadenas de texto
+  // Filtrado lógico de elementos apuntando al servicio global
   void _filtrarInformes(String query) {
-    final resultados = _historialInformes.where((informe) {
+    final resultados = DerivacionService.derivaciones.where((informe) {
       final nombre = (informe['nombre'] ?? '').toString().toLowerCase();
       final rut = (informe['rut'] ?? '').toString().toLowerCase();
       final motivo = (informe['motivo'] ?? '').toString().toLowerCase();
@@ -69,6 +48,11 @@ class _PsicologoHistorialScreenState extends State<PsicologoHistorialScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Truco: Si el buscador está vacío, volvemos a capturar el estado global actualizado por si se subió un nuevo PDF
+    if (_searchController.text.isEmpty) {
+      _informesFiltrados = DerivacionService.derivaciones;
+    }
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
