@@ -11,6 +11,7 @@ import 'package:proyecto_flutter/app/screens/create_worker_screen.dart';
 import 'package:proyecto_flutter/app/screens/crear_empleado_screens.dart';
 //import 'package:proyecto_flutter/app/screens/crear_capacitacion_screens.dart';
 import 'package:proyecto_flutter/app/screens/capacitaciones_screen.dart';
+import 'package:proyecto_flutter/app/screens/perfil_rrhh_screens.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
@@ -27,6 +28,7 @@ class AppRoutes {
     'crear_empleado': (context) => const CrearEmpleadoScreen(),
     //'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
     'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
+    'perfil_rrhh': (BuildContext context) => const PerfilRRHHScreen(),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
