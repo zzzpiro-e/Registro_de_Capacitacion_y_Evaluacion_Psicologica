@@ -102,6 +102,14 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
           } else {
             Navigator.pushReplacementNamed(context, 'main');
           }
+        } else {
+          if (emailController.text.trim() == 'admin@empresa.cl' && mounted) {
+            Navigator.pushReplacementNamed(context, 'admin_main');
+          } else {
+            setState(() {
+              passwordError = "Error: No se encontró el perfil en la base de datos de usuarios.";
+            });
+          }
         }
       }
 
@@ -111,10 +119,8 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
         _attempts++; 
         switch (e.code) {
           case 'user-not-found':
-            emailError = "Error al iniciar sesión: credenciales no existen";
-            break;
           case 'wrong-password':
-            passwordError = "Error al iniciar sesión: contraseña incorrecta";
+            passwordError = "Error al iniciar sesión: credenciales incorrectas o no existen";
             break;
           case 'invalid-email':
             emailError = "Formato de correo inválido";
@@ -125,6 +131,10 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
           default:
             passwordError = "Error al iniciar sesión: credenciales no existen o son inválidas";
         }
+      });
+    } catch (e) {
+      setState(() {
+        passwordError = "Error inesperado: $e";
       });
     } finally {
       if (mounted) {
