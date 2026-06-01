@@ -5,7 +5,7 @@ export 'package:proyecto_flutter/app/screens/lista_empleados_screen.dart';
 export 'package:proyecto_flutter/app/screens/perfil_empleados_screen.dart';
 export 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
 export 'package:proyecto_flutter/app/screens/capacitaciones_screen.dart';
-export 'package:proyecto_flutter/app/screens/create_worker_screen.dart';
+//export 'package:proyecto_flutter/app/screens/create_worker_screen.dart';
 export 'package:proyecto_flutter/app/screens/crear_empleado_screens.dart';
 export 'package:proyecto_flutter/app/screens/main_screen.dart';
 export 'package:proyecto_flutter/app/screens/psicologo_dashboard_screen.dart';
