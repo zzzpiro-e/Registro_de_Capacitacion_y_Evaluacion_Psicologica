@@ -20,67 +20,139 @@ class _ContainerCrearCapacitacionDosState
   final _tipoController = TextEditingController();
 
   bool _asignarATodos = false;
+  bool _isLoading = false;
+  bool _formValido = false;
 
-  Future<void> _guardarCapacitacion() async {
-    if (!_formKey.currentState!.validate()) return;
+  String _rutLimpio = '';
+
+  // =========================
+  // FORMATO RUT CHILENO REAL
+  // xx.xxx.xxx-x
+  // =========================
+  String _formatearRut(String input) {
+    final clean = input.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
+
+    if (clean.isEmpty) {
+      _rutLimpio = '';
+      return '';
+    }
+
+    String cuerpo;
+    String dv = '';
+
+    if (clean.length > 1) {
+      cuerpo = clean.substring(0, clean.length - 1);
+      dv = clean.substring(clean.length - 1);
+    } else {
+      cuerpo = clean;
+    }
+
+    String formatted = '';
+    int count = 0;
+
+    for (int i = cuerpo.length - 1; i >= 0; i--) {
+      formatted = cuerpo[i] + formatted;
+      count++;
+
+      if (count == 3 && i != 0) {
+        formatted = '.$formatted';
+        count = 0;
+      }
+    }
+
+    if (dv.isNotEmpty) {
+      formatted = '$formatted-$dv';
+    }
+
+    _rutLimpio = clean;
+
+    return formatted;
+  }
+
+  // =========================
+  // VALIDACIÓN DUPLICADO TITULO
+  // =========================
+  Future<bool> _existeTitulo(String titulo) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('capacitaciones')
+        .doc(titulo)
+        .get();
+
+    return doc.exists;
+  }
+
+  void _actualizarEstado() {
+    final valido =
+        _tituloController.text.trim().length >= 3 &&
+        _descripcionController.text.trim().length >= 5 &&
+        _institucionController.text.trim().length >= 3 &&
+        _tipoController.text.trim().length >= 3 &&
+        (_asignarATodos || _rutLimpio.length >= 7);
+
+    setState(() {
+      _formValido = valido;
+    });
+  }
+
+  Future<void> _guardar() async {
+    if (!_formValido) return;
+
+    setState(() => _isLoading = true);
 
     try {
+      final titulo = _tituloController.text.trim();
+
+      final existe = await _existeTitulo(titulo);
+
+      if (existe) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ya existe una capacitación con ese nombre'),
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
       List<String> empleadosAsignados = [];
 
       if (_asignarATodos) {
-        final empleadosSnapshot = await FirebaseFirestore.instance
-            .collection('empleados')
-            .get();
+        final snapshot =
+            await FirebaseFirestore.instance.collection('empleados').get();
 
-        empleadosAsignados = empleadosSnapshot.docs
-            .map((doc) => doc.id)
-            .toList();
+        empleadosAsignados = snapshot.docs.map((e) => e.id).toList();
       } else {
-        final rutIngresado = _empleadosAsignadosController.text.trim();
-
-        final empleadoDoc = await FirebaseFirestore.instance
+        final doc = await FirebaseFirestore.instance
             .collection('empleados')
-            .doc(rutIngresado)
+            .doc(_rutLimpio)
             .get();
 
-        if (!empleadoDoc.exists) {
+        if (!doc.exists) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('El RUT ingresado no existe en la base de datos'),
-            ),
+            const SnackBar(content: Text('El RUT no existe')),
           );
+          setState(() => _isLoading = false);
           return;
         }
 
-        empleadosAsignados.add(rutIngresado);
+        empleadosAsignados.add(_rutLimpio);
       }
-
-      final titulo = _tituloController.text.trim();
 
       await FirebaseFirestore.instance
           .collection('capacitaciones')
           .doc(titulo)
           .set({
-            'titulo': titulo,
-            'descripcion': _descripcionController.text.trim(),
-            'institucion': _institucionController.text.trim(),
-
-            'empleadosAsignados': empleadosAsignados,
-
-            'empleadosRealizaron': <String>[],
-
-            'tipo': _tipoController.text.trim(),
-
-            'estado': 'pendiente',
-
-            'fechaInicio': Timestamp.now(),
-            'fechaFin': Timestamp.now(),
-            'fechaRegistro': Timestamp.now(),
-          });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Capacitación guardada correctamente')),
-      );
+        'titulo': titulo,
+        'descripcion': _descripcionController.text.trim(),
+        'institucion': _institucionController.text.trim(),
+        'empleadosAsignados': empleadosAsignados,
+        'empleadosRealizaron': <String>[],
+        'tipo': _tipoController.text.trim(),
+        'estado': 'pendiente',
+        'fechaInicio': Timestamp.now(),
+        'fechaFin': Timestamp.now(),
+        'fechaRegistro': Timestamp.now(),
+      });
 
       _tituloController.clear();
       _descripcionController.clear();
@@ -90,12 +162,31 @@ class _ContainerCrearCapacitacionDosState
 
       setState(() {
         _asignarATodos = false;
+        _rutLimpio = '';
+        _isLoading = false;
+        _formValido = false;
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Capacitación guardada')),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
+      setState(() => _isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _tituloController.addListener(_actualizarEstado);
+    _descripcionController.addListener(_actualizarEstado);
+    _institucionController.addListener(_actualizarEstado);
+    _tipoController.addListener(_actualizarEstado);
   }
 
   @override
@@ -117,8 +208,8 @@ class _ContainerCrearCapacitacionDosState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Título ---
-            const Text('Título', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('Título',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _tituloController,
@@ -128,9 +219,9 @@ class _ContainerCrearCapacitacionDosState
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Ingrese el título';
+              validator: (v) {
+                if (v == null || v.trim().length < 3) {
+                  return 'Mínimo 3 caracteres';
                 }
                 return null;
               },
@@ -138,11 +229,8 @@ class _ContainerCrearCapacitacionDosState
 
             const SizedBox(height: 20),
 
-            // --- Descripción ---
-            const Text(
-              'Descripción',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            const Text('Descripción',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _descripcionController,
@@ -153,9 +241,9 @@ class _ContainerCrearCapacitacionDosState
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Ingrese la descripción';
+              validator: (v) {
+                if (v == null || v.trim().length < 5) {
+                  return 'Mínimo 5 caracteres';
                 }
                 return null;
               },
@@ -163,11 +251,8 @@ class _ContainerCrearCapacitacionDosState
 
             const SizedBox(height: 20),
 
-            // --- Institución ---
-            const Text(
-              'Institución',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            const Text('Institución',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _institucionController,
@@ -177,9 +262,9 @@ class _ContainerCrearCapacitacionDosState
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Ingrese la institución';
+              validator: (v) {
+                if (v == null || v.trim().length < 3) {
+                  return 'Mínimo 3 caracteres';
                 }
                 return null;
               },
@@ -187,17 +272,9 @@ class _ContainerCrearCapacitacionDosState
 
             const SizedBox(height: 20),
 
-            // --- Asignación ---
-            const Text(
-              'Asignación',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-
-            const SizedBox(height: 10),
-
             Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade400),
+                border: Border.all(color: Colors.grey),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: CheckboxListTile(
@@ -205,44 +282,49 @@ class _ContainerCrearCapacitacionDosState
                 title: const Text('Asignar a todos los empleados'),
                 activeColor: const Color(0xFF2E7D32),
                 controlAffinity: ListTileControlAffinity.leading,
-                onChanged: (value) {
-                  setState(() {
-                    _asignarATodos = value ?? false;
-                  });
+                onChanged: (v) {
+                  setState(() => _asignarATodos = v ?? false);
+                  _actualizarEstado();
                 },
               ),
             ),
 
             const SizedBox(height: 16),
 
-            if (!_asignarATodos) ...[
-              const Text(
-                'RUT del empleado',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
+            if (!_asignarATodos)
               TextFormField(
                 controller: _empleadosAsignadosController,
                 decoration: const InputDecoration(
-                  hintText: '107553967',
+                  hintText: '12.345.678-9',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                 ),
-                validator: (value) {
-                  if (!_asignarATodos &&
-                      (value == null || value.trim().isEmpty)) {
-                    return 'Ingrese un RUT';
+                onChanged: (value) {
+                  final formatted = _formatearRut(value);
+
+                  _empleadosAsignadosController.value = TextEditingValue(
+                    text: formatted,
+                    selection: TextSelection.collapsed(
+                      offset: formatted.length,
+                    ),
+                  );
+
+                  _actualizarEstado();
+                },
+                validator: (v) {
+                  if (_asignarATodos) return null;
+                  if (_rutLimpio.length < 7) {
+                    return 'RUT inválido';
                   }
                   return null;
                 },
               ),
-            ],
 
             const SizedBox(height: 20),
 
-            // --- Tipo ---
-            const Text('Tipo', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('Tipo',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _tipoController,
@@ -252,9 +334,9 @@ class _ContainerCrearCapacitacionDosState
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Ingrese el tipo';
+              validator: (v) {
+                if (v == null || v.trim().length < 3) {
+                  return 'Mínimo 3 caracteres';
                 }
                 return null;
               },
@@ -262,12 +344,13 @@ class _ContainerCrearCapacitacionDosState
 
             const SizedBox(height: 30),
 
-            // --- Botón Guardar ---
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton.icon(
-                onPressed: _guardarCapacitacion,
+                onPressed: (_formValido && !_isLoading)
+                    ? _guardar
+                    : null,
                 icon: const Icon(Icons.save_alt, color: Colors.white),
                 label: const Text(
                   'Guardar Capacitación',
@@ -282,7 +365,6 @@ class _ContainerCrearCapacitacionDosState
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: 3,
                 ),
               ),
             ),

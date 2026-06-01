@@ -5,6 +5,25 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
 
   const ContainerListaEmpleadosTres({super.key, required this.empleados});
 
+  // Función interna para formatear el RUT
+  String _formatearRut(String rut) {
+    String valor = rut.replaceAll(RegExp(r'[^0-9kK]'), '');
+    if (valor.length < 2) return valor;
+    String cuerpo = valor.substring(0, valor.length - 1);
+    String dv = valor.substring(valor.length - 1).toUpperCase();
+    String cuerpoFormateado = "";
+    int contador = 0;
+    for (int i = cuerpo.length - 1; i >= 0; i--) {
+      cuerpoFormateado = cuerpo[i] + cuerpoFormateado;
+      contador++;
+      if (contador == 3 && i > 0) {
+        cuerpoFormateado = ".$cuerpoFormateado";
+        contador = 0;
+      }
+    }
+    return "$cuerpoFormateado-$dv";
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -15,14 +34,17 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
 
         final nombres = empleado['nombres'] ?? '';
         final apellidos = empleado['apellidos'] ?? '';
-        final rut = empleado['rut'] ?? 'Sin RUT';
+        final rutOriginal = empleado['rut'] ?? '';
+        final rutMostrado = rutOriginal.isNotEmpty
+            ? _formatearRut(rutOriginal)
+            : 'Sin RUT';
 
         return InkWell(
           onTap: () {
             Navigator.pushNamed(
               context,
               'perfil_empleado',
-              arguments: empleado['id'], // ✅ ahora pasamos solo el ID
+              arguments: empleado['id'],
             );
           },
           child: Container(
@@ -41,7 +63,6 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Ícono de empleado
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -55,8 +76,6 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-
-                // Nombre completo y RUT
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,7 +92,7 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        rut,
+                        rutMostrado,
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black54,

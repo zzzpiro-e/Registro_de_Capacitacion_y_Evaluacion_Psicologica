@@ -4,17 +4,13 @@ import 'firebase_options.dart';
 import 'package:proyecto_flutter/app/routes/app_routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/date_symbol_data_local.dart';
-//import 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
+import 'package:proyecto_flutter/app/screens/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔹 Inicializa Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // 🔹 Inicializa localización para español (Chile)
   await initializeDateFormatting('es_CL', null);
 
   runApp(const MainApp());
@@ -28,10 +24,9 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Sistema RRHH',
-      initialRoute: AppRoutes.initialRoute,   // Ruta inicial: login
-      routes: AppRoutes.routes,               // Mapa de rutas definidas
-      onGenerateRoute: AppRoutes.onGenerateRoute, // Ruta de fallback (error)
-      // theme: MyTheme.myTheme,               // Si quieres agregar un tema global
+      home: const AuthWrapper(),
+      routes: AppRoutes.routes,
+      onGenerateRoute: AppRoutes.onGenerateRoute,
     );
   }
 }
@@ -42,7 +37,6 @@ Future<void> loginUser(String email, String password) async {
       email: email,
       password: password,
     );
-    // Si el login es correcto, navega al dashboard
     print("Login exitoso");
   } catch (e) {
     print("Error al iniciar sesión: $e");

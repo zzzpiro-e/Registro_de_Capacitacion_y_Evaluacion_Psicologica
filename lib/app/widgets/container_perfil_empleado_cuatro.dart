@@ -25,27 +25,30 @@ class ContainerPerfilEmpleadoCuatro extends StatelessWidget {
 
         final empleado = empleadoSnapshot.data!.data() as Map<String, dynamic>;
 
-        final rutEmpleado = empleado['rut']?.toString() ?? empleadoId;
+        final rutNormalizado = empleado['rut']?.toString().trim() ?? '';
 
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('capacitaciones')
-              .where('empleadosAsignados', arrayContains: rutEmpleado)
               .snapshots(),
           builder: (context, capacitacionesSnapshot) {
             if (capacitacionesSnapshot.connectionState ==
                 ConnectionState.waiting) {
-              return Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                padding: const EdgeInsets.all(20),
-                child: const Center(child: CircularProgressIndicator()),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
-            final capacitaciones = capacitacionesSnapshot.data?.docs ?? [];
+            final capacitaciones = (capacitacionesSnapshot.data?.docs ?? [])
+                .where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+
+                  final empleadosAsignados =
+                      (data['empleadosAsignados'] as List<dynamic>? ?? []);
+
+                  return empleadosAsignados.any(
+                    (rut) => rut.toString().trim() == rutNormalizado,
+                  );
+                })
+                .toList();
 
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -72,12 +75,11 @@ class ContainerPerfilEmpleadoCuatro extends StatelessWidget {
                       color: Color(0xFF2E7D32),
                     ),
                   ),
-
                   const SizedBox(height: 16),
 
                   if (capacitaciones.isEmpty)
                     const Text(
-                      'Este empleado no registra capacitaciones realizadas.',
+                      'Este empleado no registra capacitaciones.',
                       style: TextStyle(color: Colors.black87),
                     ),
 
@@ -91,8 +93,16 @@ class ContainerPerfilEmpleadoCuatro extends StatelessWidget {
 
                     final tipo = data['tipo']?.toString() ?? 'No especificado';
 
-                    final estado =
-                        data['estado']?.toString() ?? 'No especificado';
+                    final empleadosRealizaron =
+                        (data['empleadosRealizaron'] as List<dynamic>? ?? [])
+                            .map((e) => e.toString().trim())
+                            .toList();
+
+                    final realizada = empleadosRealizaron.contains(
+                      rutNormalizado,
+                    );
+
+                    final estado = realizada ? 'REALIZADA' : 'PENDIENTE';
 
                     String fechaInicio = '-';
                     String fechaFin = '-';
@@ -124,9 +134,7 @@ class ContainerPerfilEmpleadoCuatro extends StatelessWidget {
                             color: Color(0xFF2E7D32),
                             size: 28,
                           ),
-
                           const SizedBox(width: 12),
-
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,13 +146,9 @@ class ContainerPerfilEmpleadoCuatro extends StatelessWidget {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-
                                 const SizedBox(height: 4),
-
                                 Text(institucion),
-
                                 const SizedBox(height: 2),
-
                                 Text('Tipo: $tipo'),
 
                                 Container(
@@ -154,15 +158,15 @@ class ContainerPerfilEmpleadoCuatro extends StatelessWidget {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: estado.toLowerCase() == 'realizada'
+                                    color: realizada
                                         ? Colors.green.shade100
                                         : Colors.orange.shade100,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
-                                    estado.toUpperCase(),
+                                    estado,
                                     style: TextStyle(
-                                      color: estado.toLowerCase() == 'realizada'
+                                      color: realizada
                                           ? Colors.green.shade800
                                           : Colors.orange.shade800,
                                       fontWeight: FontWeight.bold,
