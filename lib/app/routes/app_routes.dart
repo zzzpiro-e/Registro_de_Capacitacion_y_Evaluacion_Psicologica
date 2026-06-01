@@ -9,7 +9,6 @@ import '../screens/psicologo_main_screen.dart';
 import 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
 import 'package:proyecto_flutter/app/screens/create_worker_screen.dart';
 import 'package:proyecto_flutter/app/screens/crear_empleado_screens.dart';
-//import 'package:proyecto_flutter/app/screens/crear_capacitacion_screens.dart';
 import 'package:proyecto_flutter/app/screens/capacitaciones_screen.dart';
 import 'package:proyecto_flutter/app/screens/perfil_rrhh_screens.dart';
 import 'package:proyecto_flutter/app/screens/crear_capacitacion_screen.dart';
@@ -27,7 +26,6 @@ class AppRoutes {
     'psicologo_main': (BuildContext context) => const PsicologoMainScreen(),
     'create_worker': (context) => const CreateWorkerScreen(),
     'crear_empleado': (context) => const CrearEmpleadoScreen(),
-    //'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
     'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
     'perfil_rrhh': (BuildContext context) => const PerfilRRHHScreen(),
     'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
