@@ -16,7 +16,20 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
   final _apellidoController = TextEditingController();
   final _rutController = TextEditingController();
   final _salarioController = TextEditingController();
-  final _fichaController = TextEditingController();
+  final _cargoController = TextEditingController();
+  final _edadController = TextEditingController();
+
+  @override
+  void dispose() {
+    // 💡 Liberamos los controladores para evitar fugas de memoria
+    _nombreController.dispose();
+    _apellidoController.dispose();
+    _rutController.dispose();
+    _salarioController.dispose();
+    _cargoController.dispose();
+    _edadController.dispose();
+    super.dispose();
+  }
 
   // --- Validación del RUT ---
   bool validarRut(String rut) {
@@ -30,7 +43,11 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
     int factor = 2;
 
     for (int i = cuerpo.length - 1; i >= 0; i--) {
-      suma += int.parse(cuerpo[i]) * factor;
+      try {
+        suma += int.parse(cuerpo[i]) * factor;
+      } catch (e) {
+        return false; // Por si se coló algún caracter no numérico en el cuerpo
+      }
       factor = (factor == 7) ? 2 : factor + 1;
     }
 
@@ -46,6 +63,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
 
     return dvIngresado == dvCalculado;
   }
+
   // --- Formateo automático del RUT ---
   void _formatearRut(String value) {
     String limpio = value.replaceAll(RegExp(r'[^0-9kK]'), '');
@@ -54,11 +72,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
       return;
     }
 
-    // separar cuerpo y dígito verificador
     String cuerpo = limpio.length > 1 ? limpio.substring(0, limpio.length - 1) : limpio;
     String dv = limpio.length > 1 ? limpio.substring(limpio.length - 1) : '';
 
-    // agregar puntos cada 3 dígitos desde el final
     final buffer = StringBuffer();
     int contador = 0;
     for (int i = cuerpo.length - 1; i >= 0; i--) {
@@ -114,193 +130,232 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
   Future<void> _guardarEmpleado() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final rutLimpio = _rutController.text.replaceAll('.', '').replaceAll('-', '');
+    final rutLimpio = _rutController.text.replaceAll('.', '').replaceAll('-', '').toUpperCase();
     final fechaIngreso = DateFormat('yyyy-MM-dd/HH:mm').format(DateTime.now());
+    final edadLimpia = int.tryParse(_edadController.text) ?? 0;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('empleados').doc(rutLimpio);
+      final docSnapshot = await docRef.get();
 
-    // ✅ Verificar si ya existe un empleado con ese RUT
-    final docRef = FirebaseFirestore.instance.collection('empleados').doc(rutLimpio);
-    final docSnapshot = await docRef.get();
+      if (docSnapshot.exists) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Este RUT ya ha sido registrado')),
+        );
+        return;
+      }
 
-    if (docSnapshot.exists) {
-      // Mostrar aviso si el RUT ya está registrado
+      final empleado = {
+        'nombres': _nombreController.text.trim(),
+        'apellidos': _apellidoController.text.trim(),
+        'rut': _rutController.text.trim().toUpperCase(), // Guardar siempre la K en mayúscula
+        'cargo': _cargoController.text.trim(),
+        'salario': _salarioController.text.trim(),
+        'edad': edadLimpia,
+        'fechaIngreso': fechaIngreso,
+        'estado': 'activo',
+      };
+
+      await docRef.set(empleado);
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Este RUT ya ha sido registrado')),
+        const SnackBar(content: Text('Empleado guardado correctamente')),
       );
-      return; // detener la ejecución
+
+      _formKey.currentState!.reset();
+      _nombreController.clear();
+      _apellidoController.clear();
+      _rutController.clear();
+      _cargoController.clear();
+      _salarioController.clear();
+      
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al guardar: $e')),
+      );
     }
-
-    // Si no existe, crear el nuevo empleado
-    final empleado = {
-      'nombres': _nombreController.text.trim(),
-      'apellidos': _apellidoController.text.trim(),
-      'rut': _rutController.text.trim(),
-      'salario': _salarioController.text.trim(),
-      'fichaPsicologica': 'No tiene permiso para adjuntar informes psicológicos',
-      'fechaIngreso': fechaIngreso,
-      'estado': 'activo',
-    };
-
-    await docRef.set(empleado);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Empleado guardado correctamente')),
-    );
-
-    _formKey.currentState!.reset();
   }
-
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- Nombres ---
-            const Text('Nombres', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: _nombreController,
-              decoration: const InputDecoration(
-                hintText: 'Ej: Juan Carlos',
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+    return SingleChildScrollView( // 💡 Añadido para evitar desbordamiento (overflow) cuando emerge el teclado
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- Nombres ---
+              const Text('Nombres', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _nombreController,
+                decoration: const InputDecoration(
+                  hintText: 'Ej: Juan Carlos',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingrese los nombres';
+                  }
+                  if (RegExp(r'[0-9]').hasMatch(value)) {
+                    return 'No se permiten números en los nombres';
+                  }
+                  return null;
+                },
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Ingrese los nombres';
-                }
-                if (RegExp(r'[0-9]').hasMatch(value)) {
-                  return 'No se permiten números en los nombres';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // --- Apellidos ---
-            const Text('Apellidos', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: _apellidoController,
-              decoration: const InputDecoration(
-                hintText: 'Ej: Pérez González',
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+              // --- Apellidos ---
+              const Text('Apellidos', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _apellidoController,
+                decoration: const InputDecoration(
+                  hintText: 'Ej: Pérez González',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingrese los apellidos';
+                  }
+                  if (RegExp(r'[0-9]').hasMatch(value)) {
+                    return 'No se permiten números en los apellidos';
+                  }
+                  return null;
+                },
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Ingrese los apellidos';
-                }
-                if (RegExp(r'[0-9]').hasMatch(value)) {
-                  return 'No se permiten números en los apellidos';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // --- RUT ---
-            const Text('RUT', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: _rutController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9kK]')), // ✅ solo números y K/k
-                LengthLimitingTextInputFormatter(9), // ✅ máximo 9 caracteres
-              ],
-              decoration: const InputDecoration(
-                hintText: '12.345.678-9',
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+              // --- RUT ---
+              const Text('RUT', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _rutController,
+                keyboardType: TextInputType.text, // 🛠️ CORREGIDO: Permite que aparezca la letra 'K' en teclados móviles
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9kK]')),
+                  LengthLimitingTextInputFormatter(9), // Máximo 9 caracteres sin contar puntos/guiones que agrega el formato
+                ],
+                decoration: const InputDecoration(
+                  hintText: '12.345.678-9',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                ),
+                onChanged: _formatearRut,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Ingrese el RUT';
+                  final limpio = value.replaceAll('.', '').replaceAll('-', '');
+                  if (limpio.length < 8 || limpio.length > 9) {
+                    return 'El RUT debe tener entre 8 y 9 dígitos';
+                  }
+                  if (!validarRut(value)) return 'RUT inválido';
+                  return null;
+                },
               ),
-              onChanged: _formatearRut, // ✅ formateo automático
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Ingrese el RUT';
+              const SizedBox(height: 20),
 
-                final limpio = value.replaceAll('.', '').replaceAll('-', '');
-                if (limpio.length < 8 || limpio.length > 9) {
-                  return 'El RUT debe tener entre 8 y 9 dígitos';
-                }
-
-                if (!RegExp(r'^[0-9kK.-]+$').hasMatch(value)) {
-                  return 'El RUT solo puede contener números y la letra K';
-                }
-                if (!validarRut(value)) return 'RUT inválido';
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-
-
-
-
-
-            // --- Salario ---
-            const Text('Salario (CLP)', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: _salarioController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                hintText: '\$1.500.000',
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+              // --- Edad ---
+              const Text('Edad', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _edadController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  hintText: 'Ej: 35',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingrese la edad';
+                  }
+                  final numero = int.tryParse(value) ?? 0;
+                  if (numero <= 0) {
+                    return 'La edad debe ser mayor a 0';
+                  }
+                  return null;
+                },
               ),
-              onChanged: _formatearSalario,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Ingrese el salario';
-                }
-                final limpio = value.replaceAll(RegExp(r'[^0-9]'), '');
-                if (limpio.isEmpty) return 'Ingrese el salario';
+              const SizedBox(height: 20),
 
-                final numero = int.tryParse(limpio) ?? 0;
-                if (numero <= 0) {
-                  return 'El salario debe ser mayor a 0';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
 
-            // --- Ficha Psicológica ---
-            const Text('Ficha Psicológica', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: _fichaController,
-              readOnly: true,
-              decoration: const InputDecoration(
-                hintText: 'No tiene permiso para adjuntar informes psicológicos',
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+              // --- Cargo ---
+              const Text('Cargo', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _cargoController,
+                decoration: const InputDecoration(
+                  hintText: 'Ej: Analista de RRHH',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingrese el cargo';
+                  }
+                  return null;
+                },
               ),
-            ),
-            const SizedBox(height: 30),
+              const SizedBox(height: 20),
 
-            // --- Botón Guardar ---
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: _guardarEmpleado,
-                icon: const Icon(Icons.save_alt, color: Colors.white),
-                label: const Text(
-                  'Guardar Empleado',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
+              // --- Salario ---
+              const Text('Salario (CLP)', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _salarioController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  hintText: '\$1.500.000',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 3,
+                onChanged: _formatearSalario,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Ingrese el salario';
+                  }
+                  final limpio = value.replaceAll(RegExp(r'[^0-9]'), '');
+                  if (limpio.isEmpty) return 'Ingrese el salario';
+
+                  final numero = int.tryParse(limpio) ?? 0;
+                  if (numero <= 0) {
+                    return 'El salario debe ser mayor a 0';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // --- Botón Guardar ---
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: _guardarEmpleado,
+                  icon: const Icon(Icons.save_alt, color: Colors.white),
+                  label: const Text(
+                    'Guardar Empleado',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 3,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
