@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ContainerPerfilRRHHCuatro extends StatelessWidget {
   const ContainerPerfilRRHHCuatro({super.key});
@@ -9,12 +10,13 @@ class ContainerPerfilRRHHCuatro extends StatelessWidget {
       width: double.infinity,
       height: 54,
       child: ElevatedButton.icon(
-        onPressed: () {
-          // Destruye las vistas actuales y te manda al Login Screen directo
-          Navigator.pushReplacementNamed(context, 'login');
+        onPressed: () async {
+          await FirebaseAuth.instance.signOut();
+
+          Navigator.pushNamedAndRemoveUntil(context, 'login', (route) => false);
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFF2E3D), // Rojo institucional
+          backgroundColor: const Color(0xFFFF2E3D),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),

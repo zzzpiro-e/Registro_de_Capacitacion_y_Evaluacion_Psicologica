@@ -12,6 +12,7 @@ import 'package:proyecto_flutter/app/screens/crear_empleado_screens.dart';
 import 'package:proyecto_flutter/app/screens/capacitaciones_screen.dart';
 import 'package:proyecto_flutter/app/screens/perfil_rrhh_screens.dart';
 import 'package:proyecto_flutter/app/widgets/container_validador_rol.dart';
+import 'package:proyecto_flutter/app/screens/crear_capacitacion_screen.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
@@ -37,11 +38,10 @@ class AppRoutes {
     'crear_empleado': (context) => const CrearEmpleadoScreen(),
     'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
     'perfil_rrhh': (BuildContext context) => const PerfilRRHHScreen(),
+    'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    return MaterialPageRoute(
-      builder: (context) => const ErrorScreen(),
-    );
+    return MaterialPageRoute(builder: (context) => const ErrorScreen());
   }
 }
