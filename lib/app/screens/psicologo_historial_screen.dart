@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/derivaciones_services.dart'; // Tu fuente de verdad con Firestore
 import '../widgets/container_historial_card.dart';
 import '../widgets/container_historial_buscador.dart';
 import '../widgets/container_historial_contador.dart';
@@ -12,38 +13,7 @@ class PsicologoHistorialScreen extends StatefulWidget {
 
 class _PsicologoHistorialScreenState extends State<PsicologoHistorialScreen> {
   final TextEditingController _searchController = TextEditingController();
-
-  // Origen de datos estático del historial clínico
-  final List<Map<String, dynamic>> _historialInformes = [
-    {
-      'nombre': 'María González Pérez',
-      'rut': '12.345.678-9',
-      'motivo': 'Evaluación de estrés laboral',
-      'fecha': '19-05-2026',
-    },
-    {
-      'nombre': 'Carlos Rodríguez Silva',
-      'rut': '18.765.432-1',
-      'motivo': 'Conflicto interpersonal',
-      'fecha': '14-05-2026',
-    },
-    {
-      'nombre': 'Ana Martínez López',
-      'rut': '15.987.654-3',
-      'motivo': 'Adaptación a nuevo cargo',
-      'fecha': '09-05-2026',
-    },
-  ];
-
-  // Estado que almacena la lista filtrada tras la búsqueda
-  List<Map<String, dynamic>> _informesFiltrados = [];
-
-  @override
-  void initState() {
-    super.initState();
-    // Inicialización del estado con el listado completo de informes
-    _informesFiltrados = _historialInformes;
-  }
+  String _queryBuscador = '';
 
   @override
   void dispose() {
@@ -51,24 +21,11 @@ class _PsicologoHistorialScreenState extends State<PsicologoHistorialScreen> {
     super.dispose();
   }
 
-  // Filtrado lógico de elementos mediante comparación de cadenas de texto
-  void _filtrarInformes(String query) {
-    final resultados = _historialInformes.where((informe) {
-      final nombre = (informe['nombre'] ?? '').toString().toLowerCase();
-      final rut = (informe['rut'] ?? '').toString().toLowerCase();
-      final motivo = (informe['motivo'] ?? '').toString().toLowerCase();
-      final input = query.toLowerCase();
-
-      return nombre.contains(input) || rut.contains(input) || motivo.contains(input);
-    }).toList();
-
-    setState(() {
-      _informesFiltrados = resultados;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Reemplaza este correo por el email del psicólogo autenticado en tu app
+    const String correoPsicologoLogueado = 'psicologo@empresa.cl';
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -79,35 +36,96 @@ class _PsicologoHistorialScreenState extends State<PsicologoHistorialScreen> {
             // Integración del contenedor modular para el buscador
             ContainerHistorialBuscador(
               controller: _searchController,
-              onChanged: _filtrarInformes,
+              onChanged: (value) {
+                setState(() {
+                  _queryBuscador = value;
+                });
+              },
             ),
             
             const SizedBox(height: 16),
-            
-            // Integración del contenedor modular para el contador total
-            ContainerHistorialContador(
-              totalInformes: _informesFiltrados.length,
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Listado adaptativo de tarjetas de historial clínico
+
+            // Consumimos el Stream en tiempo real de Firebase Firestore
             Expanded(
-              child: _informesFiltrados.isEmpty
-                  ? const Center(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: DerivacionService.obtenerDerivacionesPorPsicologo(correoPsicologoLogueado),
+                builder: (context, snapshot) {
+                  // 1. Mostrar indicador de carga mientras conecta a Firestore
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+                    );
+                  }
+
+                  // 2. Controlar errores de conexión o permisos
+                  if (snapshot.hasError) {
+                    return Center(
                       child: Text(
-                        'No se encontraron informes',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                        'Error al cargar el historial: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.red),
                       ),
-                    )
-                  : ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: _informesFiltrados.length,
-                      itemBuilder: (context, index) {
-                        final item = _informesFiltrados[index];
-                        return ContainerHistorialCard(datos: item);
-                      },
-                    ),
+                    );
+                  }
+
+                  // 3. Si no hay datos o la colección está vacía
+                  final todasLasDerivaciones = snapshot.data ?? [];
+                  if (todasLasDerivaciones.isEmpty) {
+                    return Column(
+                      children: [
+                        const ContainerHistorialContador(totalInformes: 0),
+                        const Expanded(
+                          child: Center(
+                            child: Text(
+                              'No registras derivaciones asignadas.',
+                              style: TextStyle(color: Colors.grey, fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  // 4. Aplicamos el filtro de búsqueda local sobre los datos en tiempo real
+                  final listaFiltrada = todasLasDerivaciones.where((informe) {
+                    final nombre = (informe['nombre'] ?? '').toString().toLowerCase();
+                    final rut = (informe['rut'] ?? '').toString().toLowerCase();
+                    final motivo = (informe['motivo'] ?? '').toString().toLowerCase();
+                    final input = _queryBuscador.toLowerCase();
+
+                    return nombre.contains(input) || rut.contains(input) || motivo.contains(input);
+                  }).toList();
+
+                  return Column(
+                    children: [
+                      // Integración del contenedor modular para el contador total actualizado
+                      ContainerHistorialContador(
+                        totalInformes: listaFiltrada.length,
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // Listado adaptativo de tarjetas de historial clínico
+                      Expanded(
+                        child: listaFiltrada.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No se encontraron informes',
+                                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                                ),
+                              )
+                            : ListView.builder(
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: listaFiltrada.length,
+                                itemBuilder: (context, index) {
+                                  final item = listaFiltrada[index];
+                                  return ContainerHistorialCard(datos: item);
+                                },
+                              ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ],
         ),

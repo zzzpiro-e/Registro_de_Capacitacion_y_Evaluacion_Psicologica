@@ -3,10 +3,34 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'psicologo_detalle_derivacion_screen.dart';
 import 'package:intl/intl.dart';
 
-class PsicologoDerivacionesScreen extends StatelessWidget {
+class PsicologoDerivacionesScreen extends StatefulWidget {
   final String? psicologoEmail;
 
   const PsicologoDerivacionesScreen({super.key, this.psicologoEmail});
+
+  @override
+  State<PsicologoDerivacionesScreen> createState() => _PsicologoDerivacionesScreenState();
+}
+
+class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScreen> {
+  
+  Color _colorEstado(String estado) {
+    switch (estado) {
+      case 'Pendiente': return const Color(0xFFFFF3CD);
+      case 'En Proceso': return const Color(0xFFD0E2FF);
+      case 'Completado': return const Color(0xFFDFFFD6);
+      default: return Colors.grey.shade200;
+    }
+  }
+
+  Color _colorTextoEstado(String estado) {
+    switch (estado) {
+      case 'Pendiente': return const Color(0xFFB8860B);
+      case 'En Proceso': return const Color(0xFF0056B3);
+      case 'Completado': return const Color(0xFF2E7D32);
+      default: return Colors.black54;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +57,7 @@ class PsicologoDerivacionesScreen extends StatelessWidget {
               stream: FirebaseFirestore.instance
                   .collection('empleados')
                   .where('derivado', isEqualTo: true)
-                  .where('psicologoEmail', isEqualTo: psicologoEmail)
+                  .where('psicologoEmail', isEqualTo: widget.psicologoEmail)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -46,7 +70,6 @@ class PsicologoDerivacionesScreen extends StatelessWidget {
                 final empleados = snapshot.data!.docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
 
-                  // 🔹 Formatear fecha de ingreso
                   String fechaIngreso = 'N/A';
                   if (data['fechaIngreso'] is Timestamp) {
                     fechaIngreso = DateFormat('dd/MM/yyyy').format(
@@ -54,16 +77,29 @@ class PsicologoDerivacionesScreen extends StatelessWidget {
                     );
                   }
 
+                  
+                  final String nombres = data['nombres'] ?? 'Sin nombre';
+                  final String apellidos = data['apellidos'] ?? '';
+                  final String nombreCompleto = "$nombres $apellidos".trim();
+
+                  String estadoClinico = data['estado'] ?? 'Pendiente';
+                  if (estadoClinico.toLowerCase() == 'activo') {
+                    estadoClinico = 'Pendiente';
+                  }
+
                   return {
                     'id': doc.id,
-                    'nombres': data['nombres'] ?? 'Sin nombre',
+                    'nombre': nombreCompleto,
                     'rut': data['rut'] ?? 'Sin RUT',
                     'cargo': data['cargo'] ?? 'Sin cargo',
+                    'area': data['area'] ?? 'No especificada',
                     'edad': data['edad']?.toString() ?? 'N/A',
-                    'estado': data['estado'] ?? 'N/A',
+                    'estado': estadoClinico, 
                     'fechaIngreso': fechaIngreso,
-                    'salario': '******', // 🔹 ocultamos el sueldo
+                    'salario': '******', 
                     'fichaPsicologica': data['fichaPsicologica'] ?? '',
+                    'motivo': data['motivo'] ?? 'No especificado', 
+                    'fecha': data['fechaDerivacion'] ?? data['fecha'] ?? 'Hoy',
                   };
                 }).toList();
 
@@ -73,14 +109,14 @@ class PsicologoDerivacionesScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final empleado = empleados[index];
                     return InkWell(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                PsicologoDetalleDerivacionScreen(derivacion: empleado),
+                            builder: (context) => PsicologoDetalleDerivacionScreen(derivacion: empleado),
                           ),
                         );
+                        setState(() {});
                       },
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 14),
@@ -104,8 +140,7 @@ class PsicologoDerivacionesScreen extends StatelessWidget {
                                 color: const Color(0xFFE8F5E9),
                                 borderRadius: BorderRadius.circular(50),
                               ),
-                              child: const Icon(Icons.person_outline,
-                                  color: Color(0xFF2E7D32), size: 28),
+                              child: const Icon(Icons.person_outline, color: Color(0xFF2E7D32), size: 28),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -113,7 +148,7 @@ class PsicologoDerivacionesScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    empleado['nombres'],
+                                    empleado['nombre'],
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -123,16 +158,30 @@ class PsicologoDerivacionesScreen extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     "Cargo: ${empleado['cargo']}",
-                                    style: const TextStyle(
-                                        fontSize: 14, color: Colors.black54),
+                                    style: const TextStyle(fontSize: 14, color: Colors.black54),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    "Estado: ${empleado['estado']}",
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.grey),
+                                    "Motivo: ${empleado['motivo']}",
+                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                                   ),
                                 ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _colorEstado(empleado['estado']),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                empleado['estado'],
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: _colorTextoEstado(empleado['estado']),
+                                ),
                               ),
                             ),
                           ],

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart'; 
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import '../widgets/container_detalle_trabajador.dart';
 import '../widgets/container_detalle_caso.dart';
 
@@ -15,13 +17,12 @@ class PsicologoDetalleDerivacionScreen extends StatefulWidget {
 }
 
 class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDerivacionScreen> {
-  // Variable que almacena el estado reactivo en la memoria de la pantalla
   late String _estadoActual;
+  bool _estaSubiendo = false; 
 
   @override
   void initState() {
     super.initState();
-    // Inicia con el estado que viene desde la lista
     _estadoActual = widget.derivacion['estado'] ?? 'Pendiente';
   }
 
@@ -43,21 +44,115 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
     }
   }
 
-  // Función para cambiar el estado manualmente desde el Modal
-  void _actualizarEstado(String nuevoEstado) {
-    setState(() {
-      _estadoActual = nuevoEstado;
-    });
-    Navigator.pop(context); // Cierra el menú modal
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Estado actualizado a "$nuevoEstado"'),
-        backgroundColor: const Color(0xFF2E7D32),
-      ),
-    );
+  Future<void> _persistirEstadoEnFirebase(String nuevoEstado) async {
+    try {
+      String documentoId = widget.derivacion['id'] ?? '';
+      if (documentoId.isEmpty) {
+        final String rutSocio = widget.derivacion['rut'] ?? '';
+        documentoId = rutSocio.replaceAll('.', '').replaceAll('-', '').trim();
+      }
+
+      if (documentoId.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('empleados')
+            .doc(documentoId)
+            .update({'estado': nuevoEstado});
+
+        setState(() {
+          _estadoActual = nuevoEstado;
+          widget.derivacion['estado'] = nuevoEstado; 
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar estado en la base de datos: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
-  // Función que dibuja el menú de opciones de estado
+  void _actualizarEstado(String nuevoEstado) async {
+    Navigator.pop(context); 
+    await _persistirEstadoEnFirebase(nuevoEstado);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Estado actualizado a "$nuevoEstado" en la base de datos'),
+          backgroundColor: const Color(0xFF2E7D32),
+        ),
+      );
+    }
+  }
+
+  Future<void> _seleccionarYSubirInforme() async {
+    if (_estaSubiendo) return;
+
+    setState(() {
+      _estaSubiendo = true;
+    });
+
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final String nombreArchivo = result.files.single.name; 
+        String documentoId = widget.derivacion['id'] ?? '';
+        if (documentoId.isEmpty) {
+          final String rutSocio = widget.derivacion['rut'] ?? '';
+          documentoId = rutSocio.replaceAll('.', '').replaceAll('-', '').trim();
+        }
+
+        if (documentoId.isNotEmpty) {
+          await FirebaseFirestore.instance
+              .collection('empleados')
+              .doc(documentoId)
+              .update({
+                'fichaPsicologica': 'Informe adjunto: $nombreArchivo',
+                'estado': 'Completado'
+              });
+
+          setState(() {
+            _estadoActual = 'Completado';
+            widget.derivacion['estado'] = 'Completado';
+            widget.derivacion['fichaPsicologica'] = 'Informe adjunto: $nombreArchivo';
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Informe "$nombreArchivo" subido y caso completado con éxito.'),
+                backgroundColor: const Color(0xFF2E7D32),
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Selección de archivo cancelada.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al seleccionar el archivo: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _estaSubiendo = false;
+        });
+      }
+    }
+  }
+
   void _mostrarMenuEstados() {
     showDialog(
       context: context,
@@ -131,7 +226,11 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
                           ),
                           child: Text(
                             _estadoActual,
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _colorTextoEstado(_estadoActual)),
+                            style: TextStyle(
+                              fontSize: 14, 
+                              fontWeight: FontWeight.bold, 
+                              color: _colorTextoEstado(_estadoActual),
+                            ),
                           ),
                         ),
                       ),
@@ -148,7 +247,6 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
               ),
             ),
 
-            // Sección Inferior de Botones
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               decoration: BoxDecoration(
@@ -164,14 +262,15 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Botón Iniciar Atención
                   ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       if (_estadoActual == 'Pendiente') {
-                        setState(() => _estadoActual = 'En Proceso');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Atención iniciada con éxito'), backgroundColor: Color(0xFF2E7D32)),
-                        );
+                        await _persistirEstadoEnFirebase('En Proceso');
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Atención iniciada con éxito'), backgroundColor: Color(0xFF2E7D32)),
+                          );
+                        }
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('El caso ya se encuentra $_estadoActual'), backgroundColor: Colors.grey.shade700),
@@ -189,9 +288,8 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
                   ),
                   const SizedBox(height: 12),
                   
-                  // Botón Cambiar Estado
                   OutlinedButton.icon(
-                    onPressed: _mostrarMenuEstados,
+                    onPressed: _estaSubiendo ? null : _mostrarMenuEstados,
                     icon: const Icon(Icons.edit_note_outlined, color: Color(0xFF2E7D32)),
                     label: const Text('Cambiar Estado', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
                     style: OutlinedButton.styleFrom(
@@ -215,9 +313,14 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
                   const SizedBox(height: 12),
                   
                   ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.assignment_turned_in_outlined, color: Colors.white),
-                    label: const Text('Subir Informe Psicológico', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    onPressed: _estaSubiendo ? null : _seleccionarYSubirInforme,
+                    icon: _estaSubiendo 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Icon(Icons.assignment_turned_in_outlined, color: Colors.white),
+                    label: Text(
+                      _estaSubiendo ? 'Cargando Archivo...' : 'Subir Informe Psicológico', 
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4CAF50),
                       minimumSize: const Size(double.infinity, 50),

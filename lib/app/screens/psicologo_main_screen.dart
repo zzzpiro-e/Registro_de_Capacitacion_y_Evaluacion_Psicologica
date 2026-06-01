@@ -19,15 +19,20 @@ class _PsicologoMainScreenState extends State<PsicologoMainScreen> {
   // Control del índice de la pestaña activa en la barra de navegación
   int _currentIndex = 0;
 
+  // 1. Agregamos un trigger para forzar el refresco del Dashboard
+  int _dashboardRefreshTrigger = 0;
+
   @override
   Widget build(BuildContext context) {
     // Definición de las pantallas correspondientes a cada menú indexado
     final List<Widget> screens = [
-      const PsicologoDashboardScreen(),   // Índice 0: Dashboard principal
-      const PsicologoDerivacionesScreen(), // Índice 1: Listado de derivaciones activas
-      const PsicologoHistorialScreen(),    // Índice 2: Pantalla de historial con contenedores modulares
+      // 2. Le pasamos una Key única que cambia cada vez que el usuario navega.
+      // Al cambiar la Key, Flutter se ve obligado a recrear el widget y leer los contadores actualizados.
+      PsicologoDashboardScreen(key: ValueKey('dashboard_$_dashboardRefreshTrigger')), 
+      const PsicologoDerivacionesScreen(), 
+      const PsicologoHistorialScreen(),    
       
-      // Índice 3: Vista de perfil estructurada con contenedores independientes
+      // Vista de perfil estructurada con contenedores independientes
       SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
@@ -50,7 +55,6 @@ class _PsicologoMainScreenState extends State<PsicologoMainScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
-      // Control centralizado del AppBar superior para las pestañas de Historial (2) y Perfil (3)
       appBar: _currentIndex == 2 || _currentIndex == 3
           ? AppBar(
               title: Text(
@@ -76,6 +80,9 @@ class _PsicologoMainScreenState extends State<PsicologoMainScreen> {
         onTap: (index) {
           setState(() {
             _currentIndex = index;
+            // 3. Cada vez que el usuario cambie de pestaña o vuelva al inicio,
+            // incrementamos el trigger para forzar al Dashboard a recalcular sus datos en tiempo real.
+            _dashboardRefreshTrigger++; 
           });
         },
       ),
