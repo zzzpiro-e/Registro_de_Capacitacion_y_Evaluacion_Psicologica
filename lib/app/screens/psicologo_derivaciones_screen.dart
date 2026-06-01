@@ -77,18 +77,28 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                     );
                   }
 
-                  // 🔹 Creamos el mapa unificado con los datos reales de la DB
+                  
+                  final String nombres = data['nombres'] ?? 'Sin nombre';
+                  final String apellidos = data['apellidos'] ?? '';
+                  final String nombreCompleto = "$nombres $apellidos".trim();
+
+                  String estadoClinico = data['estado'] ?? 'Pendiente';
+                  if (estadoClinico.toLowerCase() == 'activo') {
+                    estadoClinico = 'Pendiente';
+                  }
+
                   return {
                     'id': doc.id,
-                    'nombre': data['nombres'] ?? 'Sin nombre', // Usamos 'nombre' para mantener compatibilidad con tu pantalla de detalle
+                    'nombre': nombreCompleto,
                     'rut': data['rut'] ?? 'Sin RUT',
                     'cargo': data['cargo'] ?? 'Sin cargo',
+                    'area': data['area'] ?? 'No especificada',
                     'edad': data['edad']?.toString() ?? 'N/A',
-                    'estado': data['estado'] ?? 'Pendiente', // Si no viene, asumimos Pendiente
+                    'estado': estadoClinico, 
                     'fechaIngreso': fechaIngreso,
                     'salario': '******', 
                     'fichaPsicologica': data['fichaPsicologica'] ?? '',
-                    'motivo': data['motivo'] ?? 'No especificado', // Campo del flujo de Marianela
+                    'motivo': data['motivo'] ?? 'No especificado', 
                     'fecha': data['fechaDerivacion'] ?? data['fecha'] ?? 'Hoy',
                   };
                 }).toList();
@@ -100,7 +110,6 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                     final empleado = empleados[index];
                     return InkWell(
                       onTap: () async {
-                        // Esperamos el regreso de la pantalla de detalle por si mutó el estado
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -160,7 +169,6 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                               ),
                             ),
                             const SizedBox(width: 8),
-                            // 🔹 Renderizado de tus etiquetas de colores institucionales en base al estado real
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(

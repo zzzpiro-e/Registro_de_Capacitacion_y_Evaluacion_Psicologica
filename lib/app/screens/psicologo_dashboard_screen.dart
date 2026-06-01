@@ -26,13 +26,17 @@ class _PsicologoDashboardScreenState extends State<PsicologoDashboardScreen> {
           int enProceso = 0;
           int completados = 0;
 
-          if (snapshot.hasData) {
+          if (snapshot.hasData && snapshot.data != null) {
             for (var doc in snapshot.data!.docs) {
               final datos = doc.data() as Map<String, dynamic>;
-              final estado = datos['estado'] ?? 'Pendiente';
-              if (estado == 'Pendiente') pendientes++;
-              if (estado == 'En Proceso') enProceso++;
-              if (estado == 'Completado') completados++;
+              String estadoLimpio = (datos['estado'] ?? '').toString().trim().toLowerCase();
+              if (estadoLimpio == 'en proceso') {
+                enProceso++;
+              } else if (estadoLimpio == 'completado') {
+                completados++;
+              } else {
+                pendientes++;
+              }
             }
           }
 

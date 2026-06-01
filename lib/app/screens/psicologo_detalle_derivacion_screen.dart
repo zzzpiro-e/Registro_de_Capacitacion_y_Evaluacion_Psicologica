@@ -13,9 +13,6 @@ class PsicologoDetalleDerivacionScreen extends StatefulWidget {
   });
 
   @override
-  Widget build(BuildContext context) => _PsicologoDetalleDerivacionScreenState().build(context);
-
-  @override
   State<PsicologoDetalleDerivacionScreen> createState() => _PsicologoDetalleDerivacionScreenState();
 }
 
@@ -102,7 +99,7 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
       );
 
       if (result != null && result.files.single.path != null) {
-        final String nombreArchivo = result.files.single.name;
+        final String nombreArchivo = result.files.single.name; 
         String documentoId = widget.derivacion['id'] ?? '';
         if (documentoId.isEmpty) {
           final String rutSocio = widget.derivacion['rut'] ?? '';
