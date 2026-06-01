@@ -12,21 +12,19 @@ class ContainerAuthGuardian extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-  stream: FirebaseAuth.instance.authStateChanges(),
-  builder: (context, snapshot) {
-    
-    // Si está cargando el estado de la red, mostramos el indicador
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
-        ),
-      );
-    }
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+            ),
+          );
+        }
 
-    // 🔹 CAMBIO CRÍTICO: Verificación estricta de datos reales del usuario
-    if (snapshot.hasData && snapshot.data != null && snapshot.data?.uid != null) {
-      return FutureBuilder<DocumentSnapshot>(
+        if (snapshot.hasData && snapshot.data != null && snapshot.data?.uid != null) {
+          return FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance
                 .collection('usuarios')
                 .doc(snapshot.data!.uid)
@@ -44,20 +42,24 @@ class ContainerAuthGuardian extends StatelessWidget {
                 final userData = roleSnapshot.data!.data() as Map<String, dynamic>? ?? {};
                 final String role = (userData['rol'] ?? userData['role'] ?? '').toString().toLowerCase();
 
-                // Redirigir automaticamente segun rol detectado
-                if (role == 'psicologo') return const PsicologoMainScreen();
-                if (role == 'admin') return const AdminMainScreen();
-                return const MainScreen(); // RRHH por defecto
+
+                switch (role) {
+                  case 'admin':
+                    return const AdminMainScreen();
+                  case 'psicologo':
+                    return const PsicologoMainScreen();
+                  case 'rrhh':
+                  default:
+                    return const MainScreen(); // RRHH por defecto corporativo
+                }
               }
 
-              // Si falla la lectura del rol la sesion se cierra por seguridad
               FirebaseAuth.instance.signOut();
               return const LoginScreen();
             },
           );
         }
 
-        // Si no hay sesion va directo al login estandar
         return const LoginScreen();
       },
     );
