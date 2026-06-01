@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ContainerHistorialCard extends StatelessWidget {
   final Map<String, dynamic> datos;
@@ -8,19 +10,78 @@ class ContainerHistorialCard extends StatelessWidget {
     required this.datos,
   });
 
+  /// Método para abrir el enlace del PDF en el navegador o visor del dispositivo
+  void _abrirVisorPdf(BuildContext context, String urlString, String nombreArchivo) async {
+    if (urlString.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('El archivo "$nombreArchivo" no tiene una URL de descarga válida.'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+      return;
+    }
+
+    final Uri url = Uri.parse(urlString);
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'No se pudo abrir la URL';
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al abrir el PDF: $e'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    }
+  }
+
   // Método modular para abrir la bandeja inferior de informes adjuntos
   void _mostrarListaInformes(BuildContext context) {
-    // Recuperamos la lista de informes y creamos una copia para ordenarla de forma segura
-    final List informesRaw = datos['informes'] ?? [];
-    
-    // Duplicamos la lista para no alterar el orden directo del servicio por accidente
-    final List<Map<String, dynamic>> informesOrdenados = List<Map<String, dynamic>>.from(informesRaw);
+    // Construimos la lista final combinando la estructura real detectada en la base de datos
+    final List<Map<String, dynamic>> informesOrdenados = [];
 
-    // Ordenamos dinámicamente: El más reciente arriba basándonos en el DateTime raw
+    // 1. Validamos si tiene un arreglo estructurado de informes recurrentes
+    if (datos['informes'] != null) {
+      final List informesRaw = datos['informes'];
+      informesOrdenados.addAll(List<Map<String, dynamic>>.from(informesRaw));
+    } 
+    
+    // 2. Si no tiene el arreglo pero sí el campo individual clásico visible en Firestore, lo mapeamos
+    if (datos['fichaPsicologica'] != null && datos['fichaPsicologica'].toString().isNotEmpty) {
+      // Limpiamos el prefijo de texto estático si es que viene formateado
+      final String nombreLimpio = datos['fichaPsicologica'].toString().replaceAll('Informe adjunto: ', '');
+      
+      // Evitamos duplicar si por casualidad ya está en el arreglo superior
+      bool yaExiste = informesOrdenados.any((inf) => inf['nombre_archivo'] == nombreLimpio);
+      
+      if (!yaExiste) {
+        informesOrdenados.add({
+          'nombre_archivo': nombreLimpio,
+          'fecha_subida': datos['fecha'] ?? 'Hoy',
+          // Firebase inyecta marcas de tiempo como Timestamp, manejamos el fallback seguro
+          'fecha_subida_raw': datos['derivacionFecha'] is Timestamp 
+              ? (datos['derivacionFecha'] as Timestamp).toDate() 
+              : DateTime.now(),
+          'ruta_archivo': datos['urlPdf'] ?? datos['url_pdf'] ?? '', // Atrapamos el enlace de Firebase Storage
+        });
+      }
+    }
+
+    // Ordenamos dinámicamente: El más reciente arriba basándonos en el DateTime o Timestamp normalizado
     informesOrdenados.sort((a, b) {
-      final DateTime fechaA = a['fecha_subida_raw'] ?? DateTime.now();
-      final DateTime fechaB = b['fecha_subida_raw'] ?? DateTime.now();
-      return fechaB.compareTo(fechaA); // b comparado con a genera el orden descendente
+      final DateTime fechaA = a['fecha_subida_raw'] is Timestamp 
+          ? (a['fecha_subida_raw'] as Timestamp).toDate() 
+          : (a['fecha_subida_raw'] ?? DateTime.now());
+          
+      final DateTime fechaB = b['fecha_subida_raw'] is Timestamp 
+          ? (b['fecha_subida_raw'] as Timestamp).toDate() 
+          : (b['fecha_subida_raw'] ?? DateTime.now());
+          
+      return fechaB.compareTo(fechaA); // b comparado con a genera el orden descendente (más nuevo primero)
     });
 
     showModalBottomSheet(
@@ -61,7 +122,7 @@ class ContainerHistorialCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Historial de archivos PDF subidos',
+                  'Historial de archivos PDF subidos (Más recientes primero)',
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 16),
@@ -92,6 +153,9 @@ class ContainerHistorialCard extends StatelessWidget {
                       itemCount: informesOrdenados.length,
                       itemBuilder: (context, index) {
                         final informe = informesOrdenados[index];
+                        final String urlArchivo = informe['ruta_archivo'] ?? '';
+                        final String nombreDelPdf = informe['nombre_archivo'] ?? 'Archivo_Sin_Nombre.pdf';
+
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(12),
@@ -119,7 +183,7 @@ class ContainerHistorialCard extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      informe['nombre_archivo'] ?? 'Archivo_Sin_Nombre.pdf',
+                                      nombreDelPdf,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
@@ -130,7 +194,7 @@ class ContainerHistorialCard extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Subido el: ${informe['fecha_subida']}',
+                                      'Subido: ${informe['fecha_subida']}',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Colors.black54,
@@ -140,18 +204,10 @@ class ContainerHistorialCard extends StatelessWidget {
                                 ),
                               ),
                               
-                              // Botón de acción rápida para emular la lectura del PDF
+                              // Botón de acción rápida para abrir y visualizar el PDF real
                               IconButton(
                                 icon: const Icon(Icons.open_in_new, color: Color(0xFF2E7D32)),
-                                onPressed: () {
-                                  // Aquí se inyectará el visor de PDF nativo en el futuro utilizando la 'ruta_archivo'
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Abriendo: ${informe['nombre_archivo']}'),
-                                      backgroundColor: const Color(0xFF1B5E20),
-                                    ),
-                                  );
-                                },
+                                onPressed: () => _abrirVisorPdf(context, urlArchivo, nombreDelPdf),
                               ),
                             ],
                           ),
@@ -249,7 +305,7 @@ class ContainerHistorialCard extends StatelessWidget {
           // Botones de Acción de la Tarjeta
           Row(
             children: [
-              // Botón "Ver" (¡AHORA CONECTADO AL PANEL DE PDFs!)
+              // Botón "Ver" (¡CONECTADO E INTELIGENTE!)
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => _mostrarListaInformes(context),
@@ -267,11 +323,13 @@ class ContainerHistorialCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               
-              // Botón "Descargar" (Delineado)
+              // Botón "Descargar" (Abre directo el PDF del último documento disponible)
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // TODO: Implementar lógica de descarga de PDF global si fuera necesario
+                    final String urlDescargaDirecta = datos['urlPdf'] ?? datos['url_pdf'] ?? '';
+                    final String nombreDoc = datos['fichaPsicologica'] ?? 'informe.pdf';
+                    _abrirVisorPdf(context, urlDescargaDirecta, nombreDoc);
                   },
                   icon: Icon(Icons.download_outlined, size: 18, color: verdeBotonVer),
                   label: Text('Descargar', style: TextStyle(color: verdeBotonVer, fontWeight: FontWeight.bold)),

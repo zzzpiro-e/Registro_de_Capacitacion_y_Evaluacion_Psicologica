@@ -1,82 +1,71 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class DerivacionService {
-  // Fuente única de verdad simulando la base de datos local
-  static final List<Map<String, dynamic>> derivaciones = [
-    {
-      'nombre': 'Carlos Rodríguez López',
-      'rut': '15.789.456-2',
-      'motivo': 'Estrés Laboral',
-      'estado': 'Pendiente',
-      'fecha': '18 Mayo 2026',
-      'cargo': 'Analista de Sistemas',
-      'area': 'Tecnología',
-      'informes': [], // Estructura lista para recibir múltiples PDFs
-    },
-    {
-      'nombre': 'Ana Martínez Silva',
-      'rut': '18.234.567-1',
-      'motivo': 'Agotamiento',
-      'estado': 'En Proceso',
-      'fecha': '15 Mayo 2026',
-      'cargo': 'Diseñadora UX',
-      'area': 'Producto',
-      'informes': [],
-    },
-    {
-      'nombre': 'Roberto Fernández',
-      'rut': '16.987.654-3',
-      'motivo': 'Conflicto de Equipo',
-      'estado': 'Completado',
-      'fecha': '10 Mayo 2026',
-      'cargo': 'Supervisor de Operaciones',
-      'area': 'Logística',
-      'informes': [],
-    },
-  ];
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Métodos para obtener contadores dinámicos
-  static int get countPendientes =>
-      derivaciones.where((d) => d['estado'] == 'Pendiente').length;
-
-  static int get countEnProceso =>
-      derivaciones.where((d) => d['estado'] == 'En Proceso').length;
-
-  static int get countCompletados =>
-      derivaciones.where((d) => d['estado'] == 'Completado').length;
-
-  /// Método para agregar un nuevo PDF en memoria a una derivación específica.
-  /// Cuando implementes la Base de Datos, este método cambiará por una consulta INSERT / POST HTTP.
-  static void agregarInforme({
-    required String rut,
-    required String nombreArchivo,
-    required String rutaArchivo,
-  }) {
-    // Buscamos el mapa correspondiente al trabajador usando su RUT
-    final index = derivaciones.indexWhere((d) => d['rut'] == rut);
-
-    if (index != -1) {
-      // Capturamos el momento exacto
-      final ahora = DateTime.now();
+  /// STREAM EN TIEMPO REAL: Obtiene los empleados derivados que pertenecen a un psicólogo específico.
+  static Stream<List<Map<String, dynamic>>> obtenerDerivacionesPorPsicologo(String emailPsicologo) {
+    return _db
+        .collection('empleados')
+        .where('derivado', isEqualTo: true)
+        .where('psicologoEmail', isEqualTo: emailPsicologo)
+        .snapshots()
+        .map((snapshot) {
+      List<Map<String, dynamic>> lista = [];
       
-      // Formateamos la fecha manualmente "DD-MM-YYYY HH:mm"
-      final fechaFormateada = 
-          "${ahora.day.toString().padLeft(2, '0')}-"
-          "${ahora.month.toString().padLeft(2, '0')}-"
-          "${ahora.year} "
-          "${ahora.hour.toString().padLeft(2, '0')}:"
-          "${ahora.minute.toString().padLeft(2, '0')}";
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data();
+        
+        // Inyectamos el ID del documento
+        data['id_documento'] = doc.id;
+        
+        // Mapeo y normalización de nombres según tu Firestore ("nombres" y "apellidos")
+        data['nombre'] = data['nombre'] ?? '${data['nombres'] ?? ''} ${data['apellidos'] ?? ''}'.trim();
+        if (data['nombre'].toString().isEmpty) {
+          data['nombre'] = 'Empleado Sin Nombre';
+        }
+        
+        // Resguardos por si faltan campos en la UI
+        data['rut'] = data['rut'] ?? doc.id;
+        data['estado'] = data['estado'] ?? 'Pendiente';
+        data['cargo'] = data['cargo'] ?? 'Sin cargo';
+        data['area'] = data['area'] ?? 'No especificada';
+        
+        // Según tu captura, el motivo o diagnóstico viene en 'fichaPsicologica'
+        data['motivo'] = data['fichaPsicologica'] ?? data['motivo'] ?? 'No especificado';
+        
+        // Mapeo adaptativo de la fecha
+        if (data['derivacionFecha'] != null) {
+          // Si viene como Timestamp de Firebase lo manejamos, si no, que use fallback
+          data['fecha'] = 'Evaluado Hoy'; 
+        } else {
+          data['fecha'] = 'Hoy'; 
+        }
 
-      // Añadimos el nuevo informe al inicio de la lista para cumplir con tu requerimiento
-      // (así los nuevos quedan arriba), aunque luego en la interfaz también los ordenaremos.
-      if (derivaciones[index]['informes'] == null) {
-        derivaciones[index]['informes'] = [];
+        lista.add(data);
       }
-      
-      (derivaciones[index]['informes'] as List).add({
-        'nombre_archivo': nombreArchivo,
-        'ruta_archivo': rutaArchivo,
-        'fecha_subida_raw': ahora, // Guardamos el DateTime puro para ordenamientos exactos
-        'fecha_subida': fechaFormateada, // Para mostrar directamente en el diseño
-      });
-    }
+      return lista;
+    });
+  }
+
+  /// STREAM COMPLEMENTARIO: Obtiene todos los empleados sin filtros por si lo usas en otra vista
+  static Stream<List<Map<String, dynamic>>> obtenerEmpleadosDesdeFirebase() {
+    return _db.collection('empleados').snapshots().map((snapshot) {
+      List<Map<String, dynamic>> lista = [];
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data();
+        data['id_documento'] = doc.id;
+        data['nombre'] = data['nombre'] ?? '${data['nombres'] ?? ''} ${data['apellidos'] ?? ''}'.trim();
+        lista.add(data);
+      }
+      return lista;
+    });
+  }
+
+  /// Método para actualizar el estado de un empleado directamente en Firestore
+  static Future<void> actualizarEstado(String idDoc, String nuevoEstado) async {
+    await _db.collection('empleados').doc(idDoc).update({
+      'estado': nuevoEstado,
+    });
   }
 }
