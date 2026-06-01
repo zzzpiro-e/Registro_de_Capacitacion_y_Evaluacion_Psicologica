@@ -268,7 +268,7 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
                         await _persistirEstadoEnFirebase('En Proceso');
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('▶Atención iniciada con éxito'), backgroundColor: Color(0xFF2E7D32)),
+                            const SnackBar(content: Text('Atención iniciada con éxito'), backgroundColor: Color(0xFF2E7D32)),
                           );
                         }
                       } else {
