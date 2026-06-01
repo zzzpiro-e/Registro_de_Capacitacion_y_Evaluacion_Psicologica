@@ -18,7 +18,6 @@ class DashboardPage extends StatelessWidget {
             SizedBox(height: 16),
             ContainerDashboardDos(),
             SizedBox(height: 16),
-            ContainerDashboardTres(),
           ],
         ),
       ),
