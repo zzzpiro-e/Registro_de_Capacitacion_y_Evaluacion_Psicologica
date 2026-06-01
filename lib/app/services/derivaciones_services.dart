@@ -1,71 +1,81 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class DerivacionService {
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  // Fuente única de verdad simulando la base de datos local
+  static final List<Map<String, dynamic>> derivaciones = [
+    {
+      'nombre': 'Carlos Rodríguez López',
+      'rut': '15.789.456-2',
+      'motivo': 'Estrés Laboral',
+      'estado': 'Pendiente',
+      'fecha': '18 Mayo 2026',
+      'cargo': 'Analista de Sistemas',
+      'area': 'Tecnología',
+      'informes': [], // Estructura lista para recibir múltiples PDFs
+    },
+    {
+      'nombre': 'Ana Martínez Silva',
+      'rut': '18.234.567-1',
+      'motivo': 'Agotamiento',
+      'estado': 'En Proceso',
+      'fecha': '15 Mayo 2026',
+      'cargo': 'Diseñadora UX',
+      'area': 'Producto',
+      'informes': [],
+    },
+    {
+      'nombre': 'Roberto Fernández',
+      'rut': '16.987.654-3',
+      'motivo': 'Conflicto de Equipo',
+      'estado': 'Completado',
+      'fecha': '10 Mayo 2026',
+      'cargo': 'Supervisor de Operaciones',
+      'area': 'Logística',
+      'informes': [],
+    },
+  ];
 
-  // Stream unificado para escuchar las derivaciones por psicólogo
-  static Stream<List<Map<String, dynamic>>> obtenerDerivacionesPorPsicologo(String correoPsicologo) {
-    return _db
-        .collection('derivaciones')
-        .where('psicologoEmail', isEqualTo: correoPsicologo)
-        .snapshots()
-        .asyncMap((derivacionesSnapshot) async {
-          List<Map<String, dynamic>> derivacionesCombinadas = [];
+  // Métodos para obtener contadores dinámicos
+  static int get countPendientes =>
+      derivaciones.where((d) => d['estado'] == 'Pendiente').length;
 
-          for (var docIn in derivacionesSnapshot.docs) {
-            final dataDerivacion = docIn.data();
-            // Guardamos el ID del documento de la derivación para poder actualizarlo después
-            dataDerivacion['id_documento'] = docIn.id; 
-            final String? empleadoId = dataDerivacion['empleadoId'];
+  static int get countEnProceso =>
+      derivaciones.where((d) => d['estado'] == 'En Proceso').length;
 
-            String nombreCompleto = 'Empleado Desconocido';
-            String cargo = 'Sin cargo';
-            String rut = empleadoId ?? 'Sin RUT';
+  static int get countCompletados =>
+      derivaciones.where((d) => d['estado'] == 'Completado').length;
 
-            if (empleadoId != null && empleadoId.isNotEmpty) {
-              final empleadoDoc = await _db.collection('empleados').doc(empleadoId).get();
-
-              if (empleadoDoc.exists) {
-                final dataEmpleado = empleadoDoc.data()!;
-                final nombres = dataEmpleado['nombres'] ?? '';
-                final apellidos = dataEmpleado['apellidos'] ?? '';
-                nombreCompleto = '$nombres $apellidos'.trim();
-                cargo = dataEmpleado['cargo'] ?? 'Sin cargo';
-                rut = dataEmpleado['rut'] ?? empleadoId;
-              }
-            }
-
-            derivacionesCombinadas.add({
-              ...dataDerivacion,
-              'nombre': nombreCompleto,
-              'cargo': cargo,
-              'rut': rut,
-            });
-          }
-          return derivacionesCombinadas;
-        });
-  }
-
-  // Método para actualizar el estado de la derivación en Firestore
-  static Future<void> actualizarEstado(String idDoc, String nuevoEstado) async {
-    await _db.collection('derivaciones').doc(idDoc).update({
-      'estado': nuevoEstado,
-    });
-  }
-
-  // Método para registrar los datos del informe PDF seleccionado
-  static Future<void> agregarInformePDF({
-    required String idDocumento,
+  /// Método para agregar un nuevo PDF en memoria a una derivación específica.
+  /// Cuando implementes la Base de Datos, este método cambiará por una consulta INSERT / POST HTTP.
+  static void agregarInforme({
+    required String rut,
     required String nombreArchivo,
-    required String fechaSubida,
-    required String rutaLocal,
-  }) async {
-    // Si la derivación tiene un documento asociado, guardamos los metadatos del PDF allí
-    if (idDocumento.isNotEmpty) {
-      await _db.collection('derivaciones').doc(idDocumento).update({
-        'pdfNombre': nombreArchivo,
-        'pdfFechaSubida': fechaSubida,
-        'pdfRutaSimulada': rutaLocal, // Al ser Web, aquí se guardará el nombre o ruta segura
+    required String rutaArchivo,
+  }) {
+    // Buscamos el mapa correspondiente al trabajador usando su RUT
+    final index = derivaciones.indexWhere((d) => d['rut'] == rut);
+
+    if (index != -1) {
+      // Capturamos el momento exacto
+      final ahora = DateTime.now();
+      
+      // Formateamos la fecha manualmente "DD-MM-YYYY HH:mm"
+      final fechaFormateada = 
+          "${ahora.day.toString().padLeft(2, '0')}-"
+          "${ahora.month.toString().padLeft(2, '0')}-"
+          "${ahora.year} "
+          "${ahora.hour.toString().padLeft(2, '0')}:"
+          "${ahora.minute.toString().padLeft(2, '0')}";
+
+      // Añadimos el nuevo informe al inicio de la lista para cumplir con tu requerimiento
+      // (así los nuevos quedan arriba), aunque luego en la interfaz también los ordenaremos.
+      if (derivaciones[index]['informes'] == null) {
+        derivaciones[index]['informes'] = [];
+      }
+      
+      (derivaciones[index]['informes'] as List).add({
+        'nombre_archivo': nombreArchivo,
+        'ruta_archivo': rutaArchivo,
+        'fecha_subida_raw': ahora, // Guardamos el DateTime puro para ordenamientos exactos
+        'fecha_subida': fechaFormateada, // Para mostrar directamente en el diseño
       });
     }
   }

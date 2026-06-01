@@ -9,24 +9,32 @@ import '../screens/psicologo_main_screen.dart';
 import 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
 import 'package:proyecto_flutter/app/screens/create_worker_screen.dart';
 import 'package:proyecto_flutter/app/screens/crear_empleado_screens.dart';
-//import 'package:proyecto_flutter/app/screens/crear_capacitacion_screens.dart';
 import 'package:proyecto_flutter/app/screens/capacitaciones_screen.dart';
 import 'package:proyecto_flutter/app/screens/perfil_rrhh_screens.dart';
+import 'package:proyecto_flutter/app/widgets/container_validador_rol.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
 
   static Map<String, Widget Function(BuildContext)> routes = {
     'login': (BuildContext context) => const LoginScreen(),
-    'main': (BuildContext context) => const MainScreen(),
-    'admin_main': (BuildContext context) => const AdminMainScreen(),
+    'main': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: MainScreen(),
+        ),
+    'admin_main': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'admin',
+          child: AdminMainScreen(),
+        ),
+    'psicologo_main': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'psicologo',
+          child: PsicologoMainScreen(),
+        ),
     'dashboard': (BuildContext context) => const DashboardPage(),
     'empleados': (BuildContext context) => const ListaEmpleadosPage(),
     'perfil_empleado': (BuildContext context) => const PerfilEmpleadoScreen(),
-    'psicologo_main': (BuildContext context) => const PsicologoMainScreen(),
-    'create_worker': (context) => const CreateWorkerScreen(),
+    'create_worker': (context) => const CreateWorkerScreen(), 
     'crear_empleado': (context) => const CrearEmpleadoScreen(),
-    //'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
     'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
     'perfil_rrhh': (BuildContext context) => const PerfilRRHHScreen(),
   };
