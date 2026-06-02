@@ -14,6 +14,7 @@ import 'package:proyecto_flutter/app/screens/perfil_rrhh_screens.dart';
 import 'package:proyecto_flutter/app/widgets/container_validador_rol.dart';
 import 'package:proyecto_flutter/app/screens/crear_capacitacion_screen.dart';
 import 'package:proyecto_flutter/app/screens/editar_empleado_rrhh_screens.dart';
+import 'package:proyecto_flutter/app/screens/editar_trabajador_admin_screen.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
@@ -48,6 +49,15 @@ class AppRoutes {
 
       return MaterialPageRoute(
         builder: (context) => EditarEmpleadoRRHHScreen(empleadoId: empleadoId),
+      );
+    }
+
+    if (settings.name == 'editar_trabajador_admin') {
+      final args = settings.arguments as Map<String, dynamic>;
+      final trabajadorId = args['trabajadorId'] as String;
+
+      return MaterialPageRoute(
+        builder: (context) => EditarTrabajadorAdminScreen(trabajadorId: trabajadorId),
       );
     }
 
