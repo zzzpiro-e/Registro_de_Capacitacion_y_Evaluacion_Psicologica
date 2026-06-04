@@ -39,6 +39,7 @@ class AppRoutes {
     'crear_empleado': (context) => const CrearEmpleadoScreen(),
     'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
     'perfil_rrhh': (BuildContext context) => const PerfilRRHHScreen(),
+    'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
