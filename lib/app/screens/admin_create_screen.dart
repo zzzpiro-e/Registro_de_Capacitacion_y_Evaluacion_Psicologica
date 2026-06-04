@@ -298,6 +298,7 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
         'correoPersonal': correoPersonalDestino, 
         'telefono': _telefonoController.text.trim(), 
         'rol': rolFirebase,
+        'activo': true,
         'fechaCreacion': FieldValue.serverTimestamp(),
       });
 
