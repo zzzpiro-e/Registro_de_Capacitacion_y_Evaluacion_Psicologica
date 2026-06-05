@@ -21,18 +21,25 @@ class AppRoutes {
 
   static Map<String, Widget Function(BuildContext)> routes = {
     'login': (BuildContext context) => const LoginScreen(),
+    
+    // Panel exclusivo o genérico de RRHH
     'main': (BuildContext context) => const ContainerRoleValidador(
           rolRequerido: 'rrhh',
           child: MainScreen(),
         ),
+        
+    // 🟢 Modificado: Ahora permite explícitamente a ambos roles acceder al panel administrativo
     'admin_main': (BuildContext context) => const ContainerRoleValidador(
-          rolRequerido: 'admin',
+          rolRequerido: 'rrhh', // Al ser rrhh, el validador dejará pasar a RRHH y por descarte a Admin (Súper-usuario)
           child: AdminMainScreen(),
         ),
+        
     'psicologo_main': (BuildContext context) => const ContainerRoleValidador(
           rolRequerido: 'psicologo',
           child: PsicologoMainScreen(),
         ),
+        
+    // Rutas de módulos internos
     'dashboard': (BuildContext context) => const DashboardPage(),
     'empleados': (BuildContext context) => const ListaEmpleadosPage(),
     'perfil_empleado': (BuildContext context) => const PerfilEmpleadoScreen(),
