@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 
 class ContainerHistorialCard extends StatelessWidget {
   final Map<String, dynamic> datos;
@@ -10,68 +13,107 @@ class ContainerHistorialCard extends StatelessWidget {
     required this.datos,
   });
 
-  /// Método para abrir el enlace del PDF en el navegador o visor del dispositivo
-  void _abrirVisorPdf(BuildContext context, String urlString, String nombreArchivo) async {
-    if (urlString.isEmpty) {
+  // 🚀 VISOR IN-APP: Generación de URL firmada, descarga a caché y apertura interna
+  void _abrirVisorPdf(BuildContext context, String rutaOUrl, String nombreArchivo, {bool esSupabase = false}) async {
+    if (rutaOUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('El archivo "$nombreArchivo" no tiene una URL de descarga válida.'),
+          content: Text('El archivo "$nombreArchivo" no tiene una referencia válida.'),
           backgroundColor: Colors.red.shade700,
         ),
       );
       return;
     }
 
-    final Uri url = Uri.parse(urlString);
+    // 🔄 Desplegamos un indicador de carga asíncrono para que el usuario sepa que se está procesando
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+      ),
+    );
+
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        throw 'No se pudo abrir la URL';
+      String urlFinal = rutaOUrl;
+
+      // 1. Si el archivo está alojado en Supabase, solicitamos el enlace firmado temporal
+      if (esSupabase) {
+        final String urlFirmada = await Supabase.instance.client.storage
+            .from('informes_psicologicos')
+            .createSignedUrl(rutaOUrl, 60);
+        
+        urlFinal = urlFirmada;
+      }
+
+      // 2. Descargamos el archivo binario mediante una petición HTTP rápida
+      final response = await http.get(Uri.parse(urlFinal));
+      if (response.statusCode != 200) throw 'Error al descargar el informe desde el servidor web.';
+
+      // 3. Escribimos los bytes de manera local en el directorio temporal del dispositivo
+      final dir = await getTemporaryDirectory();
+      final archivoLocal = File('${dir.path}/$nombreArchivo');
+      await archivoLocal.writeAsBytes(response.bodyBytes);
+
+      // 4. Cerramos el diálogo de carga de forma segura
+      if (context.mounted) Navigator.pop(context);
+
+      // 5. Redirigimos a la pantalla visora nativa inyectando los argumentos requeridos
+      if (context.mounted) {
+        Navigator.pushNamed(
+          context, 
+          'visor_pdf', 
+          arguments: {
+            'rutaLocal': archivoLocal.path,
+            'nombreArchivo': nombreArchivo,
+          },
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al abrir el PDF: $e'),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
+      // Si ocurre un error, removemos el loader antes de alertar con el SnackBar
+      if (context.mounted) Navigator.pop(context);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al procesar el archivo de forma interna: $e'), 
+            backgroundColor: Colors.red.shade800,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
   // Método modular para abrir la bandeja inferior de informes adjuntos
   void _mostrarListaInformes(BuildContext context) {
-    // Construimos la lista final combinando la estructura real detectada en la base de datos
     final List<Map<String, dynamic>> informesOrdenados = [];
 
-    // 1. Validamos si tiene un arreglo estructurado de informes recurrentes
+    // Validamos si tiene un arreglo estructurado de informes recurrentes
     if (datos['informes'] != null) {
       final List informesRaw = datos['informes'];
       informesOrdenados.addAll(List<Map<String, dynamic>>.from(informesRaw));
     } 
     
-    // 2. Si no tiene el arreglo pero sí el campo individual clásico visible en Firestore, lo mapeamos
+    // Si no tiene el arreglo pero sí el campo individual clásico visible en Firestore, lo mapeamos
     if (datos['fichaPsicologica'] != null && datos['fichaPsicologica'].toString().isNotEmpty) {
-      // Limpiamos el prefijo de texto estático si es que viene formateado
       final String nombreLimpio = datos['fichaPsicologica'].toString().replaceAll('Informe adjunto: ', '');
       
-      // Evitamos duplicar si por casualidad ya está en el arreglo superior
       bool yaExiste = informesOrdenados.any((inf) => inf['nombre_archivo'] == nombreLimpio);
       
       if (!yaExiste) {
         informesOrdenados.add({
           'nombre_archivo': nombreLimpio,
           'fecha_subida': datos['fecha'] ?? 'Hoy',
-          // Firebase inyecta marcas de tiempo como Timestamp, manejamos el fallback seguro
           'fecha_subida_raw': datos['derivacionFecha'] is Timestamp 
               ? (datos['derivacionFecha'] as Timestamp).toDate() 
               : DateTime.now(),
-          'ruta_archivo': datos['urlPdf'] ?? datos['url_pdf'] ?? '', // Atrapamos el enlace de Firebase Storage
+          'ruta_archivo': datos['urlPdf'] ?? datos['url_pdf'] ?? '', 
+          'es_supabase': false, // Si es el campo clásico antiguo, asumimos que no viene de Supabase
         });
       }
     }
 
-    // Ordenamos dinámicamente: El más reciente arriba basándonos en el DateTime o Timestamp normalizado
+    // Ordenamos cronológicamente: El más reciente arriba
     informesOrdenados.sort((a, b) {
       final DateTime fechaA = a['fecha_subida_raw'] is Timestamp 
           ? (a['fecha_subida_raw'] as Timestamp).toDate() 
@@ -81,7 +123,7 @@ class ContainerHistorialCard extends StatelessWidget {
           ? (b['fecha_subida_raw'] as Timestamp).toDate() 
           : (b['fecha_subida_raw'] ?? DateTime.now());
           
-      return fechaB.compareTo(fechaA); // b comparado con a genera el orden descendente (más nuevo primero)
+      return fechaB.compareTo(fechaA);
     });
 
     showModalBottomSheet(
@@ -98,7 +140,6 @@ class ContainerHistorialCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Línea decorativa superior del modal
                 Center(
                   child: Container(
                     width: 40,
@@ -111,7 +152,6 @@ class ContainerHistorialCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 
-                // Título descriptivo con el nombre del trabajador
                 Text(
                   'Informes de ${datos['nombre']}',
                   style: const TextStyle(
@@ -127,7 +167,6 @@ class ContainerHistorialCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 
-                // Condicional: Si no hay archivos, renderizamos un aviso centrado
                 if (informesOrdenados.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 40.0),
@@ -145,7 +184,6 @@ class ContainerHistorialCard extends StatelessWidget {
                     ),
                   )
                 else
-                  // Listado dinámico con scroll adaptativo
                   Flexible(
                     child: ListView.builder(
                       shrinkWrap: true,
@@ -155,6 +193,7 @@ class ContainerHistorialCard extends StatelessWidget {
                         final informe = informesOrdenados[index];
                         final String urlArchivo = informe['ruta_archivo'] ?? '';
                         final String nombreDelPdf = informe['nombre_archivo'] ?? 'Archivo_Sin_Nombre.pdf';
+                        final bool esSupa = informe['es_supabase'] ?? false; // Captura reactiva del flag
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
@@ -166,7 +205,6 @@ class ContainerHistorialCard extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              // Icono descriptivo de PDF
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
@@ -177,7 +215,6 @@ class ContainerHistorialCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 14),
                               
-                              // Detalles del archivo (Nombre y Tiempo de carga)
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,10 +241,10 @@ class ContainerHistorialCard extends StatelessWidget {
                                 ),
                               ),
                               
-                              // Botón de acción rápida para abrir y visualizar el PDF real
+                              // 🟢 MODIFICACIÓN: El botón del modal ahora gatilla el visor In-App nativo
                               IconButton(
                                 icon: const Icon(Icons.open_in_new, color: Color(0xFF2E7D32)),
-                                onPressed: () => _abrirVisorPdf(context, urlArchivo, nombreDelPdf),
+                                onPressed: () => _abrirVisorPdf(context, urlArchivo, nombreDelPdf, esSupabase: esSupa),
                               ),
                             ],
                           ),
@@ -225,9 +262,8 @@ class ContainerHistorialCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Paleta institucional
-    final Color verdePrincipal = const Color(0xFF2E7D32); // Verde oscuro para textos/bordes
-    final Color verdeBotonVer = const Color(0xFF1B5E20);  // Verde sólido para el botón "Ver"
+    final Color verdePrincipal = const Color(0xFF2E7D32);
+    final Color verdeBotonVer = const Color(0xFF1B5E20);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -246,7 +282,6 @@ class ContainerHistorialCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Nombre con Icono de Usuario
           Row(
             children: [
               Icon(Icons.person_outline, color: verdePrincipal, size: 20),
@@ -265,7 +300,6 @@ class ContainerHistorialCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // RUT
           Text(
             'RUT: ${datos['rut'] ?? ''}',
             style: TextStyle(
@@ -276,7 +310,6 @@ class ContainerHistorialCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
 
-          // Motivo / Tipo de Informe
           Text(
             datos['motivo'] ?? '',
             style: const TextStyle(
@@ -286,7 +319,6 @@ class ContainerHistorialCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // Fecha de Evaluación
           Row(
             children: [
               const Icon(Icons.calendar_today_outlined, color: Colors.grey, size: 14),
@@ -302,10 +334,8 @@ class ContainerHistorialCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Botones de Acción de la Tarjeta
           Row(
             children: [
-              // Botón "Ver" (¡CONECTADO E INTELIGENTE!)
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => _mostrarListaInformes(context),
@@ -323,13 +353,15 @@ class ContainerHistorialCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               
-              // Botón "Descargar" (Abre directo el PDF del último documento disponible)
+              // 🟢 MODIFICACIÓN: El botón "Descargar" rápido de la tarjeta también descarga y abre In-App de forma segura
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
                     final String urlDescargaDirecta = datos['urlPdf'] ?? datos['url_pdf'] ?? '';
                     final String nombreDoc = datos['fichaPsicologica'] ?? 'informe.pdf';
-                    _abrirVisorPdf(context, urlDescargaDirecta, nombreDoc);
+                    // Evaluamos si el string de la URL contiene el patrón de carpetas de Supabase para forzar el flag de renderizado
+                    final bool esSupa = urlDescargaDirecta.contains('/') && !urlDescargaDirecta.startsWith('http');
+                    _abrirVisorPdf(context, urlDescargaDirecta, nombreDoc, esSupabase: esSupa);
                   },
                   icon: Icon(Icons.download_outlined, size: 18, color: verdeBotonVer),
                   label: Text('Descargar', style: TextStyle(color: verdeBotonVer, fontWeight: FontWeight.bold)),
