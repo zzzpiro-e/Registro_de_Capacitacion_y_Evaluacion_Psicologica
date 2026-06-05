@@ -14,6 +14,7 @@ import 'package:proyecto_flutter/app/screens/perfil_rrhh_screens.dart';
 import 'package:proyecto_flutter/app/widgets/container_validador_rol.dart';
 import 'package:proyecto_flutter/app/screens/crear_capacitacion_screen.dart';
 import '../screens/visor_pdf_screen.dart';
+import '../screens/psicologo_historial_informes_screen.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
@@ -41,6 +42,7 @@ class AppRoutes {
     'perfil_rrhh': (BuildContext context) => const PerfilRRHHScreen(),
     'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
     'visor_pdf': (BuildContext context) => const VisorPdfScreen(),
+    'historial_informes': (BuildContext context) => const HistorialInformesScreen(),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
