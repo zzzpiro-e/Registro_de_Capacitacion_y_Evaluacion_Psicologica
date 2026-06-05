@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'dart:convert'; // Necesario para el envío de correos vía HTTP JSON
 import 'package:http/http.dart' as http; // Usaremos peticiones HTTP para gatillar el correo
+import 'package:firebase_core/firebase_core.dart';
 
 class AdminCreateScreen extends StatefulWidget {
   const AdminCreateScreen({super.key});
@@ -276,11 +277,30 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     String nombreTrabajador = _nombreController.text.trim();
 
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
+          // 1. Creamos una app de Firebase temporal en memoria para no romper la sesión del Admin
+          FirebaseApp appTemporal = await Firebase.initializeApp(
+            name: 'tempApp',
+            options: Firebase.app().options, // Copia las credenciales de tu Firebase actual
+          );
+
+          // 2. Usamos el Auth de esa app temporal para registrar al nuevo empleado
+          FirebaseAuth authTemporal = FirebaseAuth.instanceFor(app: appTemporal);
+          
+          UserCredential userCredential = await authTemporal.createUserWithEmailAndPassword(
             email: emailCorporativoFinal,
             password: claveGenerada,
           );
+
+          // [AQUÍ VA TU PASO 3: Guardar en Firestore usando el UID del userCredential]
+          // Ejemplo: await FirebaseFirestore.instance.collection('usuarios').doc(userCredential.user!.uid).set({...});
+
+          // 4. Ahora sí, mandamos el correo de verificación/bienvenida desde las credenciales creadas
+          await userCredential.user!.sendEmailVerification();
+
+          // 5. IMPORTANTE: Borramos la app temporal para limpiar la memoria
+          await appTemporal.delete();
+          
+          // ¡Listo! Aquí puedes poner tu mensaje de éxito. El Admin seguirá logueado impecable.
 
       final user = userCredential.user;
       if (user == null) {
