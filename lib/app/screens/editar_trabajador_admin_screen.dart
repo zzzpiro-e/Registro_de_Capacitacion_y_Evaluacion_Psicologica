@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class EditarTrabajadorAdminScreen extends StatefulWidget {
   final String trabajadorId;
@@ -20,6 +21,36 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
   bool _activo = true;
   String _rol = 'rrhh';
   bool _cargando = true;
+
+  void _formatearTelefonoEnVivo(String valor) {
+    String numeros = valor.replaceAll(RegExp(r'[^0-9]'), '');
+    if (numeros.startsWith('569') && numeros.length > 3) numeros = numeros.substring(3);
+    if (numeros.startsWith('9') && numeros.length == 9) numeros = numeros.substring(1);
+
+    if (numeros.length == 8 || numeros.length == 9) {
+      String telefonoFormateado = '+56 9 $numeros';
+      _telefonoController.value = TextEditingValue(
+        text: telefonoFormateado,
+        selection: TextSelection.collapsed(offset: telefonoFormateado.length),
+      );
+    }
+  }
+
+  bool _validarAlgoritmoRut(String rut) {
+    if (rut.length < 2) return false;
+    String dv = rut.substring(rut.length - 1);
+    String cuerpo = rut.substring(0, rut.length - 1);
+    int? rutNums = int.tryParse(cuerpo);
+    if (rutNums == null) return false;
+    int suma = 0, multiplicador = 2;
+    for (int i = cuerpo.length - 1; i >= 0; i--) {
+      suma += int.parse(cuerpo[i]) * multiplicador;
+      multiplicador = multiplicador == 7 ? 2 : multiplicador + 1;
+    }
+    int dvEsperadoNum = 11 - (suma % 11);
+    String dvEsperado = dvEsperadoNum == 11 ? '0' : dvEsperadoNum == 10 ? 'K' : dvEsperadoNum.toString();
+    return dv == dvEsperado;
+  }
 
   @override
   void initState() {
@@ -64,12 +95,55 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
   Future<void> _guardarCambios() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final String rut = _rutController.text.trim();
+    final String email = _emailController.text.trim().toLowerCase();
+
+    // Check duplicate RUT
+    try {
+      final rutQuery = await FirebaseFirestore.instance
+          .collection('trabajadores')
+          .where('rut', isEqualTo: rut)
+          .get();
+      if (rutQuery.docs.any((doc) => doc.id != widget.trabajadorId)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Este RUT ya está registrado por otro trabajador.')),
+        );
+        return;
+      }
+
+      // Check duplicate Email
+      final emailQuery = await FirebaseFirestore.instance
+          .collection('trabajadores')
+          .where('email', isEqualTo: email)
+          .get();
+      if (emailQuery.docs.any((doc) => doc.id != widget.trabajadorId)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Este correo corporativo ya está ocupado por otro trabajador.')),
+        );
+        return;
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al verificar duplicados: $e')),
+      );
+      return;
+    }
+
     await FirebaseFirestore.instance.collection('trabajadores').doc(widget.trabajadorId).update({
       'nombre': _nombreController.text.trim(),
-      'rut': _rutController.text.trim(),
-      'email': _emailController.text.trim(),
+      'rut': rut,
+      'email': email,
       'correoPersonal': _correoPersonalController.text.trim(),
       'telefono': _telefonoController.text.trim(),
+      'rol': _rol,
+      'activo': _activo,
+    });
+
+    await FirebaseFirestore.instance.collection('usuarios').doc(widget.trabajadorId).set({
+      'uid': widget.trabajadorId,
+      'nombre': _nombreController.text.trim(),
+      'rut': rut,
+      'email': email,
       'rol': _rol,
       'activo': _activo,
     });
@@ -99,6 +173,7 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
     if (!confirmar) return;
 
     await FirebaseFirestore.instance.collection('trabajadores').doc(widget.trabajadorId).delete();
+    await FirebaseFirestore.instance.collection('usuarios').doc(widget.trabajadorId).delete();
 
     if (!mounted) return;
 
@@ -125,15 +200,76 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
                 key: _formKey,
                 child: Column(
                   children: [
-                    _campoTexto(_nombreController, 'Nombre completo'),
+                    TextFormField(
+                      controller: _nombreController,
+                      decoration: _decoracion('Nombre completo *'),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'Ingrese el nombre completo';
+                        if (RegExp(r'[0-9]').hasMatch(value)) {
+                          return 'No se permiten números en el nombre';
+                        }
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 16),
-                    _campoTexto(_rutController, 'RUT'),
+                    TextFormField(
+                      controller: _rutController,
+                      decoration: _decoracion('RUT *'),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9kK\.\-]')),
+                        RutFormatter(),
+                      ],
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Ingrese el RUT';
+                        String rutLimpio = value.replaceAll('.', '').replaceAll('-', '').toUpperCase();
+                        if (!_validarAlgoritmoRut(rutLimpio)) return 'RUT inválido';
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 16),
-                    _campoTexto(_emailController, 'Correo corporativo'),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: _decoracion('Correo corporativo *'),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'Ingrese el correo corporativo';
+                        if (!value.trim().toLowerCase().endsWith('@empresa.cl')) {
+                          return 'El correo corporativo debe terminar en @empresa.cl';
+                        }
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 16),
-                    _campoTexto(_correoPersonalController, 'Correo personal'),
+                    TextFormField(
+                      controller: _correoPersonalController,
+                      decoration: _decoracion('Correo personal *'),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'Ingrese el correo personal';
+                        final RegExp emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                        if (!emailRegex.hasMatch(value.trim())) {
+                          return 'Formato de correo inválido';
+                        }
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 16),
-                    _campoTexto(_telefonoController, 'Teléfono'),
+                    TextFormField(
+                      controller: _telefonoController,
+                      decoration: _decoracion('Teléfono'),
+                      keyboardType: TextInputType.phone,
+                      onChanged: _formatearTelefonoEnVivo,
+                      inputFormatters: [LengthLimitingTextInputFormatter(14)],
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return null;
+                        String limpio = value.replaceAll(RegExp(r'[^0-9]'), '');
+                        if (limpio.startsWith('569')) limpio = limpio.substring(3);
+                        if (limpio.length < 8) {
+                          return 'Mínimo 8 dígitos.';
+                        }
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: _rol,
@@ -192,5 +328,32 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
       labelText: label,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     );
+  }
+}
+
+class RutFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    String text = newValue.text.replaceAll('.', '').replaceAll('-', '').toUpperCase();
+    if (text.isEmpty) return newValue.copyWith(text: '', selection: const TextSelection.collapsed(offset: 0));
+    String formatted = '';
+    if (text.length > 1) {
+      String cuerpo = text.substring(0, text.length - 1);
+      String dv = text.substring(text.length - 1);
+      String cuerpoConPuntos = '';
+      int contador = 0;
+      for (int i = cuerpo.length - 1; i >= 0; i--) {
+        cuerpoConPuntos = cuerpo[i] + cuerpoConPuntos;
+        contador++;
+        if (contador == 3 && i != 0) {
+          cuerpoConPuntos = '.$cuerpoConPuntos';
+          contador = 0;
+        }
+      }
+      formatted = '$cuerpoConPuntos-$dv';
+    } else {
+      formatted = text;
+    }
+    return newValue.copyWith(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
   }
 }

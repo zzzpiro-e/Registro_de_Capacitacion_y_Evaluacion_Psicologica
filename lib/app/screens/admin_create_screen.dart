@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'dart:convert'; // Necesario para el envío de correos vía HTTP JSON
@@ -276,7 +277,18 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     String nombreTrabajador = _nombreController.text.trim();
 
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
+    FirebaseApp? tempApp;
+    try {
+      try {
+        tempApp = await Firebase.initializeApp(
+          name: 'TemporaryUserCreationApp',
+          options: Firebase.app().options,
+        );
+      } catch (e) {
+        tempApp = Firebase.app('TemporaryUserCreationApp');
+      }
+
+      UserCredential userCredential = await FirebaseAuth.instanceFor(app: tempApp)
           .createUserWithEmailAndPassword(
             email: emailCorporativoFinal,
             password: claveGenerada,
@@ -300,6 +312,15 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
         'rol': rolFirebase,
         'activo': true,
         'fechaCreacion': FieldValue.serverTimestamp(),
+      });
+
+      await FirebaseFirestore.instance.collection('usuarios').doc(uid).set({
+        'uid': uid,
+        'nombre': nombreTrabajador,
+        'rut': _rutController.text.trim(),
+        'email': emailCorporativoFinal, 
+        'rol': rolFirebase,
+        'activo': true,
       });
 
       await _enviarCorreoNotificacion(
@@ -334,6 +355,9 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     } catch (e) {
       _mostrarSnackBar('Error inesperado: $e', Colors.red);
     } finally {
+      if (tempApp != null) {
+        await tempApp.delete();
+      }
       setState(() { _isLoading = false; });
     }
   }

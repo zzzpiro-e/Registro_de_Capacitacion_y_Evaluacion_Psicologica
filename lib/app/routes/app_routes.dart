@@ -33,14 +33,38 @@ class AppRoutes {
           rolRequerido: 'psicologo',
           child: PsicologoMainScreen(),
         ),
-    'dashboard': (BuildContext context) => const DashboardPage(),
-    'empleados': (BuildContext context) => const ListaEmpleadosPage(),
-    'perfil_empleado': (BuildContext context) => const PerfilEmpleadoScreen(),
-    'create_worker': (context) => const CreateWorkerScreen(),
-    'crear_empleado': (context) => const CrearEmpleadoScreen(),
-    'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
-    'perfil_rrhh': (BuildContext context) => const PerfilRRHHScreen(),
-    'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
+    'dashboard': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: DashboardPage(),
+        ),
+    'empleados': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: ListaEmpleadosPage(),
+        ),
+    'perfil_empleado': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: PerfilEmpleadoScreen(),
+        ),
+    'create_worker': (context) => const ContainerRoleValidador(
+          rolRequerido: 'admin',
+          child: CreateWorkerScreen(),
+        ),
+    'crear_empleado': (context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: CrearEmpleadoScreen(),
+        ),
+    'capacitaciones': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: CapacitacionesPage(),
+        ),
+    'perfil_rrhh': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: PerfilRRHHScreen(),
+        ),
+    'crear_capacitacion': (context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: CrearCapacitacionScreen(),
+        ),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -49,7 +73,10 @@ class AppRoutes {
       final empleadoId = args['empleadoId'] as String;
 
       return MaterialPageRoute(
-        builder: (context) => EditarEmpleadoRRHHScreen(empleadoId: empleadoId),
+        builder: (context) => ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: EditarEmpleadoRRHHScreen(empleadoId: empleadoId),
+        ),
       );
     }
 
@@ -58,7 +85,10 @@ class AppRoutes {
       final trabajadorId = args['trabajadorId'] as String;
 
       return MaterialPageRoute(
-        builder: (context) => EditarTrabajadorAdminScreen(trabajadorId: trabajadorId),
+        builder: (context) => ContainerRoleValidador(
+          rolRequerido: 'admin',
+          child: EditarTrabajadorAdminScreen(trabajadorId: trabajadorId),
+        ),
       );
     }
 

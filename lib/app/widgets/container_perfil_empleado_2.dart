@@ -36,9 +36,19 @@ class ContainerPerfilEmpleadoDos extends StatelessWidget {
         final cargo = data['cargo']?.toString() ?? 'Información no ingresada';
 
         String fechaIngreso = 'Información no ingresada';
-        if (data['fechaIngreso'] != null && data['fechaIngreso'] is Timestamp) {
-          final timestamp = data['fechaIngreso'] as Timestamp;
-          fechaIngreso = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
+        if (data['fechaIngreso'] != null) {
+          if (data['fechaIngreso'] is Timestamp) {
+            final timestamp = data['fechaIngreso'] as Timestamp;
+            fechaIngreso = DateFormat('dd/MM/yyyy HH:mm').format(timestamp.toDate());
+          } else {
+            final str = data['fechaIngreso'].toString();
+            try {
+              final parsed = DateFormat('yyyy-MM-dd/HH:mm').parse(str);
+              fechaIngreso = DateFormat('dd/MM/yyyy HH:mm').format(parsed);
+            } catch (_) {
+              fechaIngreso = str;
+            }
+          }
         }
 
         // 🔹 Ahora el salario se guarda como entero en Firestore

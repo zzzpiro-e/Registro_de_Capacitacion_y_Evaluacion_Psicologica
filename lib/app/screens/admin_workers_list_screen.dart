@@ -75,6 +75,7 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
     if (confirmar) {
       try {
         await FirebaseFirestore.instance.collection('trabajadores').doc(uid).delete();
+        await FirebaseFirestore.instance.collection('usuarios').doc(uid).delete();
         _mostrarSnackBar('Trabajador eliminado de la base de datos.', Colors.black87);
       } catch (e) {
         _mostrarSnackBar('Error al intentar eliminar: $e', Colors.red);
