@@ -42,6 +42,59 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
     }
   }
 
+  // Alerta de confirmación exclusiva para cuando se selecciona "Completado" en el menú
+  Future<bool> _mostrarAdvertenciaCompletado() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  SizedBox(width: 10),
+                  Text(
+                    '¿Finalizar Derivación?',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              content: const Text(
+                'Al cambiar el estado a "Completado", el trabajador se archivará en el historial. '
+                'Ya no podrás modificar su estado ni subir nuevos documentos, solo visualizar sus informes previos.',
+                style: TextStyle(fontSize: 15, color: Colors.black87),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text(
+                    'Sí, Completar',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
   Future<void> _persistirEstadoEnFirebase(String nuevoEstado) async {
     try {
       String documentoId = widget.derivacion['id'] ?? '';
@@ -118,19 +171,19 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
           'es_supabase': true,
         };
 
-
+        // NOTA: Mantenemos el estado actual del widget en vez de forzar 'Completado'
         await FirebaseFirestore.instance
             .collection('empleados')
             .doc(documentoId)
             .update({
               'fichaPsicologica': 'Informe adjunto: $nombreArchivo',
-              'estado': 'Completado',
               'urlPdf': rutaArchivoSupabase,
               'informes': FieldValue.arrayUnion([nuevoInformeObjeto]),
             });
 
         final Map<String, dynamic> copiaDatos = Map<String, dynamic>.from(widget.derivacion);
-        copiaDatos['estado'] = 'Completado';
+        // Preservamos el estado en el que venía el caso (generalmente 'En Proceso')
+        copiaDatos['estado'] = widget.estadoActual; 
         copiaDatos['fichaPsicologica'] = 'Informe adjunto: $nombreArchivo';
         copiaDatos['urlPdf'] = rutaArchivoSupabase;
         
@@ -139,12 +192,13 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
         }
         (copiaDatos['informes'] as List).add(nuevoInformeObjeto);
 
-        widget.onActualizarCaso('Completado', copiaDatos);
+        // Notificamos el cambio manteniendo el estado actual
+        widget.onActualizarCaso(widget.estadoActual, copiaDatos);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('¡Informe subido con éxito!'),
+              content: const Text('¡Informe añadido con éxito! Puedes seguir subiendo más.'),
               backgroundColor: const Color(0xFF2E7D32),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -206,8 +260,14 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
       ),
       title: Text(estado, style: TextStyle(fontWeight: esActivo ? FontWeight.bold : FontWeight.w500, color: colorContexto)),
       trailing: esActivo ? Icon(Icons.check, color: colorContexto) : null,
-      onTap: () {
+      onTap: () async {
         Navigator.pop(context);
+        
+        if (estado == 'Completado') {
+          bool confirmar = await _mostrarAdvertenciaCompletado();
+          if (!confirmar) return; 
+        }
+        
         _persistirEstadoEnFirebase(estado);
       },
     );
@@ -215,6 +275,9 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
 
   @override
   Widget build(BuildContext context) {
+    // Si el caso está completado, deshabilitamos la subida de informes preventivamente
+    final bool yaEstaCompletado = widget.estadoActual == 'Completado';
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       decoration: BoxDecoration(
@@ -261,19 +324,8 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
             ),
           ),
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.download, color: Colors.black87),
-            label: const Text('Generar Comprobante PDF', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-          ),
-          const SizedBox(height: 12),
           ElevatedButton.icon(
-            onPressed: _estaSubiendo ? null : _seleccionarYSubirInforme,
+            onPressed: (_estaSubiendo || yaEstaCompletado) ? null : _seleccionarYSubirInforme,
             icon: _estaSubiendo 
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : const Icon(Icons.assignment_turned_in_outlined, color: Colors.white),
@@ -282,7 +334,7 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor: yaEstaCompletado ? Colors.grey : const Color(0xFF4CAF50),
               minimumSize: const Size(double.infinity, 50),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               elevation: 0,

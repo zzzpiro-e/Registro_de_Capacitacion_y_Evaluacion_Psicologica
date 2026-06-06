@@ -111,6 +111,10 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
                   _estadoActual = nuevoEstado;
                   _datosDerivacion = nuevosDatos;
                 });
+                
+                if (nuevoEstado == 'Completado') {
+                  Navigator.pop(context, nuevoEstado);
+                }
               },
             ),
           ],

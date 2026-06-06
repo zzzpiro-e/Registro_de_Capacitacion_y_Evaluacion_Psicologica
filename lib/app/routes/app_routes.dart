@@ -15,11 +15,8 @@ import 'package:proyecto_flutter/app/widgets/container_validador_rol.dart';
 import 'package:proyecto_flutter/app/screens/crear_capacitacion_screen.dart';
 import 'package:proyecto_flutter/app/screens/editar_empleado_rrhh_screens.dart';
 import '../screens/visor_pdf_screen.dart';
-<<<<<<< HEAD
 import 'package:proyecto_flutter/app/screens/editar_trabajador_admin_screen.dart';
-=======
 import '../screens/psicologo_historial_informes_screen.dart';
->>>>>>> origin/RamaIan
 
 class AppRoutes {
   static const initialRoute = 'login';

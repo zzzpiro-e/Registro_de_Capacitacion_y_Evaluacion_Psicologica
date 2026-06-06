@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Importante para reconocer el tipo Timestamp
+import 'package:intl/intl.dart';                     // Necesario para DateFormat
 
 class ContainerHistorialCard extends StatelessWidget {
   final Map<String, dynamic> datos;
@@ -7,6 +9,28 @@ class ContainerHistorialCard extends StatelessWidget {
     super.key,
     required this.datos,
   });
+
+  // Función interna para formatear de manera segura cualquier tipo de fecha que venga en 'datos'
+  String _formatearFecha(dynamic fecha) {
+    if (fecha is Timestamp) {
+      return DateFormat('dd/MM/yyyy').format(fecha.toDate());
+    }
+    if (fecha is DateTime) {
+      return DateFormat('dd/MM/yyyy').format(fecha);
+    }
+    if (fecha is String && fecha.isNotEmpty) {
+      if (fecha.toLowerCase() == 'hoy') {
+        return DateFormat('dd/MM/yyyy').format(DateTime.now());
+      }
+      // Si el string ya es una fecha ISO, intentamos parsearla
+      final parseada = DateTime.tryParse(fecha);
+      if (parseada != null) {
+        return DateFormat('dd/MM/yyyy').format(parseada);
+      }
+      return fecha; // Si ya viene formateado, lo devuelve intacto
+    }
+    return 'No especificada';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,11 +95,16 @@ class ContainerHistorialCard extends StatelessWidget {
             children: [
               const Icon(Icons.calendar_today_outlined, color: Colors.grey, size: 14),
               const SizedBox(width: 6),
-              Text(
-                'Evaluado el ${datos['fecha'] ?? ''}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
+              // CORRECCIÓN AQUÍ: Envolvemos en Expanded y usamos el formateador seguro
+              Expanded(
+                child: Text(
+                  'Evaluado el ${_formatearFecha(datos['fecha'] ?? datos['derivacionFecha'])}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis, // Si el contenedor es chico, añade "..." en vez de romper la UI
                 ),
               ),
             ],
