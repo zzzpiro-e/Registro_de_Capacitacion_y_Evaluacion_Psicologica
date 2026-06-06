@@ -17,6 +17,7 @@ import 'package:proyecto_flutter/app/screens/editar_empleado_rrhh_screens.dart';
 import '../screens/visor_pdf_screen.dart';
 import 'package:proyecto_flutter/app/screens/editar_trabajador_admin_screen.dart';
 import '../screens/psicologo_historial_informes_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
@@ -24,16 +25,15 @@ class AppRoutes {
   static Map<String, Widget Function(BuildContext)> routes = {
     'login': (BuildContext context) => const LoginScreen(),
     
-    // Panel exclusivo o genérico de RRHH
+
     'main': (BuildContext context) => const ContainerRoleValidador(
           rolRequerido: 'rrhh',
           child: MainScreen(),
         ),
-        
-    // 🟢 Modificado: Ahora permite explícitamente a ambos roles acceder al panel administrativo
-    'admin_main': (BuildContext context) => const ContainerRoleValidador(
-          rolRequerido: 'rrhh', // Al ser rrhh, el validador dejará pasar a RRHH y por descarte a Admin (Súper-usuario)
-          child: AdminMainScreen(),
+
+    'admin_main': (BuildContext context) => ContainerRoleValidador(
+          rolRequerido: 'rrhh', 
+          child: AdminMainScreen(), // Sin const
         ),
         
     'psicologo_main': (BuildContext context) => const ContainerRoleValidador(
