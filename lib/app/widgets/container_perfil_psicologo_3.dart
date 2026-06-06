@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 class ContainerPerfilPsicologoTres extends StatelessWidget {
-  const ContainerPerfilPsicologoTres({super.key});
+  final Map<String, dynamic> datos; // Recibe los datos reales de Firestore
+
+  const ContainerPerfilPsicologoTres({
+    super.key,
+    required this.datos,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +29,7 @@ class ContainerPerfilPsicologoTres extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Información Profesional',
+            'Información Personal',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -33,59 +38,7 @@ class ContainerPerfilPsicologoTres extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           
-          // Especialidad
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.business_center_outlined, color: Color(0xFF388E3C), size: 24),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Especialidad',
-                      style: TextStyle(color: Color(0xFF388E3C), fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Psicología Organizacional',
-                      style: TextStyle(color: Colors.black87, fontSize: 15),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          
-          // Departamento
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.domain_outlined, color: Color(0xFF388E3C), size: 24),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Departamento',
-                      style: TextStyle(color: Color(0xFF388E3C), fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Recursos Humanos',
-                      style: TextStyle(color: Colors.black87, fontSize: 15),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          
-          // N° Licencia
+          // Fila RUT
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -94,15 +47,41 @@ class ContainerPerfilPsicologoTres extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'N° Licencia',
+                  children: [
+                    const Text(
+                      'RUT',
                       style: TextStyle(color: Color(0xFF388E3C), fontSize: 13, fontWeight: FontWeight.w500),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      'PSI-12345',
-                      style: TextStyle(color: Colors.black87, fontSize: 15),
+                      datos['rut'] ?? '00.000.000-0',
+                      style: const TextStyle(color: Colors.black87, fontSize: 15),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          
+          // Fila Correo Personal
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.alternate_email, color: Color(0xFF388E3C), size: 24),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Correo Personal',
+                      style: TextStyle(color: Color(0xFF388E3C), fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      datos['correoPersonal'] ?? 'No registrado',
+                      style: const TextStyle(color: Colors.black87, fontSize: 15),
                     ),
                   ],
                 ),

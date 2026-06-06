@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'psicologo_detalle_derivacion_screen.dart';
 import 'package:intl/intl.dart';
+import '../widgets/container_detalle_buscador.dart'; 
 
 class PsicologoDerivacionesScreen extends StatefulWidget {
   final String? psicologoEmail;
@@ -13,6 +14,16 @@ class PsicologoDerivacionesScreen extends StatefulWidget {
 }
 
 class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScreen> {
+  // 🔹 Controladores para manejar el estado del texto del buscador
+  final TextEditingController _searchController = TextEditingController();
+  String _filtroTexto = '';
+
+  @override
+  void dispose() {
+    // Es una buena práctica liberar el controlador al destruir el widget
+    _searchController.dispose();
+    super.dispose();
+  }
   
   Color _colorEstado(String estado) {
     switch (estado) {
@@ -37,6 +48,7 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
     return SafeArea(
       child: Column(
         children: [
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             color: Colors.white,
@@ -50,7 +62,21 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          
+          // 🔹 Aquí implementamos tu buscador personalizado dentro de un Padding elegante
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: ContainerDetalleBuscador(
+              controller: _searchController,
+              onChanged: (valor) {
+                // Al escribir, actualizamos la variable y disparamos el rediseño local
+                setState(() {
+                  _filtroTexto = valor.toLowerCase().trim();
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 2),
 
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
@@ -58,6 +84,7 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                   .collection('empleados')
                   .where('derivado', isEqualTo: true)
                   .where('psicologoEmail', isEqualTo: widget.psicologoEmail)
+                  .where('estado', whereIn: ['Pendiente', 'En Proceso', 'activo'])
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -67,7 +94,8 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                   return const Center(child: Text("No hay empleados derivados"));
                 }
 
-                final empleados = snapshot.data!.docs.map((doc) {
+                // 1. Mapeamos los documentos originales a una lista de mapas
+                final todosLosEmpleados = snapshot.data!.docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
 
                   String fechaIngreso = 'N/A';
@@ -77,7 +105,6 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                     );
                   }
 
-                  
                   final String nombres = data['nombres'] ?? 'Sin nombre';
                   final String apellidos = data['apellidos'] ?? '';
                   final String nombreCompleto = "$nombres $apellidos".trim();
@@ -103,11 +130,38 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                   };
                 }).toList();
 
+                // 2. Filtrado en memoria de forma ultra rápida usando Dart
+                final empleadosFiltrados = todosLosEmpleados.where((empleado) {
+                  final String nombre = empleado['nombre'].toString().toLowerCase();
+                  final String rut = empleado['rut'].toString().toLowerCase();
+                  final String cargo = empleado['cargo'].toString().toLowerCase();
+
+                  // Valida si el texto buscado coincide con alguno de estos tres campos
+                  return nombre.contains(_filtroTexto) || 
+                         rut.contains(_filtroTexto) || 
+                         cargo.contains(_filtroTexto);
+                }).toList();
+
+                // Si la búsqueda no arroja ningún resultado coincidente
+                if (empleadosFiltrados.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Text(
+                        'No se encontraron resultados para "$_filtroTexto"',
+                        style: const TextStyle(color: Colors.grey, fontSize: 15),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+
+                // 3. Renderizamos el ListView usando la lista ya filtrada
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  itemCount: empleados.length,
+                  itemCount: empleadosFiltrados.length,
                   itemBuilder: (context, index) {
-                    final empleado = empleados[index];
+                    final empleado = empleadosFiltrados[index];
                     return InkWell(
                       onTap: () async {
                         await Navigator.push(

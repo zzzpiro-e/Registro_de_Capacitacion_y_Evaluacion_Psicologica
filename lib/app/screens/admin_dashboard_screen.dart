@@ -3,7 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
-  const AdminDashboardScreen({super.key});
+  final void Function(String roleFilter, String statusFilter) onOpenWorkersTab;
+
+  const AdminDashboardScreen({super.key, required this.onOpenWorkersTab});
+
+  void _abrirTrabajadores({required String filtroRol, required String filtroEstado}) {
+    onOpenWorkersTab(filtroRol, filtroEstado);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,10 +117,10 @@ class AdminDashboardScreen extends StatelessWidget {
                           mainAxisSpacing: 16,
                           childAspectRatio: 1.3,
                           children: [
-                            _buildGridStatCard(icon: Icons.groups_outlined, title: 'Total Usuarios', value: '$totalUsuarios', color: Colors.green),
-                            _buildGridStatCard(icon: Icons.how_to_reg_outlined, title: 'Activos', value: '$activos', color: Colors.teal),
-                            _buildGridStatCard(icon: Icons.psychology_outlined, title: 'Psicólogos', value: '$psicologos', color: Colors.blue),
-                            _buildGridStatCard(icon: Icons.badge_outlined, title: 'RRHH', value: '$rrhh', color: Colors.purple),
+                            _buildGridStatCard(icon: Icons.groups_outlined, title: 'Total Usuarios', value: '$totalUsuarios', color: Colors.green, onTap: () => _abrirTrabajadores(filtroRol: 'todos', filtroEstado: 'todos')),
+                            _buildGridStatCard(icon: Icons.how_to_reg_outlined, title: 'Activos', value: '$activos', color: Colors.teal, onTap: () => _abrirTrabajadores(filtroRol: 'todos', filtroEstado: 'activo')),
+                            _buildGridStatCard(icon: Icons.psychology_outlined, title: 'Psicólogos', value: '$psicologos', color: Colors.blue, onTap: () => _abrirTrabajadores(filtroRol: 'psicologo', filtroEstado: 'todos')),
+                            _buildGridStatCard(icon: Icons.badge_outlined, title: 'RRHH', value: '$rrhh', color: Colors.purple, onTap: () => _abrirTrabajadores(filtroRol: 'rrhh', filtroEstado: 'todos')),
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -177,23 +183,36 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGridStatCard({required IconData icon, required String title, required String value, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+  Widget _buildGridStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, color: color, size: 22),
-              const SizedBox(width: 8),
-              Expanded(child: Text(title, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              Row(
+                children: [
+                  Icon(icon, color: color, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(title, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                ],
+              ),
+              Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
             ],
           ),
-          Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-        ],
+        ),
       ),
     );
   }

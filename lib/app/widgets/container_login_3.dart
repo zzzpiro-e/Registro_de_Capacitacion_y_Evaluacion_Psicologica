@@ -26,6 +26,7 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
 
     if (_blockedUntil != null) {
       if (DateTime.now().isBefore(_blockedUntil!)) {
+        if (!mounted) return; 
         setState(() {
           passwordError = "Cuenta bloqueada hasta ${_blockedUntil!.hour}:${_blockedUntil!.minute.toString().padLeft(2, '0')}. Intenta más tarde.";
         });
@@ -38,6 +39,7 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
 
     if (_attempts >= _maxAttempts) {
       _blockedUntil = DateTime.now().add(const Duration(minutes: 10));
+      if (!mounted) return; 
       setState(() {
         passwordError = "Has alcanzado el máximo de $_maxAttempts intentos. La cuenta está bloqueada por 10 minutos.";
       });
@@ -50,13 +52,16 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
       _isLoading = true;
     });
 
-    if (emailController.text.trim().isEmpty) {
+    final emailTexto = emailController.text.trim();
+    final passwordTexto = passwordController.text.trim();
+
+    if (emailTexto.isEmpty) {
       setState(() {
         emailError = "El correo es obligatorio";
         _isLoading = false;
       });
       return;
-    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(emailController.text.trim())) {
+    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(emailTexto)) {
       setState(() {
         emailError = "Formato de correo inválido";
         _isLoading = false;
@@ -64,13 +69,13 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
       return;
     }
 
-    if (passwordController.text.trim().isEmpty) {
+    if (passwordTexto.isEmpty) {
       setState(() {
         passwordError = "La contraseña es obligatoria";
         _isLoading = false;
       });
       return;
-    } else if (passwordController.text.trim().length < 6) {
+    } else if (passwordTexto.length < 6) {
       setState(() {
         passwordError = "Debe tener al menos 6 caracteres";
         _isLoading = false;
@@ -80,41 +85,67 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
 
     try {
       UserCredential credencialUsuario = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+        email: emailTexto,
+        password: passwordTexto,
       );
 
       User? usuario = credencialUsuario.user;
       if (usuario != null && mounted) {
+        // 1. Buscar en la colección 'usuarios'
         DocumentSnapshot documentoUsuario = await FirebaseFirestore.instance
             .collection('usuarios')
             .doc(usuario.uid)
             .get();
+            
+        // 2. Si no existe, buscar en 'trabajadores'
+        if (!documentoUsuario.exists) {
+          documentoUsuario = await FirebaseFirestore.instance
+              .collection('trabajadores')
+              .doc(usuario.uid)
+              .get();
+        }
 
-        if (documentoUsuario.exists && documentoUsuario.data() != null && mounted) {
+        if (!mounted) return; 
+
+        if (documentoUsuario.exists && documentoUsuario.data() != null) {
           Map<String, dynamic> datosUsuario = documentoUsuario.data() as Map<String, dynamic>;
           String rol = (datosUsuario['rol'] ?? datosUsuario['role'] ?? '').toString().toLowerCase();
 
+          _attempts = 0; 
+
+          // 🟢 Apagamos de forma segura el cargando antes de saltar de pantalla
+          setState(() {
+            _isLoading = false;
+          });
+
+          // 🟢 Redirección totalmente separada por roles
           if (rol == 'psicologo') {
             Navigator.pushReplacementNamed(context, 'psicologo_main');
+          } else if (rol == 'rrhh') {
+            Navigator.pushReplacementNamed(context, 'main'); // Mandamos a RRHH a su MainScreen
           } else if (rol == 'admin') {
-            Navigator.pushReplacementNamed(context, 'admin_main');
+            Navigator.pushReplacementNamed(context, 'admin_main'); // El administrador va a AdminMainScreen
           } else {
             Navigator.pushReplacementNamed(context, 'main');
           }
+          return; 
         } else {
-          if (emailController.text.trim() == 'admin@empresa.cl' && mounted) {
+          // Si el documento no existe en ninguna colección real de la base de datos
+          if (emailTexto == 'admin@empresa.cl') {
+            setState(() { _isLoading = false; });
             Navigator.pushReplacementNamed(context, 'admin_main');
+            return;
           } else {
             setState(() {
-              passwordError = "Error: No se encontró el perfil en la base de datos de usuarios.";
+              passwordError = "Error: No se encontró el perfil en la base de datos.";
+              _isLoading = false;
             });
+            return;
           }
         }
       }
-
-      _attempts = 0; 
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return; 
       setState(() {
         _attempts++; 
         switch (e.code) {
@@ -131,17 +162,14 @@ class _ContainerTresLoginState extends State<ContainerTresLogin> {
           default:
             passwordError = "Error al iniciar sesión: credenciales no existen o son inválidas";
         }
+        _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return; 
       setState(() {
         passwordError = "Error inesperado: $e";
+        _isLoading = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
