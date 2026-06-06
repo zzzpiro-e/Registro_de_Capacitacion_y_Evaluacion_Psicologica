@@ -146,7 +146,7 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
       'email': email,
       'rol': _rol,
       'activo': _activo,
-    });
+    }, SetOptions(merge: true));
 
     if (!mounted) return;
 

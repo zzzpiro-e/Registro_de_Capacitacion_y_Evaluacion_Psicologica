@@ -354,9 +354,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     } catch (e) {
       _mostrarSnackBar('Error inesperado: $e', Colors.red);
     } finally {
-      if (tempApp != null) {
-        await tempApp.delete();
-      }
       setState(() { _isLoading = false; });
     }
   }

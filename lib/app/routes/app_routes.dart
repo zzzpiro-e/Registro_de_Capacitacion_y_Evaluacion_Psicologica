@@ -69,7 +69,15 @@ class AppRoutes {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     if (settings.name == 'editar_empleado_rrhh') {
-      final args = settings.arguments as Map<String, dynamic>;
+      final args = settings.arguments;
+      if (args == null || args is! Map<String, dynamic> || args['empleadoId'] == null) {
+        return MaterialPageRoute(
+          builder: (context) => const ContainerRoleValidador(
+            rolRequerido: 'rrhh',
+            child: MainScreen(),
+          ),
+        );
+      }
       final empleadoId = args['empleadoId'] as String;
 
       return MaterialPageRoute(
@@ -81,7 +89,15 @@ class AppRoutes {
     }
 
     if (settings.name == 'editar_trabajador_admin') {
-      final args = settings.arguments as Map<String, dynamic>;
+      final args = settings.arguments;
+      if (args == null || args is! Map<String, dynamic> || args['trabajadorId'] == null) {
+        return MaterialPageRoute(
+          builder: (context) => const ContainerRoleValidador(
+            rolRequerido: 'admin',
+            child: AdminMainScreen(),
+          ),
+        );
+      }
       final trabajadorId = args['trabajadorId'] as String;
 
       return MaterialPageRoute(
