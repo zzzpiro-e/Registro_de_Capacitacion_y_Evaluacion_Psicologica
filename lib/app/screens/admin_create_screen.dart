@@ -276,7 +276,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     String correoPersonalDestino = _correoPersonalController.text.trim();
     String nombreTrabajador = _nombreController.text.trim();
 
-    try {
     FirebaseApp? tempApp;
     try {
       try {
