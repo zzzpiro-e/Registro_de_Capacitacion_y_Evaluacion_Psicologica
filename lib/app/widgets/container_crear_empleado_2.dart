@@ -150,7 +150,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
         'apellidos': _apellidoController.text.trim(),
         'rut': _rutController.text.trim().toUpperCase(), // Guardar siempre la K en mayúscula
         'cargo': _cargoController.text.trim(),
-        'salario': _salarioController.text.trim(),
+        'salario': int.tryParse(
+          _salarioController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+        ) ?? 0,
         'edad': edadLimpia,
         'fechaIngreso': fechaIngreso,
         'estado': 'activo',
