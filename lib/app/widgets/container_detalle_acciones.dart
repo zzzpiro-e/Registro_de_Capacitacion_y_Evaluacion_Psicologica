@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'container_comprobante_boton.dart';
 
 class ContainerDetalleAcciones extends StatefulWidget {
   final Map<String, dynamic> derivacion;
@@ -275,7 +276,6 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
 
   @override
   Widget build(BuildContext context) {
-    // Si el caso está completado, deshabilitamos la subida de informes preventivamente
     final bool yaEstaCompletado = widget.estadoActual == 'Completado';
 
     return Container(
@@ -312,6 +312,10 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
               elevation: 0,
             ),
           ),
+          const SizedBox(height: 12),
+          
+          ContainerComprobanteBoton(derivacion: widget.derivacion),
+          
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _estaSubiendo ? null : _mostrarMenuEstados,
