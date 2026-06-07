@@ -14,24 +14,34 @@ import 'package:proyecto_flutter/app/screens/perfil_rrhh_screens.dart';
 import 'package:proyecto_flutter/app/widgets/container_validador_rol.dart';
 import 'package:proyecto_flutter/app/screens/crear_capacitacion_screen.dart';
 import 'package:proyecto_flutter/app/screens/editar_empleado_rrhh_screens.dart';
+import '../screens/visor_pdf_screen.dart';
+import 'package:proyecto_flutter/app/screens/editar_trabajador_admin_screen.dart';
+import '../screens/psicologo_historial_informes_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
 
   static Map<String, Widget Function(BuildContext)> routes = {
     'login': (BuildContext context) => const LoginScreen(),
+    
+
     'main': (BuildContext context) => const ContainerRoleValidador(
           rolRequerido: 'rrhh',
           child: MainScreen(),
         ),
-    'admin_main': (BuildContext context) => const ContainerRoleValidador(
-          rolRequerido: 'admin',
-          child: AdminMainScreen(),
+
+    'admin_main': (BuildContext context) => ContainerRoleValidador(
+          rolRequerido: 'rrhh', 
+          child: AdminMainScreen(), // Sin const
         ),
+        
     'psicologo_main': (BuildContext context) => const ContainerRoleValidador(
           rolRequerido: 'psicologo',
           child: PsicologoMainScreen(),
         ),
+        
+    // Rutas de módulos internos
     'dashboard': (BuildContext context) => const DashboardPage(),
     'empleados': (BuildContext context) => const ListaEmpleadosPage(),
     'perfil_empleado': (BuildContext context) => const PerfilEmpleadoScreen(),
@@ -40,6 +50,8 @@ class AppRoutes {
     'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
     'perfil_rrhh': (BuildContext context) => const PerfilRRHHScreen(),
     'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
+    'visor_pdf': (BuildContext context) => const VisorPdfScreen(),
+    'historial_informes': (BuildContext context) => const HistorialInformesScreen(),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -49,6 +61,15 @@ class AppRoutes {
 
       return MaterialPageRoute(
         builder: (context) => EditarEmpleadoRRHHScreen(empleadoId: empleadoId),
+      );
+    }
+
+    if (settings.name == 'editar_trabajador_admin') {
+      final args = settings.arguments as Map<String, dynamic>;
+      final trabajadorId = args['trabajadorId'] as String;
+
+      return MaterialPageRoute(
+        builder: (context) => EditarTrabajadorAdminScreen(trabajadorId: trabajadorId),
       );
     }
 

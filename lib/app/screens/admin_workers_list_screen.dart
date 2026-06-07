@@ -1,61 +1,170 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:proyecto_flutter/app/screens/editar_trabajador_admin_screen.dart';
+import 'package:proyecto_flutter/app/utils/text_utils.dart';
 
 class AdminWorkersListScreen extends StatefulWidget {
-  const AdminWorkersListScreen({super.key});
+  final String initialRoleFilter;
+  final String initialStatusFilter;
+
+  const AdminWorkersListScreen({
+    super.key,
+    this.initialRoleFilter = 'todos',
+    this.initialStatusFilter = 'todos',
+  });
 
   @override
   State<AdminWorkersListScreen> createState() => _AdminWorkersListScreenState();
 }
 
 class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
-  
-  // FUNCIÓN PARA ELIMINAR TRABAJADOR DE FIRESTORE
-  Future<void> _eliminarTrabajador(String uid, String nombreTrabajador) async {
-    bool confirmar = await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('¿Eliminar Trabajador?', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Text('¿Estás seguro de que deseas eliminar a $nombreTrabajador? Esto quitará todos sus accesos a la app de inmediato.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Eliminar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    ) ?? false;
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+  late String _selectedRoleFilter;
+  late String _selectedStatusFilter;
 
-    if (confirmar) {
-      try {
-        await FirebaseFirestore.instance.collection('trabajadores').doc(uid).delete();
-        _mostrarSnackBar('Trabajador eliminado de la base de datos.', Colors.black87);
-      } catch (e) {
-        _mostrarSnackBar('Error al intentar eliminar: $e', Colors.red);
-      }
-    }
+  @override
+  void initState() {
+    super.initState();
+    _selectedRoleFilter = widget.initialRoleFilter;
+    _selectedStatusFilter = widget.initialStatusFilter;
   }
 
-  void _mostrarSnackBar(String mensaje, Color colorFondo) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensaje, style: const TextStyle(fontWeight: FontWeight.w500)),
-        backgroundColor: colorFondo,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _abrirEdicion(String uid) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditarTrabajadorAdminScreen(trabajadorId: uid),
       ),
     );
+  }
+
+  void _limpiarFiltros() {
+    setState(() {
+      _query = '';
+      _selectedRoleFilter = 'todos';
+      _selectedStatusFilter = 'todos';
+      _searchController.clear();
+    });
+  }
+
+  Future<void> _abrirFiltros() async {
+    String tempRole = _selectedRoleFilter;
+    String tempStatus = _selectedStatusFilter;
+
+    final result = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Widget buildSectionTitle(String title) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              );
+            }
+
+            Widget buildChoice(String label, String value, String current, ValueChanged<String> onChanged) {
+              final selected = current == value;
+              return ChoiceChip(
+                label: Text(label),
+                selected: selected,
+                onSelected: (_) => setModalState(() => onChanged(value)),
+                selectedColor: const Color(0xFF388E3C).withOpacity(0.16),
+                labelStyle: TextStyle(
+                  color: selected ? const Color(0xFF388E3C) : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+                side: BorderSide(color: selected ? const Color(0xFF388E3C) : Colors.grey.shade300),
+                backgroundColor: Colors.white,
+              );
+            }
+
+            return Container(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 18),
+                        decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(999)),
+                      ),
+                    ),
+                    const Text('Filtros', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 18),
+                    buildSectionTitle('Rol'),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        buildChoice('Todos', 'todos', tempRole, (value) => tempRole = value),
+                        buildChoice('RRHH', 'rrhh', tempRole, (value) => tempRole = value),
+                        buildChoice('Psicólogos', 'psicologo', tempRole, (value) => tempRole = value),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    buildSectionTitle('Estado'),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        buildChoice('Todos', 'todos', tempStatus, (value) => tempStatus = value),
+                        buildChoice('Activo', 'activo', tempStatus, (value) => tempStatus = value),
+                        buildChoice('Desactivado', 'desactivado', tempStatus, (value) => tempStatus = value),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context, {'role': 'todos', 'status': 'todos'}),
+                            child: const Text('Limpiar'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF388E3C), foregroundColor: Colors.white),
+                            onPressed: () => Navigator.pop(context, {'role': tempRole, 'status': tempStatus}),
+                            child: const Text('Aplicar'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _selectedRoleFilter = result['role'] ?? 'todos';
+        _selectedStatusFilter = result['status'] ?? 'todos';
+      });
+    }
   }
 
   @override
@@ -64,50 +173,63 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
       backgroundColor: const Color(0xFFF4F4F4),
       body: Column(
         children: [
+          // 🟢 Header Verde RECTO corporativo idéntico al Dashboard
           Container(
             width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(0xFF43A047),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(32),
-                bottomRight: Radius.circular(32),
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+            decoration: const BoxDecoration(color: Color(0xFF388E3C)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text(
-                  'Panel de Admin',
-                  style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500),
-                ),
+                Text('Módulo de Gestión', style: TextStyle(color: Colors.white, fontSize: 18)),
                 SizedBox(height: 12),
                 Text(
                   'Lista de Trabajadores',
-                  style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
 
+          // Barra de búsqueda adaptada visualmente con sombra suave
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 4)),
                 ],
               ),
-              child: const TextField(
-                decoration: InputDecoration(
-                  hintText: 'Buscar por nombre, RUT o rol...',
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
-                  prefixIcon: Icon(Icons.search, color: Color(0xFF43A047), size: 24),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
-                ),
+              child: Row(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(left: 16, right: 8),
+                    child: Icon(Icons.search, color: Color(0xFF388E3C), size: 24),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Buscar por nombre o RUT...',
+                        hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _query = TextUtils.quitarTildes(value.trim());
+                        });
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Filtros',
+                    onPressed: _abrirFiltros,
+                    icon: const Icon(Icons.filter_alt_outlined, color: Color(0xFF388E3C)),
+                  ),
+                ],
               ),
             ),
           ),
@@ -120,7 +242,7 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Color(0xFF43A047)));
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFF388E3C)));
                 }
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
@@ -131,7 +253,30 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                   );
                 }
 
-                final listaTrabajadores = snapshot.data!.docs;
+                final listaTrabajadores = snapshot.data!.docs.where((doc) {
+                  final datos = doc.data() as Map<String, dynamic>;
+                  final nombre = TextUtils.quitarTildes((datos['nombre'] ?? '').toString());
+                  final rut = TextUtils.quitarTildes((datos['rut'] ?? '').toString());
+                  final rol = (datos['rol'] ?? '').toString().toLowerCase();
+                  final bool esActivo = (datos['activo'] ?? true) == true;
+
+                  final coincideBusqueda = _query.isEmpty ||
+                      nombre.contains(_query) ||
+                      rut.contains(_query);
+
+                  final coincideRol = _selectedRoleFilter == 'todos' || rol == _selectedRoleFilter;
+                  final coincideEstado = _selectedStatusFilter == 'todos' ||
+                      (_selectedStatusFilter == 'activo' && esActivo) ||
+                      (_selectedStatusFilter == 'desactivado' && !esActivo);
+
+                  return coincideBusqueda && coincideRol && coincideEstado;
+                }).toList();
+
+                if (listaTrabajadores.isEmpty) {
+                  return const Center(
+                    child: Text('No hay trabajadores para ese filtro.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                  );
+                }
 
                 return ListView.separated(
                   physics: const BouncingScrollPhysics(),
@@ -142,16 +287,16 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                     var doc = listaTrabajadores[index];
                     var datos = doc.data() as Map<String, dynamic>;
                     bool esPsicologo = datos['rol'] == 'psicologo';
+                    bool isActive = (datos['activo'] ?? true) == true;
                     String idTrabajador = datos['uid'] ?? doc.id;
 
                     return _buildEmployeeCard(
                       uid: idTrabajador,
                       name: datos['nombre'] ?? 'Sin Nombre',
                       rut: datos['rut'] ?? 'Sin RUT',
-                      email: datos['email'] ?? 'Sin Correo',
-                      phone: (datos['telefono'] != null && datos['telefono'].toString().isNotEmpty) ? datos['telefono'] : 'Sin Teléfono',
                       role: esPsicologo ? 'Psicólogo' : 'RRHH',
                       isPsychologist: esPsicologo,
+                      isActive: isActive,
                     );
                   },
                 );
@@ -163,25 +308,43 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
     );
   }
 
+  // 🟢 Componente de Tarjeta Simplificado y Unificado
   Widget _buildEmployeeCard({
     required String uid,
     required String name,
     required String rut,
-    required String email,
-    required String phone,
     required String role,
     required bool isPsychologist,
+    required bool isActive,
   }) {
-    final Color themeColor = isPsychologist ? const Color(0xFFE3F2FD) : const Color(0xFFF3E5F5);
-    final Color textColor = isPsychologist ? const Color(0xFF1E88E5) : const Color(0xFF8E24AA);
+    // Colores de los chips de Rol (Mismos tonos suaves de la app)
+    final Color chipColor = isPsychologist ? const Color(0xFFE3F2FD) : const Color(0xFFF3E5F5);
+    final Color chipTextColor = isPsychologist ? const Color(0xFF1E88E5) : const Color(0xFF8E24AA);
+    
+    // Colores de Estado del Trabajador (Verde/Rojo)
+    final Color stateTextColor = isActive ? const Color(0xFF388E3C) : const Color(0xFFC62828);
     
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+      ),
       child: Row(
         children: [
-          CircleAvatar(radius: 24, backgroundColor: themeColor, child: Icon(isPsychologist ? Icons.person_outline : Icons.badge_outlined, color: textColor)),
+          // 🟢 Ícono Universal para todas las tarjetas
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F4F4),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.person_outline, color: Colors.black54, size: 28),
+          ),
           const SizedBox(width: 14),
+          
+          // Contenido de Texto Limpio
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,25 +352,52 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    // Nombre
+                    Expanded(
+                      child: Text(
+                        name, 
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black), 
+                        maxLines: 1, 
+                        overflow: TextOverflow.ellipsis
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Cuadro/Chip de Rol Interno
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: themeColor, borderRadius: BorderRadius.circular(12)),
-                      child: Text(role, style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                      decoration: BoxDecoration(color: chipColor, borderRadius: BorderRadius.circular(12)),
+                      child: Text(role, style: TextStyle(color: chipTextColor, fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
+                const SizedBox(height: 6),
+                // RUT
+                Text(rut, style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
-                Text(rut, style: const TextStyle(fontSize: 13, color: Color(0xFF43A047), fontWeight: FontWeight.w600)),
-                Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                Text(phone, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                // Estado Simplificado
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(color: stateTextColor, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isActive ? 'Activo' : 'Desactivado', 
+                      style: TextStyle(fontSize: 12, color: stateTextColor, fontWeight: FontWeight.bold)
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-          // 🟢 BOTÓN DE ELIMINAR AGREGADO EN EL EXTREMO DERECHO CARD
+          
+          // Lápiz para Editar
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-            onPressed: () => _eliminarTrabajador(uid, name),
+            tooltip: 'Editar trabajador',
+            icon: const Icon(Icons.edit_outlined, color: Color(0xFF388E3C)),
+            onPressed: () => _abrirEdicion(uid),
           ),
         ],
       ),

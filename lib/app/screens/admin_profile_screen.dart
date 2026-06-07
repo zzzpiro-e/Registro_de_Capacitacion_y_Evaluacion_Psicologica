@@ -64,7 +64,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       _newPasswordController.clear();
       _confirmPasswordController.clear();
 
-      _mostrarSnackBar('¡Contraseña actualizada con éxito!', const Color(0xFF2E7D32));
+      _mostrarSnackBar('¡Contraseña actualizada con éxito!', const Color(0xFF388E3C));
     } on FirebaseAuthException catch (e) {
       _mostrarSnackBar(e.code == 'wrong-password' ? 'Contraseña actual incorrecta' : 'Error: ${e.message}', Colors.red);
     }
@@ -72,7 +72,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
   void _mostrarSnackBar(String mensaje, Color colorFondo) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje), backgroundColor: colorFondo, behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Text(mensaje, style: const TextStyle(fontWeight: FontWeight.w500)), 
+        backgroundColor: colorFondo, 
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
@@ -80,91 +85,108 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   Widget build(BuildContext context) {
     String emailAdmin = _currentUser?.email ?? 'admin@sistema.cl';
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        children: [
-          // Header Verde de Perfil
-          Container(
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(0xFF43A047),
-              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
-            ),
-            padding: const EdgeInsets.only(top: 32.0, bottom: 40.0),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), shape: BoxShape.circle),
-                  child: const Icon(Icons.shield_outlined, color: Colors.white, size: 52),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F4F4),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              // 🟢 Encabezado en bloque RECTO corporativo institucional
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 48, 24, 40),
+                decoration: const BoxDecoration(color: Color(0xFF388E3C)),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), shape: BoxShape.circle),
+                      child: const Icon(Icons.shield_outlined, color: Colors.white, size: 48),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Administrador del Sistema', 
+                      style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Rol: Control Superior', 
+                      style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w500)
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                const Text('Administrador del Sistema', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                const Text('Rol: Control Superior', style: TextStyle(color: Colors.white70, fontSize: 16)),
-              ],
-            ),
-          ),
+              ),
 
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              children: [
-                // Bloque de Información del Admin
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(Icons.person_outline, color: Color(0xFF2E7D32), size: 22),
-                          SizedBox(width: 10),
-                          Text('Información de la Cuenta', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    // 📦 Contenedor 1: Información de la Cuenta
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white, 
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.person_outline, color: Color(0xFF388E3C), size: 24),
+                              SizedBox(width: 10),
+                              Text('Información de la Cuenta', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          _buildProfileField(icon: Icons.mail_outline, label: 'Correo Electrónico', value: emailAdmin),
+                          const SizedBox(height: 14),
+                          _buildProfileField(icon: Icons.vpn_key_outlined, label: 'UID de Administrador', value: _currentUser?.uid ?? 'Sin UID'),
                         ],
                       ),
-                      const SizedBox(height: 18),
-                      _buildProfileField(icon: Icons.mail_outline, label: 'Correo Electrónico', value: emailAdmin),
-                      const SizedBox(height: 14),
-                      _buildProfileField(icon: Icons.vpn_key_outlined, label: 'UID de Administrador', value: _currentUser?.uid ?? 'Sin UID'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 20),
 
-                // Bloque de Acciones
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-                  child: Column(
-                    children: [
-                      _buildActionRow(
-                        icon: Icons.vpn_key_outlined,
-                        title: 'Cambiar Contraseña',
-                        color: const Color(0xFF2E7D32),
-                        onTap: () => _showChangePasswordBottomSheet(context),
+                    // 📦 Contenedor 2: Bloque de Acciones Críticas
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white, 
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                       ),
-                      const Divider(height: 1, color: Color(0xFFEAEAEA)),
-                      _buildActionRow(
-                        icon: Icons.logout_rounded,
-                        title: 'Cerrar Sesión',
-                        color: Colors.red.shade700,
-                        onTap: widget.onLogout,
+                      child: Column(
+                        children: [
+                          _buildActionRow(
+                            icon: Icons.lock_open_outlined,
+                            title: 'Cambiar Contraseña',
+                            color: const Color(0xFF388E3C),
+                            onTap: () => _showChangePasswordBottomSheet(context),
+                          ),
+                          const Divider(height: 1, color: Color(0xFFEAEAEA)),
+                          _buildActionRow(
+                            icon: Icons.logout_rounded,
+                            title: 'Cerrar Sesión',
+                            color: Colors.red.shade700,
+                            onTap: widget.onLogout,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 24),
 
-                // Info del Sistema
-                const Text('Versión de la aplicación: 1.0.0 (Build 2026)', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
+                    // Info del Sistema inferior
+                    const Text('Versión de la aplicación: 1.0.0 (Build 2026)', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -172,8 +194,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   Widget _buildProfileField({required IconData icon, required String label, required String value}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F9F9), 
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEAEAEA)),
+      ),
       child: Row(
         children: [
           Icon(icon, color: Colors.grey.shade600, size: 22),
@@ -182,9 +208,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(color: Color(0xFF43A047), fontSize: 12, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 2),
-                Text(value, style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(label, style: const TextStyle(color: Color(0xFF388E3C), fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(value, style: const TextStyle(color: Colors.black87, fontSize: 15, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -196,7 +222,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   Widget _buildActionRow({required IconData icon, required String title, required Color color, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(22),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         child: Row(
@@ -227,62 +253,80 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             return Padding(
               padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
               child: Container(
-                decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32))),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                decoration: const BoxDecoration(
+                  color: Colors.white, 
+                  borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24))
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(child: Container(width: 48, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)))),
-                      const SizedBox(height: 24),
+                      Center(
+                        child: Container(
+                          width: 42, 
+                          height: 4, 
+                          margin: const EdgeInsets.only(bottom: 24),
+                          decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(999))
+                        )
+                      ),
                       Row(
                         children: const [
-                          Icon(Icons.lock_reset_outlined, color: Color(0xFF43A047), size: 28),
+                          Icon(Icons.lock_reset_outlined, color: Color(0xFF388E3C), size: 26),
                           SizedBox(width: 10),
                           Text('Actualizar Contraseña', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 24),
                       _buildPasswordField(
-                        label: 'Contraseña Actual',
+                        label: 'Contraseña Actual *',
                         hint: 'Introduce tu clave vigente',
                         controller: _currentPasswordController,
                         obscureText: _obscureCurrent,
                         onToggleVisibility: () => setModalState(() => _obscureCurrent = !_obscureCurrent),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
                       _buildPasswordField(
-                        label: 'Nueva Contraseña',
+                        label: 'Nueva Contraseña *',
                         hint: 'Mínimo 6 caracteres',
                         controller: _newPasswordController,
                         obscureText: _obscureNew,
                         onToggleVisibility: () => setModalState(() => _obscureNew = !_obscureNew),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
                       _buildPasswordField(
-                        label: 'Confirmar Nueva Contraseña',
+                        label: 'Confirmar Nueva Contraseña *',
                         hint: 'Repite la nueva clave',
                         controller: _confirmPasswordController,
                         obscureText: _obscureConfirm,
                         onToggleVisibility: () => setModalState(() => _obscureConfirm = !_obscureConfirm),
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 32),
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14), 
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                side: BorderSide(color: Colors.grey.shade300),
+                              ),
                               onPressed: () => Navigator.pop(modalContext),
-                              child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                              child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 15)),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF43A047), padding: const EdgeInsets.symmetric(vertical: 14), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF388E3C), 
+                                padding: const EdgeInsets.symmetric(vertical: 14), 
+                                elevation: 0, 
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
+                              ),
                               onPressed: () => _actualizarContrasena(modalContext),
-                              child: const Text('Guardar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              child: const Text('Guardar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                             ),
                           ),
                         ],
@@ -298,22 +342,36 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     );
   }
 
-  Widget _buildPasswordField({required String label, required String hint, required TextEditingController controller, required bool obscureText, required VoidCallback onToggleVisibility}) {
+  Widget _buildPasswordField({
+    required String label, 
+    required String hint, 
+    required TextEditingController controller, 
+    required bool obscureText, 
+    required VoidCallback onToggleVisibility
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black.withOpacity(0.8))),
-        const SizedBox(height: 6),
+        Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF202124))),
+        const SizedBox(height: 8),
         Container(
-          decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(
+            color: Colors.white, 
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFEAEAEA)),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+          ),
           child: TextField(
             controller: controller,
             obscureText: obscureText,
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-              prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey, size: 20),
-              suffixIcon: IconButton(icon: Icon(obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey, size: 20), onPressed: onToggleVisibility),
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 15),
+              prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey, size: 22),
+              suffixIcon: IconButton(
+                icon: Icon(obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey, size: 22), 
+                onPressed: onToggleVisibility
+              ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             ),

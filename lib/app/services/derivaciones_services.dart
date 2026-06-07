@@ -37,7 +37,7 @@ class DerivacionService {
         // Mapeo adaptativo de la fecha
         if (data['derivacionFecha'] != null) {
           // Si viene como Timestamp de Firebase lo manejamos, si no, que use fallback
-          data['fecha'] = 'Evaluado Hoy'; 
+          data['fecha'] = data['derivacionFecha'];
         } else {
           data['fecha'] = 'Hoy'; 
         }

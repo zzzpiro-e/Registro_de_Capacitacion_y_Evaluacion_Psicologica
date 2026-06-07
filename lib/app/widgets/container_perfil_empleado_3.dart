@@ -79,6 +79,7 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
                   'derivado': true,
                   'psicologoEmail': email,
                   'derivacionFecha': Timestamp.now(),
+                  'estado': 'Pendiente',
                 });
 
                 ScaffoldMessenger.of(context).showSnackBar(

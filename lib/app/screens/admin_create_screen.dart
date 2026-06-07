@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
-import 'dart:convert'; // Necesario para el envío de correos vía HTTP JSON
-import 'package:http/http.dart' as http; // Usaremos peticiones HTTP para gatillar el correo
+import 'dart:convert'; 
+import 'package:http/http.dart' as http; 
+import 'package:firebase_core/firebase_core.dart';
 
 class AdminCreateScreen extends StatefulWidget {
   const AdminCreateScreen({super.key});
@@ -16,8 +17,8 @@ class AdminCreateScreen extends StatefulWidget {
 class _AdminCreateScreenState extends State<AdminCreateScreen> {
   final _nombreController = TextEditingController();
   final _rutController = TextEditingController();
-  final _usuarioCorporativoController = TextEditingController(); // Reemplaza al correo anterior (Ej: jperez)
-  final _correoPersonalController = TextEditingController();    // Nuevo campo para notificar al empleado
+  final _usuarioCorporativoController = TextEditingController(); 
+  final _correoPersonalController = TextEditingController();    
   final _telefonoController = TextEditingController();
   final _claveController = TextEditingController();
   
@@ -83,25 +84,20 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
   void _onCorreoPersonalFocusChange() { if (!_correoPersonalFocusNode.hasFocus) _validarCorreoPersonalInmediato(); }
   void _onTelefonoFocusChange() { if (!_telefonoFocusNode.hasFocus) _validarTelefonoInmediato(); }
 
-  // ENVIAR CREDENCIALES AL TRABAJADOR VÍA EMAILJS
   Future<void> _enviarCorreoNotificacion({
     required String nombreEmpleado,
     required String correoPersonal,
     required String correoCorporativo,
     required String claveProvisoria,
   }) async {
-    // 🟢 INTEGRADOS TUS CÓDIGOS REALES DE EMAILJS AQUÍ:
     const String serviceId = 'service_lk6356k'; 
     const String templateId = 'template_8g7cd87';
     const String userId = 'C06WRa_nkaY0OUDL_'; 
 
     final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
     
-    print('--- INICIANDO ENVÍO DE CORREO ---');
-    print('Enviando a: $correoPersonal');
-
     try {
-      final response = await http.post(
+      await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -116,31 +112,18 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
           }
         }),
       );
-
-      // 🔍 AUDITORÍA DE RESPUESTA
-      if (response.statusCode == 200) {
-        print('🟢 ¡EmailJS recibió la orden con éxito! Respuesta: ${response.body}');
-      } else {
-        print('❌ ERROR EN EMAILJS.');
-        print('Código de estado HTTP: ${response.statusCode}');
-        print('Respuesta del servidor: ${response.body}');
-      }
     } catch (e) {
-      print('🚨 Error de red o conexión al intentar enviar el correo: $e');
+      print('🚨 Error de conexión al enviar el correo: $e');
     }
-    print('--- FIN DEL PROCESO DE CORREO ---');
   }
 
-  // VALIDAR QUE EL USUARIO CORPORATIVO NO ESTÉ REPETIDO
   Future<void> _validarUsuarioInmediato() async {
     String usuario = _usuarioCorporativoController.text.trim().toLowerCase();
     if (usuario.isEmpty) {
       setState(() { _usuarioError = null; _isUsuarioValid = false; });
       return;
     }
-
     String correoCompleto = '$usuario@empresa.cl';
-
     try {
       final resultado = await FirebaseFirestore.instance
           .collection('trabajadores')
@@ -163,7 +146,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     }
   }
 
-  // VALIDAR FORMATO DE CORREO DE NOTIFICACIÓN PERSONAL
   void _validarCorreoPersonalInmediato() {
     String email = _correoPersonalController.text.trim();
     if (email.isEmpty) {
@@ -184,7 +166,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     }
   }
 
-  // VALIDACIÓN DE TELÉFONO
   void _formatearTelefonoEnVivo(String valor) {
     String numeros = valor.replaceAll(RegExp(r'[^0-9]'), '');
     if (numeros.startsWith('569') && numeros.length > 3) numeros = numeros.substring(3);
@@ -212,7 +193,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     }
   }
 
-  // VALIDACIÓN DE RUT
   Future<void> _validarRutInmediato() async {
     String rutLimpio = _rutController.text.trim().replaceAll('.', '').replaceAll('-', '').toUpperCase();
     if (rutLimpio.isEmpty) {
@@ -251,7 +231,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     return dv == dvEsperado;
   }
 
-  // 🚀 FUNCIÓN PRINCIPAL REGISTRO 
   Future<void> _crearTrabajadorEnFirebase() async {
     await _validarRutInmediato();
     await _validarUsuarioInmediato();
@@ -276,12 +255,21 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     String nombreTrabajador = _nombreController.text.trim();
 
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: emailCorporativoFinal,
-            password: claveGenerada,
-          );
+      FirebaseApp appTemporal = await Firebase.initializeApp(
+        name: 'tempApp',
+        options: Firebase.app().options, 
+      );
 
+      FirebaseAuth authTemporal = FirebaseAuth.instanceFor(app: appTemporal);
+      
+      UserCredential userCredential = await authTemporal.createUserWithEmailAndPassword(
+        email: emailCorporativoFinal,
+        password: claveGenerada,
+      );
+
+      await userCredential.user!.sendEmailVerification();
+      await appTemporal.delete();
+          
       final user = userCredential.user;
       if (user == null) {
         _mostrarSnackBar('Error: No se pudo obtener el ID del usuario creado.', Colors.red);
@@ -298,6 +286,7 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
         'correoPersonal': correoPersonalDestino, 
         'telefono': _telefonoController.text.trim(), 
         'rol': rolFirebase,
+        'activo': true,
         'fechaCreacion': FieldValue.serverTimestamp(),
       });
 
@@ -352,131 +341,177 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Crear Trabajador', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
-        centerTitle: false,
-      ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFEAEAEA))),
-              child: const Text(
-                'El sistema generará automáticamente un correo @empresa.cl y notificará los accesos al e-mail personal del empleado.',
-                style: TextStyle(color: Color(0xFF43A047), fontSize: 15, fontWeight: FontWeight.w500, height: 1.4),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            _buildInputField(label: 'Nombre Completo *', hint: 'Ej: Juan Pérez González', controller: _nombreController),
-            const SizedBox(height: 20),
-            
-            _buildInputField(
-              label: 'RUT *', 
-              hint: '12.345.678-9', 
-              controller: _rutController,
-              focusNode: _rutFocusNode,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9kK\.\-]')),
-                RutFormatter(),
-              ],
-            ), 
-            if (_rutError != null) ...[
-              const SizedBox(height: 6),
-              Text(_rutError!, style: TextStyle(color: _isRutValid ? const Color(0xFF2E7D32) : Colors.red, fontSize: 13, fontWeight: FontWeight.w600)),
-            ],
-            const SizedBox(height: 20),
-            
-            _buildInputField(
-              label: 'Usuario Corporativo *', 
-              hint: 'ej: jperez', 
-              controller: _usuarioCorporativoController, 
-              focusNode: _usuarioFocusNode,
-              suffixIcon: const Padding(
-                padding: EdgeInsets.only(right: 16.0, top: 16.0),
-                child: Text('@empresa.cl', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16)),
-              ),
-            ),
-            if (_usuarioError != null) ...[
-              const SizedBox(height: 6),
-              Text(_usuarioError!, style: TextStyle(color: _isUsuarioValid ? const Color(0xFF2E7D32) : Colors.red, fontSize: 13, fontWeight: FontWeight.w600)),
-            ],
-            const SizedBox(height: 20),
-
-            _buildInputField(
-              label: 'Correo Personal (Notificación) *', 
-              hint: 'ejemplo@gmail.com', 
-              controller: _correoPersonalController, 
-              keyboardType: TextInputType.emailAddress,
-              focusNode: _correoPersonalFocusNode,
-            ),
-            if (_correoPersonalError != null) ...[
-              const SizedBox(height: 6),
-              Text(_correoPersonalError!, style: TextStyle(color: _isCorreoPersonalValid ? const Color(0xFF2E7D32) : Colors.red, fontSize: 13, fontWeight: FontWeight.w600)),
-            ],
-            const SizedBox(height: 20),
-            
-            _buildInputField(
-              label: 'Teléfono', 
-              hint: 'Ej: 91234567', 
-              controller: _telefonoController, 
-              keyboardType: TextInputType.phone,
-              focusNode: _telefonoFocusNode,
-              onChanged: _formatearTelefonoEnVivo,
-              inputFormatters: [LengthLimitingTextInputFormatter(14)],
-            ),
-            if (_telefonoError != null) ...[
-              const SizedBox(height: 6),
-              Text(_telefonoError!, style: TextStyle(color: _isTelefonoValid ? const Color(0xFF2E7D32) : Colors.red, fontSize: 13, fontWeight: FontWeight.w600)),
-            ],
-            const SizedBox(height: 20),
-
-            const Text('Rol *', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFEAEAEA))),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedRole,
-                  isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-                  items: <String>['RRHH', 'Psicólogo'].map((String value) {
-                    return DropdownMenuItem<String>(value: value, child: Text(value, style: const TextStyle(fontSize: 16)));
-                  }).toList(),
-                  onChanged: (newValue) => setState(() { _selectedRole = newValue!; }),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 🟢 Encabezado en bloque RECTO idéntico a las vistas corporativas
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+                decoration: const BoxDecoration(color: Color(0xFF388E3C)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text('Módulo de Registro', style: TextStyle(color: Colors.white, fontSize: 18)),
+                    SizedBox(height: 12),
+                    Text('Crear Trabajador', style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
+              
+              // Formulario Principal con el padding unificado de 24
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Banner Informativo Estilizado
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white, 
+                        borderRadius: BorderRadius.circular(22), 
+                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 4))],
+                        border: Border.all(color: const Color(0xFFEAEAEA))
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: const Color(0xFF388E3C), size: 28),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: const Text(
+                              'El sistema creará una cuenta corporativa @empresa.cl y notificará las credenciales vía EmailJS al correo personal.',
+                              style: TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.w500, height: 1.3),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
 
-            _buildInputField(
-              label: 'Clave Provisoria Autogenerada *', 
-              hint: 'Generando...', 
-              controller: _claveController, 
-              suffixIcon: IconButton(icon: const Icon(Icons.refresh, color: Color(0xFF43A047)), onPressed: _generarClaveAleatoria),
-            ),
-            const SizedBox(height: 32),
+                    _buildInputField(label: 'Nombre Completo *', hint: 'Ej: Juan Pérez González', controller: _nombreController),
+                    const SizedBox(height: 20),
+                    
+                    _buildInputField(
+                      label: 'RUT *', 
+                      hint: '12.345.678-9', 
+                      controller: _rutController,
+                      focusNode: _rutFocusNode,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9kK\.\-]')),
+                        RutFormatter(),
+                      ],
+                    ), 
+                    if (_rutError != null) ...[
+                      const SizedBox(height: 6),
+                      Text(_rutError!, style: TextStyle(color: _isRutValid ? const Color(0xFF388E3C) : Colors.red, fontSize: 14, fontWeight: FontWeight.w600)),
+                    ],
+                    const SizedBox(height: 20),
+                    
+                    _buildInputField(
+                      label: 'Usuario Corporativo *', 
+                      hint: 'ej: jperez', 
+                      controller: _usuarioCorporativoController, 
+                      focusNode: _usuarioFocusNode,
+                      suffixIcon: const Padding(
+                        padding: EdgeInsets.only(right: 16.0, top: 14.0),
+                        child: Text('@empresa.cl', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                    ),
+                    if (_usuarioError != null) ...[
+                      const SizedBox(height: 6),
+                      Text(_usuarioError!, style: TextStyle(color: _isUsuarioValid ? const Color(0xFF388E3C) : Colors.red, fontSize: 14, fontWeight: FontWeight.w600)),
+                    ],
+                    const SizedBox(height: 20),
 
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF43A047), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                onPressed: _isLoading ? null : _crearTrabajadorEnFirebase,
-                icon: _isLoading ? const SizedBox.shrink() : const Icon(Icons.save_outlined, color: Colors.white),
-                label: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Crear e Informar Trabajador', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    _buildInputField(
+                      label: 'Correo Personal (Notificación) *', 
+                      hint: 'ejemplo@gmail.com', 
+                      controller: _correoPersonalController, 
+                      keyboardType: TextInputType.emailAddress,
+                      focusNode: _correoPersonalFocusNode,
+                    ),
+                    if (_correoPersonalError != null) ...[
+                      const SizedBox(height: 6),
+                      Text(_correoPersonalError!, style: TextStyle(color: _isCorreoPersonalValid ? const Color(0xFF388E3C) : Colors.red, fontSize: 14, fontWeight: FontWeight.w600)),
+                    ],
+                    const SizedBox(height: 20),
+                    
+                    _buildInputField(
+                      label: 'Teléfono', 
+                      hint: 'Ej: 91234567', 
+                      controller: _telefonoController, 
+                      keyboardType: TextInputType.phone,
+                      focusNode: _telefonoFocusNode,
+                      onChanged: _formatearTelefonoEnVivo,
+                      inputFormatters: [LengthLimitingTextInputFormatter(14)],
+                    ),
+                    if (_telefonoError != null) ...[
+                      const SizedBox(height: 6),
+                      Text(_telefonoError!, style: TextStyle(color: _isTelefonoValid ? const Color(0xFF388E3C) : Colors.red, fontSize: 14, fontWeight: FontWeight.w600)),
+                    ],
+                    const SizedBox(height: 20),
+
+                    const Text('Rol Asignado *', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF202124))),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white, 
+                        borderRadius: BorderRadius.circular(16), 
+                        border: Border.all(color: const Color(0xFFEAEAEA)),
+                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedRole,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                          items: <String>['RRHH', 'Psicólogo'].map((String value) {
+                            return DropdownMenuItem<String>(value: value, child: Text(value, style: const TextStyle(fontSize: 16)));
+                          }).toList(),
+                          onChanged: (newValue) => setState(() { _selectedRole = newValue!; }),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    _buildInputField(
+                      label: 'Clave Provisoria Autogenerada *', 
+                      hint: 'Generando...', 
+                      controller: _claveController, 
+                      suffixIcon: IconButton(icon: const Icon(Icons.refresh, color: Color(0xFF388E3C)), onPressed: _generarClaveAleatoria),
+                    ),
+                    const SizedBox(height: 36),
+
+                    // Botón de Envíos Estilizado (Mismo alto de 56 y bordes circulares corporativos)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF388E3C), 
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)), 
+                          elevation: 3,
+                          shadowColor: Colors.black38,
+                        ),
+                        onPressed: _isLoading ? null : _crearTrabajadorEnFirebase,
+                        icon: _isLoading ? const SizedBox.shrink() : const Icon(Icons.person_add_alt_1_outlined, color: Colors.white, size: 24),
+                        label: _isLoading 
+                          ? const CircularProgressIndicator(color: Colors.white) 
+                          : const Text('Crear e Informar Trabajador', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -496,10 +531,15 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
+        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF202124))),
         const SizedBox(height: 8),
         Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFEAEAEA))),
+          decoration: BoxDecoration(
+            color: Colors.white, 
+            borderRadius: BorderRadius.circular(16), 
+            border: Border.all(color: const Color(0xFFEAEAEA)),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+          ),
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,

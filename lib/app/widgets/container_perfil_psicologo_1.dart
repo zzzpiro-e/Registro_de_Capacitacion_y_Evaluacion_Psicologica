@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 
 class ContainerPerfilPsicologoUno extends StatelessWidget {
-  const ContainerPerfilPsicologoUno({super.key});
+  final Map<String, dynamic> datos; // Recibe los datos reales de Firestore
+
+  const ContainerPerfilPsicologoUno({
+    super.key,
+    required this.datos,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Formateamos el rol que viene en minúscula desde el admin
+    String rolFormateado = (datos['rol'] == 'psicologo') ? 'Psicólogo' : 'Trabajador';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -28,9 +36,9 @@ class ContainerPerfilPsicologoUno extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Dr. Carlos Méndez',
-                  style: TextStyle(
+                Text(
+                  datos['nombre'] ?? 'Sin Nombre',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -38,7 +46,7 @@ class ContainerPerfilPsicologoUno extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Psicología Organizacional',
+                  rolFormateado,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 16,
