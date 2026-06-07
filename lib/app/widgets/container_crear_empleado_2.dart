@@ -212,6 +212,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _nombreController,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(30), // máximo 30 caracteres
+                ],
                 decoration: const InputDecoration(
                   hintText: 'Ej: Juan Carlos',
                   border: OutlineInputBorder(
@@ -224,6 +227,12 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                   }
                   if (RegExp(r'[0-9]').hasMatch(value)) {
                     return 'No se permiten números en los nombres';
+                  }
+                  if (value.trim().length < 3) {
+                    return 'El nombre debe tener al menos 3 caracteres';
+                  }
+                  if (value.trim().length > 30) {
+                    return 'Máximo 30 caracteres alcanzados';
                   }
                   return null;
                 },
@@ -238,6 +247,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _apellidoController,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(40), // máximo 40 caracteres
+                ],
                 decoration: const InputDecoration(
                   hintText: 'Ej: Pérez González',
                   border: OutlineInputBorder(
@@ -250,6 +262,12 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                   }
                   if (RegExp(r'[0-9]').hasMatch(value)) {
                     return 'No se permiten números en los apellidos';
+                  }
+                  if (value.trim().length < 2) {
+                    return 'El apellido debe tener al menos 2 caracteres';
+                  }
+                  if (value.trim().length > 40) {
+                    return 'Máximo 40 caracteres alcanzados';
                   }
                   return null;
                 },
