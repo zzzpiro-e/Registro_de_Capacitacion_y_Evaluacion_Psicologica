@@ -196,18 +196,23 @@ class CardListaEmpleadosCruce extends StatelessWidget {
     required this.mensajeVacio,
   });
 
+  String _limpiarRut(String rutRaw) {
+    return rutRaw.toLowerCase().replaceAll(RegExp(r'[^0-9kK]'), '').trim();
+  }
+
   List<String> _procesarRuts(dynamic campo) {
     if (campo == null) return [];
-    if (campo is List)
+    if (campo is List) {
       return campo
-          .map((e) => e.toString().trim())
+          .map((e) => _limpiarRut(e.toString()))
           .where((e) => e.isNotEmpty)
           .toList();
+    }
     if (campo is String) {
       if (campo.trim().isEmpty) return [];
       return campo
           .split(',')
-          .map((e) => e.trim())
+          .map((e) => _limpiarRut(e))
           .where((e) => e.isNotEmpty)
           .toList();
     }
@@ -216,7 +221,11 @@ class CardListaEmpleadosCruce extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ruts = _procesarRuts(rutsCampo);
+    final rutsCapacitacion = _procesarRuts(rutsCampo);
+
+    // 🟢 PRINT DIAGNÓSTICO 1
+    print("=== [DEBUG] $tituloSeccion ===");
+    print("RUTs que llegaron procesados de la capacitación: $rutsCapacitacion");
 
     return Container(
       width: double.infinity,
@@ -246,17 +255,14 @@ class CardListaEmpleadosCruce extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          if (ruts.isEmpty)
+          if (rutsCapacitacion.isEmpty)
             Text(
               mensajeVacio,
               style: const TextStyle(color: Colors.black45, fontSize: 14),
             )
           else
             FutureBuilder<QuerySnapshot>(
-              future: FirebaseFirestore.instance
-                  .collection('empleados')
-                  .where('rut', whereIn: ruts)
-                  .get(),
+              future: FirebaseFirestore.instance.collection('empleados').get(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(
@@ -273,18 +279,45 @@ class CardListaEmpleadosCruce extends StatelessWidget {
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Text(
-                    "No se encontraron coincidencias de empleados para los RUTs.",
+                    "No se encontraron empleados registrados en el sistema.",
                     style: TextStyle(fontSize: 14, color: Colors.black54),
+                  );
+                }
+
+                // Filtrar empleados
+                final empleadosFiltrados = snapshot.data!.docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final rutEmpleadoRaw = data['rut']?.toString() ?? '';
+                  final rutEmpleadoLimpio = _limpiarRut(rutEmpleadoRaw);
+
+                  final coincide = rutsCapacitacion.contains(rutEmpleadoLimpio);
+
+                  // 🟢 PRINT DIAGNÓSTICO 2 (Ver por qué no coincide)
+                  print(
+                    "Comparando en BD: Original='$rutEmpleadoRaw' -> Limpio='$rutEmpleadoLimpio' | ¿Coincide?: $coincide",
+                  );
+
+                  return coincide;
+                }).toList();
+
+                print(
+                  "Total empleados cruzados que sí hicieron match: ${empleadosFiltrados.length}",
+                );
+
+                if (empleadosFiltrados.isEmpty) {
+                  return Text(
+                    mensajeVacio,
+                    style: const TextStyle(fontSize: 14, color: Colors.black45),
                   );
                 }
 
                 return ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: snapshot.data!.docs.length,
+                  itemCount: empleadosFiltrados.length,
                   itemBuilder: (context, index) {
                     final emp =
-                        snapshot.data!.docs[index].data()
+                        empleadosFiltrados[index].data()
                             as Map<String, dynamic>;
                     final nombreCompleto =
                         "${emp['nombres'] ?? ''} ${emp['apellidos'] ?? ''}";
