@@ -53,6 +53,7 @@ class ContainerPerfilEmpleadoCuatro extends StatelessWidget {
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               padding: const EdgeInsets.all(20),
+              width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
