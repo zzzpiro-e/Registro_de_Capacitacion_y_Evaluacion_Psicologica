@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:proyecto_flutter/app/screens/capacitaciones_screen.dart'; // importa tu página
 
 class ContainerDashboardDos extends StatelessWidget {
   const ContainerDashboardDos({super.key});
@@ -77,9 +78,15 @@ class ContainerDashboardDos extends StatelessWidget {
 
               return Column(
                 children: [
+                  // Pendientes
                   InkWell(
                     onTap: () {
-                      Navigator.pushNamed(context, 'capacitaciones');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CapacitacionesPage(filtroInicial: 'pendiente'),
+                        ),
+                      );
                     },
                     child: _buildStatCard(
                       icon: Icons.school_outlined,
@@ -89,18 +96,42 @@ class ContainerDashboardDos extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  _buildStatCard(
-                    icon: Icons.check_circle_outline,
-                    iconColor: const Color(0xFF4CAF50),
-                    title: 'Capacitaciones Realizadas',
-                    value: realizadas.toString(),
+
+                  // Realizadas
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CapacitacionesPage(filtroInicial: 'realizada'),
+                        ),
+                      );
+                    },
+                    child: _buildStatCard(
+                      icon: Icons.check_circle_outline,
+                      iconColor: const Color(0xFF4CAF50),
+                      title: 'Capacitaciones Realizadas',
+                      value: realizadas.toString(),
+                    ),
                   ),
                   const SizedBox(height: 18),
-                  _buildStatCard(
-                    icon: Icons.list_alt_outlined,
-                    iconColor: Colors.blueGrey,
-                    title: 'Capacitaciones Totales',
-                    value: totales.toString(),
+
+                  // Totales
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CapacitacionesPage(filtroInicial: 'todas'),
+                        ),
+                      );
+                    },
+                    child: _buildStatCard(
+                      icon: Icons.list_alt_outlined,
+                      iconColor: Colors.blueGrey,
+                      title: 'Capacitaciones Totales',
+                      value: totales.toString(),
+                    ),
                   ),
                 ],
               );
