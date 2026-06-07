@@ -41,7 +41,6 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () async {
-              // 🔹 Pedir el correo del psicólogo
               final controller = TextEditingController();
               final email = await showDialog<String>(
                 context: context,
@@ -71,25 +70,24 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
               );
 
               if (email != null && email.isNotEmpty) {
-                // 🔹 Actualizar el documento del empleado en Firestore
                 await FirebaseFirestore.instance
                     .collection('empleados')
                     .doc(empleadoId)
                     .update({
-                  'derivado': true,
-                  'psicologoEmail': email,
-                  'derivacionFecha': Timestamp.now(),
-                  'estado': 'Pendiente',
-                });
+                      'derivado': true,
+                      'psicologoEmail': email,
+                      'derivacionFecha': Timestamp.now(),
+                      'estado': 'Pendiente',
+                    });
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Empleado derivado al psicólogo: $email',
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Empleado derivado al psicólogo: $email'),
+                      backgroundColor: Colors.green,
                     ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(

@@ -14,7 +14,6 @@ class _ContainerListaEmpleadosDosState extends State<ContainerListaEmpleadosDos>
   final TextEditingController _controller = TextEditingController();
   String? _errorText;
 
-  // --- Validaciones ---
   bool _esSoloLetras(String valor) => RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(valor);
   bool _esSoloNumeros(String valor) => RegExp(r'^[0-9]+$').hasMatch(valor);
   bool _esRutValido(String valor) => RegExp(r'^[0-9]{7,9}$').hasMatch(valor);
@@ -30,7 +29,7 @@ class _ContainerListaEmpleadosDosState extends State<ContainerListaEmpleadosDos>
 
     if (_esSoloLetras(valor)) {
       setState(() => _errorText = null);
-      widget.onSearch(TextUtils.quitarTildes(valor)); // 🔹 Buscar con texto normalizado
+      widget.onSearch(TextUtils.quitarTildes(valor));
     } else if (_esSoloNumeros(valor)) {
       if (_esRutValido(valor)) {
         setState(() => _errorText = null);

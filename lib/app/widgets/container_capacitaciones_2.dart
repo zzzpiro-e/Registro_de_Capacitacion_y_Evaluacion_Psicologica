@@ -1,35 +1,91 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ContainerCapacitacionesDos extends StatelessWidget {
+class ContainerCapacitacionesDos extends StatefulWidget {
   const ContainerCapacitacionesDos({super.key});
 
+  @override
+  State<ContainerCapacitacionesDos> createState() =>
+      _ContainerCapacitacionesDosState();
+}
+
+class _ContainerCapacitacionesDosState
+    extends State<ContainerCapacitacionesDos> {
+  late Future<Map<String, int>> _conteoFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarConteos();
+  }
+
+  void _cargarConteos() {
+    _conteoFuture = _obtenerConteoCapacitaciones();
+  }
+
   Future<Map<String, int>> _obtenerConteoCapacitaciones() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('capacitaciones')
-        .get();
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('capacitaciones')
+          .get()
+          .timeout(const Duration(seconds: 10));
 
-    int pendientes = 0;
-    int realizadas = 0;
+      int pendientes = 0;
+      int realizadas = 0;
 
-    for (var doc in snapshot.docs) {
-      final estado = (doc['estado'] ?? '').toString().trim().toLowerCase();
-      if (estado == 'pendiente') pendientes++;
-      if (estado == 'realizada') realizadas++;
+      for (var doc in snapshot.docs) {
+        final estado = (doc['estado'] ?? '').toString().trim().toLowerCase();
+        if (estado == 'pendiente') pendientes++;
+        if (estado == 'realizada') realizadas++;
+      }
+
+      return {
+        'pendientes': pendientes,
+        'realizadas': realizadas,
+        'totales': snapshot.docs.length,
+      };
+    } catch (e) {
+      throw Exception('Fallo al conectar con el servidor');
     }
-
-    return {
-      'pendientes': pendientes,
-      'realizadas': realizadas,
-      'totales': snapshot.docs.length,
-    };
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, int>>(
-      future: _obtenerConteoCapacitaciones(),
+      future: _conteoFuture,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Error de conexión al cargar totales.',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 13),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: Color(0xFF2E7D32)),
+                    onPressed: () {
+                      setState(() {
+                        _cargarConteos();
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -92,11 +148,7 @@ class ContainerCapacitacionesDos extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
         ],
       ),
       child: Row(

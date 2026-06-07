@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 class ContainerListaEmpleadosUno extends StatelessWidget {
   final String titulo;
-  final VoidCallback? onBackTap; // 🔹 Añadimos la función callback
+  final VoidCallback? onBackTap;
 
   const ContainerListaEmpleadosUno({
     super.key, 
     required this.titulo,
-    this.onBackTap, // 🔹 La incluimos en el constructor
+    this.onBackTap,
   });
 
   @override
@@ -20,9 +20,9 @@ class ContainerListaEmpleadosUno extends StatelessWidget {
           InkWell(
             onTap: () {
               if (onBackTap != null) {
-                onBackTap!(); // 🔹 Si se pasa la acción, se ejecuta
+                onBackTap!();
               } else {
-                Navigator.pop(context); // Comportamiento de respaldo
+                Navigator.pop(context);
               }
             },
             child: const Icon(

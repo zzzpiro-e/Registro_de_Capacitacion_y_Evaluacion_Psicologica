@@ -11,19 +11,16 @@ class ContainerPerfilEmpleadoUno extends StatelessWidget {
       child: Row(
         children: [
           InkWell(
-            onTap: () {
-              // 🔹 Regresa a la pantalla de lista de empleados
-              Navigator.pop(context);
-            },
+            onTap: () => Navigator.pop(context),
             child: const Icon(
               Icons.arrow_back_ios_new,
-              color: Color(0xFF2E7D32), // Verde principal
+              color: Color(0xFF2E7D32),
               size: 22,
             ),
           ),
           const SizedBox(width: 12),
           const Text(
-            'Perfil de Empleado',
+            "Perfil del Empleado",
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
