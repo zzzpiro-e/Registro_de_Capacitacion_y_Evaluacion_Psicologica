@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ContainerRoleValidador extends StatefulWidget {
-  final String rolRequerido;
+  final String rolRequerido; // Mantenemos el String simple para no romper tus rutas actuales
   final Widget child;
 
   const ContainerRoleValidador({
@@ -35,17 +35,27 @@ class _ContainerRoleValidadorState extends State<ContainerRoleValidador> {
     }
 
     try {
-      final DocumentSnapshot userDoc = await FirebaseFirestore.instance
+      // 1. Intentar buscar en la colección 'usuarios'
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(user.uid)
           .get();
 
+      // 2. Si NO existe en 'usuarios', buscar en 'trabajadores'
+      if (!userDoc.exists) {
+        userDoc = await FirebaseFirestore.instance
+            .collection('trabajadores')
+            .doc(user.uid)
+            .get();
+      }
+
+      // 3. Si el documento existe en cualquiera de las dos colecciones
       if (userDoc.exists && userDoc.data() != null) {
         final userData = userDoc.data() as Map<String, dynamic>;
         final String currentRole = (userData['rol'] ?? userData['role'] ?? '').toString().toLowerCase();
 
-        // Validar acceso y bloquear modulos cruzados si no coincide el rol
-        if (currentRole == widget.rolRequerido.toLowerCase()) {
+        // 4. Validar si el rol coincide (O si es 'admin', que tiene acceso total)
+        if (currentRole == widget.rolRequerido.toLowerCase() || currentRole == 'admin') {
           setState(() {
             _isAuthorized = true;
             _isLoading = false;
@@ -54,17 +64,17 @@ class _ContainerRoleValidadorState extends State<ContainerRoleValidador> {
           _denegarAcceso(mensaje: 'Acceso denegado: No tienes permisos para este módulo.');
         }
       } else {
-        _denegarAcceso();
+        _denegarAcceso(mensaje: 'Error: Perfil no encontrado en la base de datos.');
       }
     } catch (e) {
-      _denegarAcceso();
+      _denegarAcceso(mensaje: 'Error de conexión al verificar el rol de seguridad.');
     }
   }
 
   void _denegarAcceso({String mensaje = 'Sesión inválida. Por favor inicia sesión nuevamente.'}) {
     if (!mounted) return;
     
-    // Forzar deslogueo y redireccion segura
+    // Forzar deslogueo y redirección segura
     FirebaseAuth.instance.signOut();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(mensaje), backgroundColor: Colors.red.shade800),
@@ -80,7 +90,6 @@ class _ContainerRoleValidadorState extends State<ContainerRoleValidador> {
       );
     }
 
-    // Validar permisos antes de mostrar información sensible
     return _isAuthorized ? widget.child : const SizedBox.shrink();
   }
 }

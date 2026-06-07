@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 class ContainerPerfilPsicologoDos extends StatelessWidget {
-  const ContainerPerfilPsicologoDos({super.key});
+  final Map<String, dynamic> datos; // Recibe los datos reales de Firestore
+
+  const ContainerPerfilPsicologoDos({
+    super.key,
+    required this.datos,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -42,15 +47,15 @@ class ContainerPerfilPsicologoDos extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       'Correo Electrónico',
                       style: TextStyle(color: Color(0xFF388E3C), fontSize: 13, fontWeight: FontWeight.w500),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      'carlos.mendez@empresa.cl',
-                      style: TextStyle(color: Colors.black87, fontSize: 15),
+                      datos['email'] ?? 'sin_correo@empresa.cl',
+                      style: const TextStyle(color: Colors.black87, fontSize: 15),
                     ),
                   ],
                 ),
@@ -68,15 +73,15 @@ class ContainerPerfilPsicologoDos extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       'Teléfono',
                       style: TextStyle(color: Color(0xFF388E3C), fontSize: 13, fontWeight: FontWeight.w500),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      '+56 9 8765 4321',
-                      style: TextStyle(color: Colors.black87, fontSize: 15),
+                      datos['telefono'] ?? 'No registrado',
+                      style: const TextStyle(color: Colors.black87, fontSize: 15),
                     ),
                   ],
                 ),

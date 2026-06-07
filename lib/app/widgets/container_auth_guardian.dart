@@ -45,7 +45,7 @@ class ContainerAuthGuardian extends StatelessWidget {
 
                 switch (role) {
                   case 'admin':
-                    return const AdminMainScreen();
+                    return AdminMainScreen(); // 🟢 ¡CORREGIDO! Quitamos el const de aquí para solucionar el error
                   case 'psicologo':
                     return const PsicologoMainScreen();
                   case 'rrhh':

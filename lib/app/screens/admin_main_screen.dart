@@ -14,29 +14,40 @@ class AdminMainScreen extends StatefulWidget {
 
 class _AdminMainScreenState extends State<AdminMainScreen> {
   int _currentIndex = 0; 
-
-  // Lista de páginas inicializada dinámicamente para preservar estados sin errores de compilación
-  late final List<Widget> _pages;
+  String _workersRoleFilter = 'todos';
+  String _workersStatusFilter = 'todos';
 
   @override
   void initState() {
     super.initState();
-    // 🟢 Inicialización limpia sin 'const' en las instancias
-    _pages = [
-      AdminDashboardScreen(),   
-      AdminCreateScreen(),      
-      AdminWorkersListScreen(), 
-      AdminProfileScreen(
-        onLogout: () {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()), 
-            (route) => false, 
-          );
-        },
-      ),
-    ];
   }
+
+  void _abrirTrabajadores(String filtroRol, String filtroEstado) {
+    setState(() {
+      _workersRoleFilter = filtroRol;
+      _workersStatusFilter = filtroEstado;
+      _currentIndex = 2;
+    });
+  }
+
+  List<Widget> get _pages => [
+        AdminDashboardScreen(onOpenWorkersTab: _abrirTrabajadores),
+        AdminCreateScreen(),
+        AdminWorkersListScreen(
+          key: ValueKey(_workersRoleFilter),
+          initialRoleFilter: _workersRoleFilter,
+          initialStatusFilter: _workersStatusFilter,
+        ),
+        AdminProfileScreen(
+          onLogout: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+              (route) => false,
+            );
+          },
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {

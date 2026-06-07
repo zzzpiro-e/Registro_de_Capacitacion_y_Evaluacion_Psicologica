@@ -5,12 +5,18 @@ import 'package:proyecto_flutter/app/routes/app_routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:proyecto_flutter/app/widgets/container_auth_guardian.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  await Supabase.initialize(
+    url: 'https://dndfusbyblziuyufovmv.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuZGZ1c2J5Ymx6aXV5dWZvdm12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MzIxNTcsImV4cCI6MjA5NjEwODE1N30.JpMVSlYyTslWnKC4JgScoRERgQKysdqpBOV27h-BkW8',
   );
 
   await initializeDateFormatting('es_CL', null);

@@ -67,26 +67,19 @@ class _PsicologoHistorialScreenState extends State<PsicologoHistorialScreen> {
                     );
                   }
 
-                  // 3. Si no hay datos o la colección está vacía
+                  // 3. Obtener todas las derivaciones asociadas al psicólogo
                   final todasLasDerivaciones = snapshot.data ?? [];
-                  if (todasLasDerivaciones.isEmpty) {
-                    return Column(
-                      children: [
-                        const ContainerHistorialContador(totalInformes: 0),
-                        const Expanded(
-                          child: Center(
-                            child: Text(
-                              'No registras derivaciones asignadas.',
-                              style: TextStyle(color: Colors.grey, fontSize: 16),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }
 
-                  // 4. Aplicamos el filtro de búsqueda local sobre los datos en tiempo real
+                  // 4. Filtrar localmente para que SOLO se muestren los casos "Completado"
+                  //    y además respondan a los criterios del cuadro de búsqueda.
                   final listaFiltrada = todasLasDerivaciones.where((informe) {
+                    // Criterio de Estado Clínico obligatorio
+                    final String estado = (informe['estado'] ?? '').toString().toLowerCase();
+                    if (estado != 'completado') {
+                      return false; // Si no está completado, se descarta de inmediato
+                    }
+
+                    // Criterios del cuadro de búsqueda (Filtro local existente)
                     final nombre = (informe['nombre'] ?? '').toString().toLowerCase();
                     final rut = (informe['rut'] ?? '').toString().toLowerCase();
                     final motivo = (informe['motivo'] ?? '').toString().toLowerCase();
@@ -94,6 +87,23 @@ class _PsicologoHistorialScreenState extends State<PsicologoHistorialScreen> {
 
                     return nombre.contains(input) || rut.contains(input) || motivo.contains(input);
                   }).toList();
+
+                  // 5. Si la lista filtrada queda vacía (porque no hay completados o no coinciden búsquedas)
+                  if (listaFiltrada.isEmpty) {
+                    return Column(
+                      children: [
+                        const ContainerHistorialContador(totalInformes: 0),
+                        const Expanded(
+                          child: Center(
+                            child: Text(
+                              'No registras casos completados en el historial.',
+                              style: TextStyle(color: Colors.grey, fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
 
                   return Column(
                     children: [
@@ -106,21 +116,14 @@ class _PsicologoHistorialScreenState extends State<PsicologoHistorialScreen> {
                       
                       // Listado adaptativo de tarjetas de historial clínico
                       Expanded(
-                        child: listaFiltrada.isEmpty
-                            ? const Center(
-                                child: Text(
-                                  'No se encontraron informes',
-                                  style: TextStyle(color: Colors.grey, fontSize: 16),
-                                ),
-                              )
-                            : ListView.builder(
-                                physics: const BouncingScrollPhysics(),
-                                itemCount: listaFiltrada.length,
-                                itemBuilder: (context, index) {
-                                  final item = listaFiltrada[index];
-                                  return ContainerHistorialCard(datos: item);
-                                },
-                              ),
+                        child: ListView.builder(
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: listaFiltrada.length,
+                          itemBuilder: (context, index) {
+                            final item = listaFiltrada[index];
+                            return ContainerHistorialCard(datos: item);
+                          },
+                        ),
                       ),
                     ],
                   );
