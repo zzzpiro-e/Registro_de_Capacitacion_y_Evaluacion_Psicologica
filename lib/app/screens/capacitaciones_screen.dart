@@ -6,8 +6,9 @@ import 'package:proyecto_flutter/app/widgets/container_capacitaciones_3.dart';
 
 class CapacitacionesPage extends StatefulWidget {
   final VoidCallback? onReturnToDashboard;
+  final String filtroInicial;
 
-  const CapacitacionesPage({super.key, this.onReturnToDashboard});
+  const CapacitacionesPage({super.key, this.onReturnToDashboard, this.filtroInicial = 'todas'});
 
   @override
   State<CapacitacionesPage> createState() => _CapacitacionesPageState();
@@ -15,8 +16,13 @@ class CapacitacionesPage extends StatefulWidget {
 
 class _CapacitacionesPageState extends State<CapacitacionesPage> {
   // 🔹 Estado del filtro: 'todas', 'pendiente' o 'realizada'
-  String _filtroActivo = 'todas';
-
+  //String _filtroActivo = 'todas';
+  late String _filtroActivo;
+  @override
+  void initState() {
+    super.initState();
+    _filtroActivo = widget.filtroInicial; // <-- inicialización con el filtro recibido
+  }
   // Función automática para comparar las listas de empleados y actualizar la BD
   // 🔹 Versión corregida y estricta: separa el caso vacío del caso con RUTs
   // 🔹 Regla definitiva: Solo automatiza si hay RUTs cargados y coinciden
