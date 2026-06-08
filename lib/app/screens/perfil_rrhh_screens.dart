@@ -10,16 +10,10 @@ class PerfilRRHHScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Perfil Analista RRHH',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black, // Texto oscuro para contraste
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.white, // Fondo blanco
-        elevation: 0, // Sin sombra
-        iconTheme: const IconThemeData(
-          color: Color(0xFF388E3C), // Íconos en verde institucional
-        ),
+        backgroundColor: const Color(0xFF388E3C), // Verde institucional
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
