@@ -80,27 +80,34 @@ class _ContainerPerfilEmpleadoCuatroState
               return const Center(child: CircularProgressIndicator());
             }
 
-            final realizadas = capSnapshot.data?['realizadas'] ?? [];
-            final pendientes = capSnapshot.data?['pendientes'] ?? [];
+            final capacitaciones = (capacitacionesSnapshot.data?.docs ?? [])
+                .where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
 
-            // Lista unificada para meter todas las tarjetas juntas
-            final List<Map<String, dynamic>> todasLasCapacitaciones = [];
+                  final empleadosAsignados =
+                      (data['empleadosAsignados'] as List<dynamic>? ?? []);
 
-            for (var doc in realizadas) {
-              todasLasCapacitaciones.add({
-                'data': doc.data() as Map<String, dynamic>,
-                'esRealizada': true,
-              });
-            }
-            for (var doc in pendientes) {
-              todasLasCapacitaciones.add({
-                'data': doc.data() as Map<String, dynamic>,
-                'esRealizada': false,
-              });
-            }
+                  return empleadosAsignados.any(
+                    (rut) => rut.toString().trim() == rutNormalizado,
+                  );
+                })
+                .toList();
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.all(20),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
