@@ -298,7 +298,7 @@ class ContainerDetalleCaso extends StatelessWidget {
                   ],
                 ),
               );
-            }).toList(),
+            }),
         ],
       ),
     );

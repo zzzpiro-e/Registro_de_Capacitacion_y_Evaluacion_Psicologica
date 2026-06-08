@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:proyecto_flutter/app/widgets/widgets_crear_empleado.dart';
 import 'package:proyecto_flutter/app/widgets/widgets_lista_empleados.dart';
 import 'package:proyecto_flutter/app/utils/text_utils.dart';
 
@@ -18,6 +20,8 @@ class _ListaEmpleadosPageState extends State<ListaEmpleadosPage> {
 
   @override
   Widget build(BuildContext context) {
+    final empleadosProvider = Provider.of<EmpleadosProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
       body: SafeArea(
@@ -32,7 +36,7 @@ class _ListaEmpleadosPageState extends State<ListaEmpleadosPage> {
             ),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                key: ValueKey(_retryKey),
+                key: ValueKey('$_retryKey-${empleadosProvider.version}'),
                 stream: FirebaseFirestore.instance
                     .collection('empleados')
                     .snapshots(),

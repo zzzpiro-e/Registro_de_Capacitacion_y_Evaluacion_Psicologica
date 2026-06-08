@@ -198,11 +198,12 @@ class CardListaEmpleadosCruce extends StatelessWidget {
 
   List<String> _procesarRuts(dynamic campo) {
     if (campo == null) return [];
-    if (campo is List)
+    if (campo is List) {
       return campo
           .map((e) => e.toString().trim())
           .where((e) => e.isNotEmpty)
           .toList();
+    }
     if (campo is String) {
       if (campo.trim().isEmpty) return [];
       return campo

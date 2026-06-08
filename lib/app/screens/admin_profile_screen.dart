@@ -56,8 +56,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         password: currentPassword,
       );
 
-      await _currentUser!.reauthenticateWithCredential(credential);
-      await _currentUser!.updatePassword(newPassword);
+      await _currentUser.reauthenticateWithCredential(credential);
+      await _currentUser.updatePassword(newPassword);
 
       Navigator.pop(modalContext);
       _currentPasswordController.clear();
