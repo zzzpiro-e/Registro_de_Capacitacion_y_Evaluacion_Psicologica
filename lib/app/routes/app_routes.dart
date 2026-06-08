@@ -18,6 +18,7 @@ import '../screens/visor_pdf_screen.dart';
 import 'package:proyecto_flutter/app/screens/editar_trabajador_admin_screen.dart';
 import '../screens/psicologo_historial_informes_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:proyecto_flutter/app/screens/comprobante_preview_screen.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
@@ -52,6 +53,7 @@ class AppRoutes {
     'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
     'visor_pdf': (BuildContext context) => const VisorPdfScreen(),
     'historial_informes': (BuildContext context) => const HistorialInformesScreen(),
+    'comprobante_preview': (BuildContext context) => const ComprobantePreviewScreen(),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {

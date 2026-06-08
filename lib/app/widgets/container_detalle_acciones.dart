@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'container_comprobante_boton.dart';
 
 class ContainerDetalleAcciones extends StatefulWidget {
@@ -24,6 +24,7 @@ class ContainerDetalleAcciones extends StatefulWidget {
 
 class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
   bool _estaSubiendo = false;
+  bool _mostrarMenuAcciones = false;
 
   Color _colorEstado(String estado) {
     switch (estado) {
@@ -43,25 +44,14 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
     }
   }
 
-  // Alerta de confirmación exclusiva para cuando se selecciona "Completado" en el menú
   Future<bool> _mostrarAdvertenciaCompletado() async {
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: const Row(
-                children: [
-                  SizedBox(width: 10),
-                  Text(
-                    '¿Finalizar Derivación?',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('¿Finalizar Derivación?', style: TextStyle(fontWeight: FontWeight.bold)),
               content: const Text(
                 'Al cambiar el estado a "Completado", el trabajador se archivará en el historial. '
                 'Ya no podrás modificar su estado ni subir nuevos documentos, solo visualizar sus informes previos.',
@@ -70,24 +60,12 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text(
-                    'Cancelar',
-                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                  ),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    elevation: 0,
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), elevation: 0),
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text(
-                    'Sí, Completar',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
+                  child: const Text('Sí, Completar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -126,7 +104,6 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
 
   Future<void> _seleccionarYSubirInforme() async {
     if (_estaSubiendo) return;
-
     setState(() => _estaSubiendo = true);
 
     try {
@@ -154,14 +131,7 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
 
         await Supabase.instance.client.storage
             .from('informes_psicologicos')
-            .uploadBinary(
-              rutaArchivoSupabase, 
-              archivoBytes,
-              fileOptions: const FileOptions(
-                contentType: 'application/pdf',
-                upsert: false,
-              ),
-            );
+            .uploadBinary(rutaArchivoSupabase, archivoBytes, fileOptions: const FileOptions(contentType: 'application/pdf', upsert: false));
 
         final String fechaFormateada = DateFormat('dd/MM/yyyy').format(DateTime.now());
         final Map<String, dynamic> nuevoInformeObjeto = {
@@ -172,7 +142,6 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
           'es_supabase': true,
         };
 
-        // NOTA: Mantenemos el estado actual del widget en vez de forzar 'Completado'
         await FirebaseFirestore.instance
             .collection('empleados')
             .doc(documentoId)
@@ -183,26 +152,21 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
             });
 
         final Map<String, dynamic> copiaDatos = Map<String, dynamic>.from(widget.derivacion);
-        // Preservamos el estado en el que venía el caso (generalmente 'En Proceso')
         copiaDatos['estado'] = widget.estadoActual; 
         copiaDatos['fichaPsicologica'] = 'Informe adjunto: $nombreArchivo';
         copiaDatos['urlPdf'] = rutaArchivoSupabase;
         
-        if (copiaDatos['informes'] == null) {
-          copiaDatos['informes'] = [];
-        }
+        if (copiaDatos['informes'] == null) copiaDatos['informes'] = [];
         (copiaDatos['informes'] as List).add(nuevoInformeObjeto);
 
-        // Notificamos el cambio manteniendo el estado actual
         widget.onActualizarCaso(widget.estadoActual, copiaDatos);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('¡Informe añadido con éxito! Puedes seguir subiendo más.'),
+              content: const Text('¡Informe añadido con éxito!'),
               backgroundColor: const Color(0xFF2E7D32),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           );
         }
@@ -210,17 +174,11 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al subir a Supabase: $e'), 
-            backgroundColor: Colors.red.shade800, 
-            behavior: SnackBarBehavior.floating
-          ),
+          SnackBar(content: Text('Error al subir a Supabase: $e'), backgroundColor: Colors.red.shade800, behavior: SnackBarBehavior.floating),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _estaSubiendo = false);
-      }
+      if (mounted) setState(() => _estaSubiendo = false);
     }
   }
 
@@ -253,22 +211,17 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: _colorEstado(estado),
-          borderRadius: BorderRadius.circular(8)
-        ),
+        decoration: BoxDecoration(color: _colorEstado(estado), borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, color: colorContexto)
       ),
       title: Text(estado, style: TextStyle(fontWeight: esActivo ? FontWeight.bold : FontWeight.w500, color: colorContexto)),
       trailing: esActivo ? Icon(Icons.check, color: colorContexto) : null,
       onTap: () async {
         Navigator.pop(context);
-        
         if (estado == 'Completado') {
           bool confirmar = await _mostrarAdvertenciaCompletado();
           if (!confirmar) return; 
         }
-        
         _persistirEstadoEnFirebase(estado);
       },
     );
@@ -277,15 +230,21 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
   @override
   Widget build(BuildContext context) {
     final bool yaEstaCompletado = widget.estadoActual == 'Completado';
+    final Map<String, dynamic> datosMapeadosParaPdf = Map<String, dynamic>.from(widget.derivacion);
+    datosMapeadosParaPdf['id_documento'] = widget.derivacion['id'] ?? 'N/A';
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 14,
             offset: const Offset(0, -4),
           )
         ],
@@ -293,55 +252,103 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ElevatedButton.icon(
-            onPressed: () async {
-              if (widget.estadoActual == 'Pendiente') {
-                await _persistirEstadoEnFirebase('En Proceso');
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('El caso ya se encuentra ${widget.estadoActual}'), backgroundColor: Colors.grey.shade700),
-                );
-              }
-            },
-            icon: const Icon(Icons.play_arrow_outlined, color: Colors.white),
-            label: const Text('Iniciar Atención', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-            ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            child: _mostrarMenuAcciones
+                ? Container(
+                    padding: const EdgeInsets.only(bottom: 16, top: 8),
+                    child: Column(
+                      children: [
+                        // Acción 1: Iniciar Atención Rápida
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            if (widget.estadoActual == 'Pendiente') {
+                              await _persistirEstadoEnFirebase('En Proceso');
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('El caso ya se encuentra ${widget.estadoActual}'), backgroundColor: Colors.grey.shade700),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.play_arrow_outlined, color: Colors.white),
+                          label: const Text('Iniciar Atención', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4CAF50),
+                            minimumSize: const Size(double.infinity, 48),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Acción 2: Generar Comprobante PDF
+                        ContainerComprobanteBoton(derivacion: datosMapeadosParaPdf),
+                        const SizedBox(height: 10),
+
+                        // Acción 3: Cambiar Estado Manual
+                        OutlinedButton.icon(
+                          onPressed: _estaSubiendo ? null : _mostrarMenuEstados,
+                          icon: const Icon(Icons.edit_note_outlined, color: Color(0xFF2E7D32)),
+                          label: const Text('Cambiar Estado', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
+                            minimumSize: const Size(double.infinity, 48),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Acción 4: Subir Informe Psicológico
+                        ElevatedButton.icon(
+                          onPressed: (_estaSubiendo || yaEstaCompletado) ? null : _seleccionarYSubirInforme,
+                          icon: _estaSubiendo 
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Icon(Icons.assignment_turned_in_outlined, color: Colors.white),
+                          label: Text(
+                            _estaSubiendo ? 'Cargando Archivo...' : 'Subir Informe Psicológico', 
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: yaEstaCompletado ? Colors.grey : const Color(0xFF4CAF50),
+                            minimumSize: const Size(double.infinity, 48),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                        ),
+                        const Divider(height: 24, thickness: 1),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
-          const SizedBox(height: 12),
-          
-          ContainerComprobanteBoton(derivacion: widget.derivacion),
-          
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _estaSubiendo ? null : _mostrarMenuEstados,
-            icon: const Icon(Icons.edit_note_outlined, color: Color(0xFF2E7D32)),
-            label: const Text('Cambiar Estado', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: (_estaSubiendo || yaEstaCompletado) ? null : _seleccionarYSubirInforme,
-            icon: _estaSubiendo 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.assignment_turned_in_outlined, color: Colors.white),
-            label: Text(
-              _estaSubiendo ? 'Cargando Archivo...' : 'Subir Informe Psicológico', 
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: yaEstaCompletado ? Colors.grey : const Color(0xFF4CAF50),
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
+
+          // BOTÓN CENTRAL ÚNICO
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _mostrarMenuAcciones = !_mostrarMenuAcciones; // Invierte el estado desplegado
+                });
+              },
+              icon: Icon(
+                _mostrarMenuAcciones ? Icons.keyboard_arrow_down : Icons.layers_outlined, 
+                color: Colors.white, 
+                size: 22
+              ),
+              label: Text(
+                _mostrarMenuAcciones ? 'Ocultar Opciones' : 'Acciones del Caso', 
+                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1B5E20),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
             ),
           ),
         ],
