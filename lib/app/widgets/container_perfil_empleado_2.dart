@@ -2,20 +2,62 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-class ContainerPerfilEmpleadoDos extends StatelessWidget {
+class ContainerPerfilEmpleadoDos extends StatefulWidget {
   final String empleadoId;
-  final Color verdePrincipal = const Color(0xFF2E7D32);
 
   const ContainerPerfilEmpleadoDos({super.key, required this.empleadoId});
 
   @override
+  State<ContainerPerfilEmpleadoDos> createState() =>
+      _ContainerPerfilEmpleadoDosState();
+}
+
+class _ContainerPerfilEmpleadoDosState
+    extends State<ContainerPerfilEmpleadoDos> {
+  final Color verdePrincipal = const Color(0xFF2E7D32);
+  int _retryKey = 0;
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
+      key: ValueKey(_retryKey),
       stream: FirebaseFirestore.instance
           .collection('empleados')
-          .doc(empleadoId)
+          .doc(widget.empleadoId)
           .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.cloud_off, size: 40, color: Colors.grey),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Error al cargar datos personales",
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () => setState(() => _retryKey++),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text("Reintentar"),
+                    style: TextButton.styleFrom(
+                      foregroundColor: verdePrincipal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -28,8 +70,9 @@ class ContainerPerfilEmpleadoDos extends StatelessWidget {
 
         final nombreCompleto =
             "${data['nombres'] ?? ''} ${data['apellidos'] ?? ''}".trim();
-        final nombreFinal =
-            nombreCompleto.isEmpty ? 'Información no ingresada' : nombreCompleto;
+        final nombreFinal = nombreCompleto.isEmpty
+            ? 'Información no ingresada'
+            : nombreCompleto;
 
         final rut = data['rut']?.toString() ?? 'Información no ingresada';
         final edad = data['edad']?.toString() ?? 'Información no ingresada';
@@ -41,14 +84,9 @@ class ContainerPerfilEmpleadoDos extends StatelessWidget {
           fechaIngreso = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
         }
 
-        // 🔹 Ahora el salario se guarda como entero en Firestore
         final salario = data['salario'] != null
-          ? '\$${NumberFormat.decimalPattern('es_CL').format(
-              data['salario'] is int
-                  ? data['salario']
-                  : int.tryParse(data['salario'].toString()) ?? 0,
-            )}'
-          : 'Información no ingresada';
+            ? '\$${NumberFormat.decimalPattern('es_CL').format(data['salario'] is int ? data['salario'] : int.tryParse(data['salario'].toString()) ?? 0)}'
+            : 'Información no ingresada';
 
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -74,7 +112,7 @@ class ContainerPerfilEmpleadoDos extends StatelessWidget {
                     Navigator.pushNamed(
                       context,
                       'editar_empleado_rrhh',
-                      arguments: {'empleadoId': empleadoId},
+                      arguments: {'empleadoId': widget.empleadoId},
                     );
                   },
                   icon: Icon(Icons.edit, color: verdePrincipal),
@@ -102,7 +140,10 @@ class ContainerPerfilEmpleadoDos extends StatelessWidget {
               _buildInfoRow(Icons.badge_outlined, 'Edad', edad),
               _buildInfoRow(Icons.work_outline, 'Cargo', cargo),
               _buildInfoRow(
-                  Icons.calendar_today_outlined, 'Fecha de ingreso', fechaIngreso),
+                Icons.calendar_today_outlined,
+                'Fecha de ingreso',
+                fechaIngreso,
+              ),
               _buildInfoRow(Icons.attach_money_outlined, 'Salario', salario),
             ],
           ),

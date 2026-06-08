@@ -5,7 +5,6 @@ class ContainerListaEmpleadosTres extends StatelessWidget {
 
   const ContainerListaEmpleadosTres({super.key, required this.empleados});
 
-  // Función interna para formatear el RUT
   String _formatearRut(String rut) {
     String valor = rut.replaceAll(RegExp(r'[^0-9kK]'), '');
     if (valor.length < 2) return valor;

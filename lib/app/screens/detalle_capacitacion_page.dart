@@ -8,6 +8,15 @@ class DetalleCapacitacionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Asegurar listas de rutno rompan la vista si vienen nulas en el mapa de Firestore
+    final List<dynamic> empleadosRealizaron = capacitacion['empleadosRealizaron'] is List 
+        ? capacitacion['empleadosRealizaron'] 
+        : [];
+        
+    final List<dynamic> empleadosAsignados = capacitacion['empleadosAsignados'] is List 
+        ? capacitacion['empleadosAsignados'] 
+        : [];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
       appBar: AppBar(
@@ -33,16 +42,15 @@ class DetalleCapacitacionPage extends StatelessWidget {
             CardFechasCapacitacion(capacitacion: capacitacion),
             const SizedBox(height: 16),
             CardListaEmpleadosCruce(
-              rutsCampo: capacitacion['empleadosRealizaron'],
+              rutsCampo: empleadosRealizaron,
               tituloSeccion: "Empleados que la Realizaron",
               icono: Icons.check_circle_outline,
               colorIcono: const Color(0xFF2E7D32),
-              mensajeVacio:
-                  "Ningún empleado ha registrado la realización de esta actividad.",
+              mensajeVacio: "Ningún empleado ha registrado la realización de esta actividad.",
             ),
             const SizedBox(height: 16),
             CardListaEmpleadosCruce(
-              rutsCampo: capacitacion['empleadosAsignados'],
+              rutsCampo: empleadosAsignados,
               tituloSeccion: "Empleados Asignados / Pendientes",
               icono: Icons.history_toggle_off,
               colorIcono: Colors.orange,

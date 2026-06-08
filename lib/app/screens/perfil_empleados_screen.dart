@@ -39,7 +39,6 @@ class PerfilEmpleadoScreen extends StatelessWidget {
           ),
         ),
       ),
-
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: 1,
         onTap: (index) {

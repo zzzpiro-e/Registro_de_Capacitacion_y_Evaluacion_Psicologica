@@ -195,7 +195,7 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
                                 boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
                               ),
                               child: DropdownButtonFormField<String>(
-                                value: _rol,
+                                initialValue: _rol,
                                 decoration: const InputDecoration(
                                   prefixIcon: Icon(Icons.manage_accounts_outlined, color: Colors.grey, size: 22),
                                   border: InputBorder.none,
@@ -222,7 +222,7 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
                                 title: const Text('Trabajador activo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                 subtitle: Text(_activo ? 'Puede ingresar a la app' : 'Acceso desactivado', style: const TextStyle(fontSize: 13)),
                                 value: _activo,
-                                activeColor: const Color(0xFF388E3C),
+                                activeThumbColor: const Color(0xFF388E3C),
                                 onChanged: (value) => setState(() => _activo = value),
                               ),
                             ),
