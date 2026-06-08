@@ -17,7 +17,7 @@ class CapacitacionesPage extends StatefulWidget {
 class _CapacitacionesPageState extends State<CapacitacionesPage> {
   // 🔹 Estado del filtro: 'todas', 'pendiente' o 'realizada'
   String _filtroActivo = 'todas';
-
+  int _retryKey = 0;
   // Función automática para comparar las listas de empleados y actualizar la BD
   // 🔹 Versión corregida y estricta: separa el caso vacío del caso con RUTs
   // 🔹 Regla definitiva: Solo automatiza si hay RUTs cargados y coinciden
