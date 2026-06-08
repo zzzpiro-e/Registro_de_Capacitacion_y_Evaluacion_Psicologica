@@ -18,6 +18,7 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
   // 🔹 Estado del filtro: 'todas', 'pendiente' o 'realizada'
   //String _filtroActivo = 'todas';
   late String _filtroActivo;
+  
   @override
   void initState() {
     super.initState();
