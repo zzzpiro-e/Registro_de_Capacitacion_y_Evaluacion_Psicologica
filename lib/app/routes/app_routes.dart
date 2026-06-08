@@ -19,6 +19,7 @@ import 'package:proyecto_flutter/app/screens/editar_trabajador_admin_screen.dart
 import '../screens/psicologo_historial_informes_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:proyecto_flutter/app/screens/comprobante_preview_screen.dart';
+//import 'package:firebase_core/firebase_core.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
