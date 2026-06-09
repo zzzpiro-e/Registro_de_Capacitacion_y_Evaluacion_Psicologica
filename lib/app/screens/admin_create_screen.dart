@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'dart:convert'; 
@@ -254,20 +255,30 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     String correoPersonalDestino = _correoPersonalController.text.trim();
     String nombreTrabajador = _nombreController.text.trim();
 
+    FirebaseApp? appTemporal;
     try {
-      FirebaseApp appTemporal = await Firebase.initializeApp(
-        name: 'tempApp',
-        options: Firebase.app().options, 
-      );
+      // Intenta inicializar la app temporal, si ya existe en memoria la reutiliza
+      try {
+        appTemporal = await Firebase.initializeApp(
+          name: 'TemporaryUserCreationApp',
+          options: Firebase.app().options, 
+        );
+      } catch (e) {
+        appTemporal = Firebase.app('TemporaryUserCreationApp');
+      }
 
+      // Conectamos de forma segura la instancia de autenticación intermedia
       FirebaseAuth authTemporal = FirebaseAuth.instanceFor(app: appTemporal);
       
+      // Creamos el usuario en el sub-árbol secundario sin desloguear al Administrador actual
       UserCredential userCredential = await authTemporal.createUserWithEmailAndPassword(
         email: emailCorporativoFinal,
         password: claveGenerada,
       );
 
+      // Enviamos el correo de verificación nativo de Firebase
       await userCredential.user!.sendEmailVerification();
+      
       await appTemporal.delete();
           
       final user = userCredential.user;
@@ -278,6 +289,7 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
       String uid = user.uid;
       String rolFirebase = _selectedRole == 'RRHH' ? 'rrhh' : 'psicologo';
 
+      // Escritura unificada en la colección trabajadores
       await FirebaseFirestore.instance.collection('trabajadores').doc(uid).set({
         'uid': uid,
         'nombre': nombreTrabajador,
@@ -290,6 +302,16 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
         'fechaCreacion': FieldValue.serverTimestamp(),
       });
 
+      await FirebaseFirestore.instance.collection('usuarios').doc(uid).set({
+        'uid': uid,
+        'nombre': nombreTrabajador,
+        'rut': _rutController.text.trim(),
+        'email': emailCorporativoFinal, 
+        'rol': rolFirebase,
+        'activo': true,
+      });
+
+      // Gatillamos la notificación por EmailJS al correo personal
       await _enviarCorreoNotificacion(
         nombreEmpleado: nombreTrabajador,
         correoPersonal: correoPersonalDestino,
@@ -297,6 +319,7 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
         claveProvisoria: claveGenerada,
       );
 
+      // Limpieza de controladores
       _nombreController.clear();
       _rutController.clear();
       _usuarioCorporativoController.clear();
@@ -348,7 +371,7 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🟢 Encabezado en bloque RECTO idéntico a las vistas corporativas
+              // Encabezado en bloque RECTO idéntico a las vistas corporativas
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),

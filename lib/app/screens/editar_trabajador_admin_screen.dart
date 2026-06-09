@@ -27,7 +27,7 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
   String _rol = 'rrhh';
   bool _cargando = true;
 
-  // Variables espejo para Dirty Checking
+  // Variables espejo
   String _nombreOriginal = '';
   String _rutOriginal = '';
   String _emailOriginal = '';
@@ -35,6 +35,9 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
   String _telefonoOriginal = '';
   bool _activoOriginal = true;
   String _rolOriginal = 'rrhh';
+
+  // Color verde principal institucional
+  final Color verdePrincipal = const Color(0xFF388E3C);
 
   @override
   void initState() {
@@ -51,6 +54,23 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
     _telefonoController.dispose();
     _adminPasswordController.dispose();
     super.dispose();
+  }
+
+  // Validación nativa del dígito verificador del RUT
+  bool _validarAlgoritmoRut(String rut) {
+    if (rut.length < 2) return false;
+    String dv = rut.substring(rut.length - 1);
+    String cuerpo = rut.substring(0, rut.length - 1);
+    int? rutNums = int.tryParse(cuerpo);
+    if (rutNums == null) return false;
+    int suma = 0, multiplicador = 2;
+    for (int i = cuerpo.length - 1; i >= 0; i--) {
+      suma += int.parse(cuerpo[i]) * multiplicador;
+      multiplicador = multiplicador == 7 ? 2 : multiplicador + 1;
+    }
+    int dvEsperadoNum = 11 - (suma % 11);
+    String dvEsperado = dvEsperadoNum == 11 ? '0' : dvEsperadoNum == 10 ? 'K' : dvEsperadoNum.toString();
+    return dv == dvEsperado;
   }
 
   Future<void> _cargarDatos() async {
@@ -72,6 +92,7 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
         _rol = data['rol']?.toString() ?? 'rrhh';
         _activo = data['activo'] ?? true;
 
+        // Captura de estados iniciales espejo
         _nombreOriginal = _nombreController.text;
         _rutOriginal = _rutController.text;
         _emailOriginal = _emailController.text;
@@ -108,7 +129,15 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
     return query.docs.any((doc) => doc.id != widget.trabajadorId);
   }
 
-  // 🟢 NUEVA FUNCIÓN: Valida duplicados de correo personal ignorando mayúsculas y espacios
+  Future<bool> _emailCorporativoYaExiste(String email) async {
+    final query = await FirebaseFirestore.instance
+        .collection('trabajadores')
+        .where('email', isEqualTo: email.trim().toLowerCase())
+        .get();
+    
+    return query.docs.any((doc) => doc.id != widget.trabajadorId);
+  }
+
   Future<bool> _correoPersonalYaExiste(String correo) async {
     final query = await FirebaseFirestore.instance
         .collection('trabajadores')
@@ -118,19 +147,17 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
     return query.docs.any((doc) => doc.id != widget.trabajadorId);
   }
 
-  // 🛡️ MODIFICADO: Envío directo con EmailJS estructurado verticalmente en bloques HTML
   Future<void> _notificarCambiosPorCorreo() async {
     final Map<String, String> cambiosEfectuados = {};
     if (_nombreController.text.trim() != _nombreOriginal) cambiosEfectuados['Nombre'] = _nombreController.text.trim();
     if (_rutController.text.trim() != _rutOriginal) cambiosEfectuados['RUT'] = _rutController.text.trim();
-    if (_emailController.text.trim() != _emailOriginal) cambiosEfectuados['Correo Corporativo'] = _emailController.text.trim();
-    if (_correoPersonalController.text.trim() != _correoPersonalOriginal) cambiosEfectuados['Correo Personal'] = _correoPersonalController.text.trim();
+    if (_emailController.text.trim() != _emailOriginal) cambiosEfectuados['Correo Corporativo'] = _emailController.text.trim().toLowerCase();
+    if (_correoPersonalController.text.trim() != _correoPersonalOriginal) cambiosEfectuados['Correo Personal'] = _correoPersonalController.text.trim().toLowerCase();
     if (_telefonoController.text.trim() != _telefonoOriginal) cambiosEfectuados['Teléfono'] = '+569 ${_telefonoController.text.trim()}';
     if (_rol != _rolOriginal) cambiosEfectuados['Rol en Plataforma'] = _rol.toUpperCase();
 
     if (cambiosEfectuados.isEmpty) return;
 
-    // Formato estilizado a lo largo
     String resumenCambios = cambiosEfectuados.entries.map((e) {
       return '''
         <div style="margin-bottom: 12px; padding: 12px; background-color: #f9f9f9; border-left: 4px solid #388E3C; border-radius: 4px;">
@@ -143,10 +170,10 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
     const String serviceId = 'service_lk6356k';      
     const String templateId = 'template_q1vbqx4';    
     const String publicKey = 'C06WRa_nkaY0OUDL_';
+    
     try {
       final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
-      
-      final response = await http.post(
+      await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
@@ -163,12 +190,6 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
           },
         }),
       );
-
-      if (response.statusCode == 200) {
-        print('✅ Notificación enviada con éxito mediante EmailJS');
-      } else {
-        print('❌ Error EmailJS (${response.statusCode}): ${response.body}');
-      }
     } catch (e) {
       print('❌ Error de red al conectar con EmailJS: $e');
     }
@@ -281,9 +302,13 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
 
     setState(() => _cargando = true);
 
+    final String rut = _rutController.text.trim();
+    final String email = _emailController.text.trim().toLowerCase();
+    final String correoPersonal = _correoPersonalController.text.trim().toLowerCase();
+
     // 1. Validación de RUT duplicado
-    if (_rutController.text.trim() != _rutOriginal) {
-      bool existe = await _rutYaExiste(_rutController.text.trim());
+    if (rut != _rutOriginal) {
+      bool existe = await _rutYaExiste(rut);
       if (existe) {
         setState(() => _cargando = false);
         _mostrarSnackBar('El RUT ingresado ya está asignado a otro trabajador', Colors.red);
@@ -291,11 +316,22 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
       }
     }
 
-    // 2. 🟢 AHORA SÍ: Validación de Correo Personal duplicado incorporada
-    if (_correoPersonalController.text.trim().toLowerCase() != _correoPersonalOriginal.trim().toLowerCase()) {
-      bool existeCorreo = await _correoPersonalYaExiste(_correoPersonalController.text.trim());
+    // 2. Validación de Correo Corporativo duplicado
+    if (email != _emailOriginal.toLowerCase()) {
+      bool existeEmail = await _emailCorporativoYaExiste(email);
+      if (existeEmail) {
+        setState(() => _cargando = false);
+        _mostrarSnackBar('El correo corporativo ya está ocupado por otro trabajador', Colors.red);
+        return;
+      }
+    }
+
+    // 3. Validación de Correo Personal duplicado
+    if (correoPersonal != _correoPersonalOriginal.toLowerCase()) {
+      bool existeCorreo = await _correoPersonalYaExiste(correoPersonal);
       if (existeCorreo) {
         setState(() => _cargando = false);
+        _returnCargandoState();
         _mostrarSnackBar('El correo personal ya está registrado por otro trabajador', Colors.red);
         return;
       }
@@ -309,16 +345,26 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
     try {
       String telefonoCompleto = '+569${_telefonoController.text.trim()}';
 
-      // 3. Al guardar, normalizamos a minúsculas para mantener consistencia limpia en Firestore
+      // Actualización atómica en la colección de trabajadores
       await FirebaseFirestore.instance.collection('trabajadores').doc(widget.trabajadorId).update({
         'nombre': _nombreController.text.trim(),
-        'rut': _rutController.text.trim(),
-        'email': _emailController.text.trim().toLowerCase(),
-        'correoPersonal': _correoPersonalController.text.trim().toLowerCase(), 
+        'rut': rut,
+        'email': email,
+        'correoPersonal': correoPersonal, 
         'telefono': telefonoCompleto,
         'rol': _rol,
         'activo': _activo,
       });
+
+      // Actualización en cascada de la colección usuarios de control de login
+      await FirebaseFirestore.instance.collection('usuarios').doc(widget.trabajadorId).set({
+        'uid': widget.trabajadorId,
+        'nombre': _nombreController.text.trim(),
+        'rut': rut,
+        'email': email,
+        'rol': _rol,
+        'activo': _activo,
+      }, SetOptions(merge: true));
 
       await _notificarCambiosPorCorreo();
 
@@ -331,13 +377,17 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
     }
   }
 
+  void _returnCargandoState() {
+    setState(() => _cargando = false);
+  }
+
   Future<void> _eliminarTrabajador() async {
     final confirmar = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Text('¿Eliminar trabajador?', style: TextStyle(fontWeight: FontWeight.bold)),
-            content: const Text('Esta acción quitará todos sus accesos de forma permanente.'),
+            content: const Text('Esta acción quitará todos sus accesos de forma permanente del sistema.'),
             actions: [
               TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
               ElevatedButton(
@@ -352,9 +402,12 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
 
     if (!confirmar) return;
 
+    // Eliminación física y en cascada de ambas tablas de control
     await FirebaseFirestore.instance.collection('trabajadores').doc(widget.trabajadorId).delete();
+    await FirebaseFirestore.instance.collection('usuarios').doc(widget.trabajadorId).delete();
+
     if (!mounted) return;
-    _mostrarSnackBar('Trabajador eliminado', Colors.black87);
+    _mostrarSnackBar('Trabajador eliminado de forma permanente', Colors.black87);
     Navigator.pop(context);
   }
 
@@ -413,7 +466,17 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
                           children: [
                             const Text('Datos de la Cuenta', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54)),
                             const SizedBox(height: 16),
-                            _campoTexto(_nombreController, 'Nombre completo', Icons.person_outline, null, null),
+                            _campoTexto(
+                              _nombreController, 
+                              'Nombre completo', 
+                              Icons.person_outline, 
+                              null, 
+                              (value) {
+                                if (value == null || value.trim().isEmpty) return 'Ingrese el nombre completo';
+                                if (RegExp(r'[0-9]').hasMatch(value)) return 'No se permiten números en el nombre';
+                                return null;
+                              }
+                            ),
                             const SizedBox(height: 16),
                             _campoTexto(
                               _rutController, 
@@ -422,7 +485,8 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
                               [RutFormatter()], 
                               (val) {
                                 if (val == null || val.isEmpty) return 'El RUT es obligatorio';
-                                if (val.length < 11) return 'RUT incompleto o inválido';
+                                String rutLimpio = val.replaceAll('.', '').replaceAll('-', '').toUpperCase();
+                                if (!_validarAlgoritmoRut(rutLimpio)) return 'RUT inválido';
                                 return null;
                               }
                             ),
@@ -434,7 +498,7 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
                               null, 
                               (val) {
                                 if (val == null || val.isEmpty) return 'El correo corporativo es obligatorio';
-                                if (!val.endsWith('@empresa.cl')) return 'Debe usar el dominio @empresa.cl';
+                                if (!val.trim().toLowerCase().endsWith('@empresa.cl')) return 'Debe usar el dominio @empresa.cl';
                                 return null;
                               }
                             ),
@@ -600,31 +664,25 @@ class RutFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     String text = newValue.text.replaceAll('.', '').replaceAll('-', '').toUpperCase();
-    if (text.isEmpty) return newValue;
-
-    if (text.length > 9) text = text.substring(0, 9);
-
+    if (text.isEmpty) return newValue.copyWith(text: '', selection: const TextSelection.collapsed(offset: 0));
     String formatted = '';
-    String dv = text.length > 1 ? text.substring(text.length - 1) : '';
-    String nums = text.length > 1 ? text.substring(0, text.length - 1) : text;
-
-    if (nums.length > 3) {
-      formatted = '.${nums.substring(nums.length - 3)}';
-      nums = nums.substring(0, nums.length - 3);
-      if (nums.length > 3) {
-        formatted = '.${nums.substring(nums.length - 3)}$formatted';
-        nums = nums.substring(0, nums.length - 3);
-      }
-    }
-    formatted = nums + formatted;
-
     if (text.length > 1) {
-      formatted = '$formatted-$dv';
+      String cuerpo = text.substring(0, text.length - 1);
+      String dv = text.substring(text.length - 1);
+      String cuerpoConPuntos = '';
+      int contador = 0;
+      for (int i = cuerpo.length - 1; i >= 0; i--) {
+        cuerpoConPuntos = cuerpo[i] + cuerpoConPuntos;
+        contador++;
+        if (contador == 3 && i != 0) {
+          cuerpoConPuntos = '.$cuerpoConPuntos';
+          contador = 0;
+        }
+      }
+      formatted = '$cuerpoConPuntos-$dv';
+    } else {
+      formatted = text;
     }
-
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
+    return newValue.copyWith(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
   }
 }
