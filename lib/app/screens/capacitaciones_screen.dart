@@ -5,93 +5,48 @@ import 'package:proyecto_flutter/app/widgets/container_capacitaciones_2.dart';
 import 'package:proyecto_flutter/app/widgets/container_capacitaciones_3.dart';
 import 'package:provider/provider.dart';
 import 'package:proyecto_flutter/app/widgets/container_crear_capacitacion_dos.dart';
+import 'package:proyecto_flutter/app/services/capacitaciones_service.dart';
+
 
 class CapacitacionesPage extends StatefulWidget {
   final VoidCallback? onReturnToDashboard;
   final String filtroInicial;
 
-  const CapacitacionesPage({super.key, this.onReturnToDashboard, this.filtroInicial = 'todas'});
+  const CapacitacionesPage({
+    super.key,
+    this.onReturnToDashboard,
+    this.filtroInicial = 'todas',
+  });
 
   @override
   State<CapacitacionesPage> createState() => _CapacitacionesPageState();
 }
 
 class _CapacitacionesPageState extends State<CapacitacionesPage> {
-  // 🔹 Estado del filtro: 'todas', 'pendiente' o 'realizada'
-
   late String _filtroActivo;
   int _retryKey = 0;
-  
+
+  final CapacitacionesService _service = CapacitacionesService();
+
   @override
   void initState() {
     super.initState();
-    _filtroActivo = widget.filtroInicial; // <-- inicialización con el filtro recibido
-  }
-  // Función automática para comparar las listas de empleados y actualizar la BD
-  // 🔹 Versión corregida y estricta: separa el caso vacío del caso con RUTs
-  // 🔹 Regla definitiva: Solo automatiza si hay RUTs cargados y coinciden
-  void _verificarYActualizarEstado(
-    String docId,
-    dynamic asignados,
-    dynamic realizaron,
-    String estadoActual,
-  ) {
-    if (estadoActual.trim().toLowerCase() == 'realizada') return;
-
-    List<String> listaAsignados = _convertirAListaString(asignados);
-    List<String> listaRealizaron = _convertirAListaString(realizaron);
-
-    if (listaAsignados.isEmpty && listaRealizaron.isEmpty) return;
-    if (listaAsignados.isEmpty || listaRealizaron.isEmpty) return;
-
-    final setAsignados = listaAsignados.toSet();
-    final setRealizaron = listaRealizaron.toSet();
-
-    if (setAsignados.length == setRealizaron.length &&
-        setAsignados.containsAll(setRealizaron)) {
-      FirebaseFirestore.instance
-          .collection('capacitaciones')
-          .doc(docId)
-          .update({'estado': 'realizada'})
-          .then(
-            (_) => debugPrint(
-              'Capacitación con RUTs $docId completada con éxito.',
-            ),
-          )
-          .catchError(
-            (e) => debugPrint('Error en actualización automática: $e'),
-          );
-    }
-  }
-
-  List<String> _convertirAListaString(dynamic campo) {
-    if (campo == null) return [];
-    if (campo is List) {
-      return campo
-          .map((e) => e.toString().trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
-    }
-    if (campo is String) {
-      if (campo.trim().isEmpty) return [];
-      return campo
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
-    }
-    return [];
+    _filtroActivo = widget.filtroInicial;
   }
 
   @override
   Widget build(BuildContext context) {
-    final capacitacionesProvider = Provider.of<CapacitacionesProvider>(context);
+    final capacitacionesProvider =
+        Provider.of<CapacitacionesProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
       body: SafeArea(
         child: Column(
           children: [
-            ContainerCapacitacionesUno(onBackTap: widget.onReturnToDashboard),
+            ContainerCapacitacionesUno(
+              onBackTap: widget.onReturnToDashboard,
+            ),
             Stack(
               children: [
                 const ContainerCapacitacionesDos(),
@@ -142,7 +97,9 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
                                 setState(() {
                                   _filtroActivo = 'todas';
                                 });
-                                debugPrint("Filtro cambiado a: TODAS");
+                                debugPrint(
+                                  "Filtro cambiado a: TODAS",
+                                );
                               },
                               child: const SizedBox.expand(),
                             ),
@@ -155,7 +112,10 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 4,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
@@ -163,8 +123,8 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
                     "Mostrando: ${_filtroActivo == 'todas'
                         ? 'Todas'
                         : _filtroActivo == 'pendiente'
-                        ? 'Pendientes'
-                        : 'Realizadas'}",
+                            ? 'Pendientes'
+                            : 'Realizadas'}",
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -174,7 +134,11 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
                   if (_filtroActivo != 'todas') ...[
                     const SizedBox(width: 8),
                     InkWell(
-                      onTap: () => setState(() => _filtroActivo = 'todas'),
+                      onTap: () {
+                        setState(() {
+                          _filtroActivo = 'todas';
+                        });
+                      },
                       child: const Text(
                         "(Ver todas)",
                         style: TextStyle(
@@ -190,15 +154,16 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
             ),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                key: ValueKey('$_retryKey-${capacitacionesProvider.version}'),
-                stream: FirebaseFirestore.instance
-                    .collection('capacitaciones')
-                    .snapshots(),
+                key: ValueKey(
+                  '$_retryKey-${capacitacionesProvider.version}',
+                ),
+                stream: _service.obtenerCapacitaciones(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return Center(
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
                         children: [
                           const Icon(
                             Icons.cloud_off,
@@ -208,7 +173,9 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
                           const SizedBox(height: 12),
                           const Text(
                             "Error de conexión al cargar las capacitaciones",
-                            style: TextStyle(color: Colors.black54),
+                            style: TextStyle(
+                              color: Colors.black54,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           ElevatedButton.icon(
@@ -219,31 +186,47 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
                             },
                             icon: const Icon(Icons.refresh),
                             label: const Text("Reintentar"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2E7D32),
-                              foregroundColor: Colors.white,
+                            style:
+                                ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  const Color(0xFF2E7D32),
+                              foregroundColor:
+                                  Colors.white,
                             ),
                           ),
                         ],
                       ),
                     );
                   }
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
                     return const Center(
-                      child: Text("No hay capacitaciones registradas"),
+                      child: CircularProgressIndicator(),
                     );
                   }
 
-                  final todasLasCapacitaciones = snapshot.data!.docs.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final docId = doc.id;
-                    final estadoActual = (data['estado'] ?? 'pendiente')
-                        .toString();
+                  if (!snapshot.hasData ||
+                      snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "No hay capacitaciones registradas",
+                      ),
+                    );
+                  }
 
-                    _verificarYActualizarEstado(
+                  final todasLasCapacitaciones =
+                      snapshot.data!.docs.map((doc) {
+                    final data =
+                        doc.data() as Map<String, dynamic>;
+
+                    final docId = doc.id;
+
+                    final estadoActual =
+                        (data['estado'] ?? 'pendiente')
+                            .toString();
+
+                    _service.verificarYActualizarEstado(
                       docId,
                       data['empleadosAsignados'],
                       data['empleadosRealizaron'],
@@ -253,25 +236,31 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
                     return {
                       ...data,
                       'id': docId,
-                      'fechaInicioFormateada': data['fechaInicio'] != null
-                          ? "${(data['fechaInicio'] as Timestamp).toDate().day}/"
-                                "${(data['fechaInicio'] as Timestamp).toDate().month}/"
-                                "${(data['fechaInicio'] as Timestamp).toDate().year}"
-                          : 'Sin fecha',
+                      'fechaInicioFormateada':
+                          data['fechaInicio'] != null
+                              ? "${(data['fechaInicio'] as Timestamp).toDate().day}/"
+                                  "${(data['fechaInicio'] as Timestamp).toDate().month}/"
+                                  "${(data['fechaInicio'] as Timestamp).toDate().year}"
+                              : 'Sin fecha',
                     };
                   }).toList();
 
-                  final capacitacionesFiltradas = todasLasCapacitaciones.where((
-                    cap,
-                  ) {
-                    final estado = (cap['estado'] ?? 'pendiente')
-                        .toString()
-                        .trim()
-                        .toLowerCase();
+                  final capacitacionesFiltradas =
+                      todasLasCapacitaciones.where(
+                    (cap) {
+                      final estado =
+                          (cap['estado'] ?? 'pendiente')
+                              .toString()
+                              .trim()
+                              .toLowerCase();
 
-                    if (_filtroActivo == 'todas') return true;
-                    return estado == _filtroActivo;
-                  }).toList();
+                      if (_filtroActivo == 'todas') {
+                        return true;
+                      }
+
+                      return estado == _filtroActivo;
+                    },
+                  ).toList();
 
                   if (capacitacionesFiltradas.isEmpty) {
                     return Center(
@@ -286,7 +275,8 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
                   }
 
                   return ContainerCapacitacionesTres(
-                    capacitaciones: capacitacionesFiltradas,
+                    capacitaciones:
+                        capacitacionesFiltradas,
                   );
                 },
               ),
