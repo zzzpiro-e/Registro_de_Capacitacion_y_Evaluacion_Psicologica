@@ -3,10 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:proyecto_flutter/app/widgets/container_capacitaciones_1.dart';
 import 'package:proyecto_flutter/app/widgets/container_capacitaciones_2.dart';
 import 'package:proyecto_flutter/app/widgets/container_capacitaciones_3.dart';
-import 'package:provider/provider.dart';
-import 'package:proyecto_flutter/app/widgets/container_crear_capacitacion_dos.dart';
 import 'package:proyecto_flutter/app/services/capacitaciones_service.dart';
 
+// Constantes
+const _backgroundColor = Color(0xFFF4F4F4);
+const _verdeFirebase = Color(0xFF2E7D32);
 
 class CapacitacionesPage extends StatefulWidget {
   final VoidCallback? onReturnToDashboard;
@@ -25,6 +26,7 @@ class CapacitacionesPage extends StatefulWidget {
 class _CapacitacionesPageState extends State<CapacitacionesPage> {
   late String _filtroActivo;
   int _retryKey = 0;
+  bool _estadosVerificados = false;
 
   final CapacitacionesService _service = CapacitacionesService();
 
@@ -32,256 +34,222 @@ class _CapacitacionesPageState extends State<CapacitacionesPage> {
   void initState() {
     super.initState();
     _filtroActivo = widget.filtroInicial;
+    _verificarEstados();
+  }
+
+  Future<void> _verificarEstados() async {
+    await _service.verificarTodosLosEstados();
+    if (mounted) {
+      setState(() => _estadosVerificados = true);
+    }
+  }
+
+  void _cambiarFiltro(String filtro) {
+    if (_filtroActivo == filtro) return;
+    setState(() {
+      _filtroActivo = filtro;
+    });
+    debugPrint("Filtro cambiado a: ${filtro.toUpperCase()}");
+  }
+
+  void _reiniciarConexion() {
+    setState(() => _retryKey++);
+  }
+
+  String _getTextoMostrando() {
+    switch (_filtroActivo) {
+      case 'todas': return 'Todas';
+      case 'pendiente': return 'Pendientes';
+      case 'realizada': return 'Realizadas';
+      default: return 'Todas';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final capacitacionesProvider =
-        Provider.of<CapacitacionesProvider>(context);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F4F4),
+      backgroundColor: _backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
             ContainerCapacitacionesUno(
               onBackTap: widget.onReturnToDashboard,
             ),
-            Stack(
-              children: [
-                const ContainerCapacitacionesDos(),
-                Positioned.fill(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Column(
-                        children: [
-                          SizedBox(
-                            height: 100,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.translucent,
-                                    onTap: () {
-                                      setState(() {
-                                        _filtroActivo = 'pendiente';
-                                      });
-                                      debugPrint(
-                                        "Filtro cambiado a: PENDIENTES",
-                                      );
-                                    },
-                                    child: const SizedBox.expand(),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.translucent,
-                                    onTap: () {
-                                      setState(() {
-                                        _filtroActivo = 'realizada';
-                                      });
-                                      debugPrint(
-                                        "Filtro cambiado a: REALIZADAS",
-                                      );
-                                    },
-                                    child: const SizedBox.expand(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              onTap: () {
-                                setState(() {
-                                  _filtroActivo = 'todas';
-                                });
-                                debugPrint(
-                                  "Filtro cambiado a: TODAS",
-                                );
-                              },
-                              child: const SizedBox.expand(),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 4,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Text(
-                    "Mostrando: ${_filtroActivo == 'todas'
-                        ? 'Todas'
-                        : _filtroActivo == 'pendiente'
-                            ? 'Pendientes'
-                            : 'Realizadas'}",
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black54,
-                    ),
-                  ),
-                  if (_filtroActivo != 'todas') ...[
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          _filtroActivo = 'todas';
-                        });
-                      },
-                      child: const Text(
-                        "(Ver todas)",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF2E7D32),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+            _buildFiltros(),
+            _buildIndicadorFiltro(),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                key: ValueKey(
-                  '$_retryKey-${capacitacionesProvider.version}',
-                ),
-                stream: _service.obtenerCapacitaciones(),
+                key: ValueKey('$_retryKey'),
+                stream: _service.obtenerCapacitacionesPorEstado(_filtroActivo),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment:
-                            MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.cloud_off,
-                            size: 48,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            "Error de conexión al cargar las capacitaciones",
-                            style: TextStyle(
-                              color: Colors.black54,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _retryKey++;
-                              });
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text("Reintentar"),
-                            style:
-                                ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  const Color(0xFF2E7D32),
-                              foregroundColor:
-                                  Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+                    return _buildErrorWidget();
                   }
 
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
                   }
 
-                  if (!snapshot.hasData ||
-                      snapshot.data!.docs.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "No hay capacitaciones registradas",
-                      ),
-                    );
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return _buildEmptyState();
                   }
 
-                  final todasLasCapacitaciones =
-                      snapshot.data!.docs.map((doc) {
-                    final data =
-                        doc.data() as Map<String, dynamic>;
-
-                    final docId = doc.id;
-
-                    final estadoActual =
-                        (data['estado'] ?? 'pendiente')
-                            .toString();
-
-                    _service.verificarYActualizarEstado(
-                      docId,
-                      data['empleadosAsignados'],
-                      data['empleadosRealizaron'],
-                      estadoActual,
-                    );
-
-                    return {
-                      ...data,
-                      'id': docId,
-                      'fechaInicioFormateada':
-                          data['fechaInicio'] != null
-                              ? "${(data['fechaInicio'] as Timestamp).toDate().day}/"
-                                  "${(data['fechaInicio'] as Timestamp).toDate().month}/"
-                                  "${(data['fechaInicio'] as Timestamp).toDate().year}"
-                              : 'Sin fecha',
-                    };
-                  }).toList();
-
-                  final capacitacionesFiltradas =
-                      todasLasCapacitaciones.where(
-                    (cap) {
-                      final estado =
-                          (cap['estado'] ?? 'pendiente')
-                              .toString()
-                              .trim()
-                              .toLowerCase();
-
-                      if (_filtroActivo == 'todas') {
-                        return true;
-                      }
-
-                      return estado == _filtroActivo;
-                    },
-                  ).toList();
-
-                  if (capacitacionesFiltradas.isEmpty) {
-                    return Center(
-                      child: Text(
-                        "No hay capacitaciones ${_filtroActivo == 'pendiente' ? 'pendientes' : 'realizadas'}",
-                        style: const TextStyle(
-                          color: Colors.black45,
-                          fontSize: 15,
-                        ),
-                      ),
-                    );
-                  }
+                  final capacitaciones = _service.convertirLista(snapshot.data!);
 
                   return ContainerCapacitacionesTres(
-                    capacitaciones:
-                        capacitacionesFiltradas,
+                    capacitaciones: capacitaciones,
                   );
                 },
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFiltros() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        children: [
+          _FiltroButton(
+            texto: "Pendientes",
+            activo: _filtroActivo == 'pendiente',
+            onTap: () => _cambiarFiltro('pendiente'),
+          ),
+          const SizedBox(width: 12),
+          _FiltroButton(
+            texto: "Realizadas",
+            activo: _filtroActivo == 'realizada',
+            onTap: () => _cambiarFiltro('realizada'),
+          ),
+          const SizedBox(width: 12),
+          _FiltroButton(
+            texto: "Todas",
+            activo: _filtroActivo == 'todas',
+            onTap: () => _cambiarFiltro('todas'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIndicadorFiltro() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Text(
+            "Mostrando: ${_getTextoMostrando()}",
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Colors.black54,
+            ),
+          ),
+          if (_filtroActivo != 'todas') ...[
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => _cambiarFiltro('todas'),
+              child: const Text(
+                "(Ver todas)",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: _verdeFirebase,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.cloud_off, size: 48, color: Colors.grey),
+          const SizedBox(height: 12),
+          const Text(
+            "Error de conexión al cargar las capacitaciones",
+            style: TextStyle(color: Colors.black54),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _reiniciarConexion,
+            icon: const Icon(Icons.refresh),
+            label: const Text("Reintentar"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _verdeFirebase,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    final texto = _filtroActivo == 'pendiente'
+        ? 'No hay capacitaciones pendientes'
+        : _filtroActivo == 'realizada'
+            ? 'No hay capacitaciones realizadas'
+            : 'No hay capacitaciones registradas';
+
+    return Center(
+      child: Text(
+        texto,
+        style: const TextStyle(color: Colors.black45, fontSize: 15),
+      ),
+    );
+  }
+}
+
+class _FiltroButton extends StatelessWidget {
+  final String texto;
+  final bool activo;
+  final VoidCallback onTap;
+
+  const _FiltroButton({
+    required this.texto,
+    required this.activo,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(30),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: activo ? _verdeFirebase : Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: activo
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Text(
+            texto,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: activo ? Colors.white : Colors.black87,
+              fontWeight: activo ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
         ),
       ),
     );
