@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+
+class CapacitacionesProvider extends ChangeNotifier {
+  int _version = 0;
+
+  int get version => _version;
+
+  void refresh() {
+    _version++;
+    notifyListeners();
+  }
+}
 
 class ContainerCrearCapacitacionDos extends StatefulWidget {
   const ContainerCrearCapacitacionDos({super.key});
@@ -117,8 +129,9 @@ class _ContainerCrearCapacitacionDosState
       List<String> empleadosAsignados = [];
 
       if (_asignarATodos) {
-        final snapshot =
-            await FirebaseFirestore.instance.collection('empleados').get();
+        final snapshot = await FirebaseFirestore.instance
+            .collection('empleados')
+            .get();
 
         empleadosAsignados = snapshot.docs.map((e) => e.id).toList();
       } else {
@@ -128,9 +141,9 @@ class _ContainerCrearCapacitacionDosState
             .get();
 
         if (!doc.exists) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('El RUT no existe')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('El RUT no existe')));
           setState(() => _isLoading = false);
           return;
         }
@@ -142,17 +155,18 @@ class _ContainerCrearCapacitacionDosState
           .collection('capacitaciones')
           .doc(titulo)
           .set({
-        'titulo': titulo,
-        'descripcion': _descripcionController.text.trim(),
-        'institucion': _institucionController.text.trim(),
-        'empleadosAsignados': empleadosAsignados,
-        'empleadosRealizaron': <String>[],
-        'tipo': _tipoController.text.trim(),
-        'estado': 'pendiente',
-        'fechaInicio': Timestamp.now(),
-        'fechaFin': Timestamp.now(),
-        'fechaRegistro': Timestamp.now(),
-      });
+            'titulo': titulo,
+            'descripcion': _descripcionController.text.trim(),
+            'institucion': _institucionController.text.trim(),
+            'empleadosAsignados': empleadosAsignados,
+            'empleadosRealizaron': <String>[],
+            'tipo': _tipoController.text.trim(),
+            'estado': 'pendiente',
+            'fechaInicio': Timestamp.now(),
+            'fechaFin': Timestamp.now(),
+            'fechaRegistro': Timestamp.now(),
+          });
+      context.read<CapacitacionesProvider>().refresh();
 
       _tituloController.clear();
       _descripcionController.clear();
@@ -167,15 +181,15 @@ class _ContainerCrearCapacitacionDosState
         _formValido = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Capacitación guardada')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Capacitación guardada')));
     } catch (e) {
       setState(() => _isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -208,8 +222,7 @@ class _ContainerCrearCapacitacionDosState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Título',
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('Título', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _tituloController,
@@ -229,8 +242,10 @@ class _ContainerCrearCapacitacionDosState
 
             const SizedBox(height: 20),
 
-            const Text('Descripción',
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text(
+              'Descripción',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _descripcionController,
@@ -251,8 +266,10 @@ class _ContainerCrearCapacitacionDosState
 
             const SizedBox(height: 20),
 
-            const Text('Institución',
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text(
+              'Institución',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _institucionController,
@@ -323,8 +340,7 @@ class _ContainerCrearCapacitacionDosState
 
             const SizedBox(height: 20),
 
-            const Text('Tipo',
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('Tipo', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _tipoController,
@@ -348,9 +364,7 @@ class _ContainerCrearCapacitacionDosState
               width: double.infinity,
               height: 52,
               child: ElevatedButton.icon(
-                onPressed: (_formValido && !_isLoading)
-                    ? _guardar
-                    : null,
+                onPressed: (_formValido && !_isLoading) ? _guardar : null,
                 icon: const Icon(Icons.save_alt, color: Colors.white),
                 label: const Text(
                   'Guardar Capacitación',

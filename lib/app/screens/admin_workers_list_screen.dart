@@ -44,6 +44,58 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
       ),
     );
   }
+  
+  // Ventana de confirmación oficial e institucional de borrado
+  Future<void> _eliminarTrabajador(String uid, String nombreTrabajador) async {
+    bool confirmar = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('¿Eliminar Trabajador?', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: Text('¿Estás seguro de que deseas eliminar a $nombreTrabajador? Esto quitará todos sus accesos a la app de inmediato.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Eliminar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
+
+    if (confirmar) {
+      try {
+        // Limpieza atómica en cascada de ambas colecciones para mantener la integridad
+        await FirebaseFirestore.instance.collection('trabajadores').doc(uid).delete();
+        await FirebaseFirestore.instance.collection('usuarios').doc(uid).delete();
+        _mostrarSnackBar('Trabajador eliminado de la base de datos.', Colors.black87);
+      } catch (e) {
+        _mostrarSnackBar('Error al intentar eliminar: $e', Colors.red);
+      }
+    }
+  }
+
+  // Helper unificado para levantar alertas contextuales fluidas
+  void _mostrarSnackBar(String mensaje, Color colorFondo) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje, style: const TextStyle(fontWeight: FontWeight.w500)),
+        backgroundColor: colorFondo,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
 
   void _limpiarFiltros() {
     setState(() {
@@ -173,7 +225,6 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
       backgroundColor: const Color(0xFFF4F4F4),
       body: Column(
         children: [
-          // 🟢 Header Verde RECTO corporativo idéntico al Dashboard
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
@@ -183,24 +234,18 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
               children: const [
                 Text('Módulo de Gestión', style: TextStyle(color: Colors.white, fontSize: 18)),
                 SizedBox(height: 12),
-                Text(
-                  'Lista de Trabajadores',
-                  style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold),
-                ),
+                Text('Lista de Trabajadores', style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
 
-          // Barra de búsqueda adaptada visualmente con sombra suave
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(22),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 4)),
-                ],
+                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 4))],
               ),
               child: Row(
                 children: [
@@ -260,10 +305,7 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                   final rol = (datos['rol'] ?? '').toString().toLowerCase();
                   final bool esActivo = (datos['activo'] ?? true) == true;
 
-                  final coincideBusqueda = _query.isEmpty ||
-                      nombre.contains(_query) ||
-                      rut.contains(_query);
-
+                  final coincideBusqueda = _query.isEmpty || nombre.contains(_query) || rut.contains(_query);
                   final coincideRol = _selectedRoleFilter == 'todos' || rol == _selectedRoleFilter;
                   final coincideEstado = _selectedStatusFilter == 'todos' ||
                       (_selectedStatusFilter == 'activo' && esActivo) ||
@@ -308,7 +350,6 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
     );
   }
 
-  // 🟢 Componente de Tarjeta Simplificado y Unificado
   Widget _buildEmployeeCard({
     required String uid,
     required String name,
@@ -317,11 +358,8 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
     required bool isPsychologist,
     required bool isActive,
   }) {
-    // Colores de los chips de Rol (Mismos tonos suaves de la app)
     final Color chipColor = isPsychologist ? const Color(0xFFE3F2FD) : const Color(0xFFF3E5F5);
     final Color chipTextColor = isPsychologist ? const Color(0xFF1E88E5) : const Color(0xFF8E24AA);
-    
-    // Colores de Estado del Trabajador (Verde/Rojo)
     final Color stateTextColor = isActive ? const Color(0xFF388E3C) : const Color(0xFFC62828);
     
     return Container(
@@ -333,18 +371,13 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
       ),
       child: Row(
         children: [
-          // 🟢 Ícono Universal para todas las tarjetas
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F4F4),
-              borderRadius: BorderRadius.circular(16),
-            ),
+            decoration: BoxDecoration(color: const Color(0xFFF4F4F4), borderRadius: BorderRadius.circular(16)),
             child: const Icon(Icons.person_outline, color: Colors.black54, size: 28),
           ),
           const SizedBox(width: 14),
           
-          // Contenido de Texto Limpio
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,7 +385,6 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Nombre
                     Expanded(
                       child: Text(
                         name, 
@@ -362,7 +394,6 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Cuadro/Chip de Rol Interno
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(color: chipColor, borderRadius: BorderRadius.circular(12)),
@@ -371,33 +402,34 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                // RUT
                 Text(rut, style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
-                // Estado Simplificado
                 Row(
                   children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(color: stateTextColor, shape: BoxShape.circle),
-                    ),
+                    Container(width: 7, height: 7, decoration: BoxDecoration(color: stateTextColor, shape: BoxShape.circle)),
                     const SizedBox(width: 6),
-                    Text(
-                      isActive ? 'Activo' : 'Desactivado', 
-                      style: TextStyle(fontSize: 12, color: stateTextColor, fontWeight: FontWeight.bold)
-                    ),
+                    Text(isActive ? 'Activo' : 'Desactivado', style: TextStyle(fontSize: 12, color: stateTextColor, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ],
             ),
           ),
           
-          // Lápiz para Editar
-          IconButton(
-            tooltip: 'Editar trabajador',
-            icon: const Icon(Icons.edit_outlined, color: Color(0xFF388E3C)),
-            onPressed: () => _abrirEdicion(uid),
+          // Acciones del Administrador agrupadas limpiamente al final de la fila
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'Editar trabajador',
+                icon: const Icon(Icons.edit_outlined, color: Color(0xFF388E3C)),
+                onPressed: () => _abrirEdicion(uid),
+              ),
+              IconButton(
+                tooltip: 'Eliminar de forma permanente',
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                onPressed: () => _eliminarTrabajador(uid, name),
+              ),
+            ],
           ),
         ],
       ),

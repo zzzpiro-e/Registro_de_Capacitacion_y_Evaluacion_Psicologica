@@ -17,7 +17,7 @@ import 'package:proyecto_flutter/app/screens/editar_empleado_rrhh_screens.dart';
 import '../screens/visor_pdf_screen.dart';
 import 'package:proyecto_flutter/app/screens/editar_trabajador_admin_screen.dart';
 import '../screens/psicologo_historial_informes_screen.dart';
-//import 'package:firebase_core/firebase_core.dart';
+import 'package:proyecto_flutter/app/screens/comprobante_preview_screen.dart';
 
 class AppRoutes {
   static const initialRoute = 'login';
@@ -25,15 +25,14 @@ class AppRoutes {
   static Map<String, Widget Function(BuildContext)> routes = {
     'login': (BuildContext context) => const LoginScreen(),
     
-
     'main': (BuildContext context) => const ContainerRoleValidador(
           rolRequerido: 'rrhh',
           child: MainScreen(),
         ),
 
-    'admin_main': (BuildContext context) => ContainerRoleValidador(
-          rolRequerido: 'rrhh', 
-          child: AdminMainScreen(), // Sin const
+    'admin_main': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'admin', 
+          child: AdminMainScreen(), 
         ),
         
     'psicologo_main': (BuildContext context) => const ContainerRoleValidador(
@@ -41,35 +40,92 @@ class AppRoutes {
           child: PsicologoMainScreen(),
         ),
         
-    // Rutas de módulos internos
-    'dashboard': (BuildContext context) => const DashboardPage(),
-    'empleados': (BuildContext context) => const ListaEmpleadosPage(),
-    'perfil_empleado': (BuildContext context) => const PerfilEmpleadoScreen(),
-    'create_worker': (context) => const CreateWorkerScreen(),
-    'crear_empleado': (context) => const CrearEmpleadoScreen(),
-    'capacitaciones': (BuildContext context) => const CapacitacionesPage(),
-    'perfil_rrhh': (BuildContext context) => const PerfilRRHHScreen(),
-    'crear_capacitacion': (context) => const CrearCapacitacionScreen(),
-    'visor_pdf': (BuildContext context) => const VisorPdfScreen(),
-    'historial_informes': (BuildContext context) => const HistorialInformesScreen(),
+    'dashboard': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: DashboardPage(),
+        ),
+    'empleados': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: ListaEmpleadosPage(),
+        ),
+    'perfil_empleado': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: PerfilEmpleadoScreen(),
+        ),
+    'crear_empleado': (context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: CrearEmpleadoScreen(),
+        ),
+    'capacitaciones': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: CapacitacionesPage(),
+        ),
+    'perfil_rrhh': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: PerfilRRHHScreen(),
+        ),
+    'crear_capacitacion': (context) => const ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: CrearCapacitacionScreen(),
+        ),
+
+    'create_worker': (context) => const ContainerRoleValidador(
+          rolRequerido: 'admin',
+          child: CreateWorkerScreen(),
+        ),
+
+    'visor_pdf': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'psicologo',
+          child: VisorPdfScreen(),
+        ),
+    'historial_informes': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'psicologo',
+          child: HistorialInformesScreen(),
+        ),
+    'comprobante_preview': (BuildContext context) => const ContainerRoleValidador(
+          rolRequerido: 'psicologo',
+          child: ComprobantePreviewScreen(),
+        ),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     if (settings.name == 'editar_empleado_rrhh') {
-      final args = settings.arguments as Map<String, dynamic>;
+      final args = settings.arguments;
+      if (args == null || args is! Map<String, dynamic> || args['empleadoId'] == null) {
+        return MaterialPageRoute(
+          builder: (context) => const ContainerRoleValidador(
+            rolRequerido: 'rrhh',
+            child: MainScreen(),
+          ),
+        );
+      }
       final empleadoId = args['empleadoId'] as String;
 
       return MaterialPageRoute(
-        builder: (context) => EditarEmpleadoRRHHScreen(empleadoId: empleadoId),
+        builder: (context) => ContainerRoleValidador(
+          rolRequerido: 'rrhh',
+          child: EditarEmpleadoRRHHScreen(empleadoId: empleadoId),
+        ),
       );
     }
 
     if (settings.name == 'editar_trabajador_admin') {
-      final args = settings.arguments as Map<String, dynamic>;
+      final args = settings.arguments;
+      if (args == null || args is! Map<String, dynamic> || args['trabajadorId'] == null) {
+        return MaterialPageRoute(
+          builder: (context) => const ContainerRoleValidador(
+            rolRequerido: 'admin',
+            child: AdminMainScreen(),
+          ),
+        );
+      }
       final trabajadorId = args['trabajadorId'] as String;
 
       return MaterialPageRoute(
-        builder: (context) => EditarTrabajadorAdminScreen(trabajadorId: trabajadorId),
+        builder: (context) => ContainerRoleValidador(
+          rolRequerido: 'admin',
+          child: EditarTrabajadorAdminScreen(trabajadorId: trabajadorId),
+        ),
       );
     }
 

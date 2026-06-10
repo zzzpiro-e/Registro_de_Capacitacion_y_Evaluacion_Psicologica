@@ -80,19 +80,24 @@ class _ContainerPerfilEmpleadoCuatroState
               return const Center(child: CircularProgressIndicator());
             }
 
-            final capacitaciones = (capacitacionesSnapshot.data?.docs ?? [])
-                .where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+            final realizadas = capSnapshot.data?['realizadas'] ?? [];
+            final pendientes = capSnapshot.data?['pendientes'] ?? [];
 
-                  final empleadosAsignados =
-                      (data['empleadosAsignados'] as List<dynamic>? ?? []);
+            // Lista unificada para meter todas las tarjetas juntas
+            final List<Map<String, dynamic>> todasLasCapacitaciones = [];
 
-                  return empleadosAsignados.any(
-                    (rut) => rut.toString().trim() == rutNormalizado,
-                  );
-                })
-                .toList();
-
+            for (var doc in realizadas) {
+              todasLasCapacitaciones.add({
+                'data': doc.data() as Map<String, dynamic>,
+                'esRealizada': true,
+              });
+            }
+            for (var doc in pendientes) {
+              todasLasCapacitaciones.add({
+                'data': doc.data() as Map<String, dynamic>,
+                'esRealizada': false,
+              });
+            }
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               padding: const EdgeInsets.all(20),

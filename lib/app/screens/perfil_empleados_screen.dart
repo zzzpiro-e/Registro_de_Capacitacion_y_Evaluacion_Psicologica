@@ -8,7 +8,19 @@ class PerfilEmpleadoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Recibir el ID del empleado enviado desde la lista
-    final empleadoId = ModalRoute.of(context)!.settings.arguments as String;
+    final args = ModalRoute.of(context)!.settings.arguments;
+    if (args == null || args is! String) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacementNamed(context, 'main');
+      });
+      return const Scaffold(
+        backgroundColor: Color(0xFFF4F4F4),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    final String empleadoId = args;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),

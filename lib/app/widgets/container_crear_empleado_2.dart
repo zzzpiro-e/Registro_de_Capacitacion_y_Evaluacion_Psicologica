@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:proyecto_flutter/app/widgets/widgets_crear_empleado.dart';
 
 class ContainerCrearEmpleadoDos extends StatefulWidget {
   const ContainerCrearEmpleadoDos({super.key});
@@ -175,16 +177,25 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
       await docRef.set(empleado);
 
       if (!mounted) return;
+
+      context
+          .read<EmpleadosProvider>()
+          .notificarNuevoEmpleado();
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Empleado guardado correctamente')),
+        const SnackBar(
+          content: Text('Empleado guardado correctamente'),
+        ),
       );
 
-      _formKey.currentState!.reset();
-      _nombreController.clear();
-      _apellidoController.clear();
-      _rutController.clear();
-      _cargoController.clear();
-      _salarioController.clear();
+          _formKey.currentState!.reset();
+          _nombreController.clear();
+          _apellidoController.clear();
+          _rutController.clear();
+          _cargoController.clear();
+          _salarioController.clear();
+          _edadController.clear();
+      
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

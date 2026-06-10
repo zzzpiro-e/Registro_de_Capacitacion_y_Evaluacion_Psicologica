@@ -61,7 +61,7 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
           if (data['fechaIngreso'] is Timestamp) {
             final ts = data['fechaIngreso'] as Timestamp;
             _fechaIngresoController.text =
-                DateFormat('dd/MM/yyyy').format(ts.toDate());
+                DateFormat('yyyy-MM-dd/HH:mm').format(ts.toDate());
           } else {
             _fechaIngresoController.text = data['fechaIngreso'].toString();
           }
@@ -94,10 +94,10 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
 
     final edadLimpia = int.tryParse(_edadController.text) ?? 0;
 
-    // Conversión de string dd/MM/yyyy a Timestamp para mantener consistencia en Firestore
+    // Conversión de string yyyy-MM-dd/HH:mm a Timestamp para mantener consistencia en Firestore
     dynamic fechaParaGuardar = _fechaIngresoController.text.trim();
     try {
-      final fechaParseada = DateFormat('dd/MM/yyyy').parse(fechaParaGuardar);
+      final fechaParseada = DateFormat('yyyy-MM-dd/HH:mm').parse(fechaParaGuardar);
       fechaParaGuardar = Timestamp.fromDate(fechaParseada);
     } catch (_) {
       // Si falla el parseo, se guarda temporalmente como String original
@@ -159,9 +159,15 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
               TextFormField(
                 controller: _nombreController,
                 decoration: _inputDecoration('Ej: Juan Carlos'),
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? 'Ingrese los nombres'
-                    : null,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Ingrese los nombres';
+                  }
+                  if (RegExp(r'[0-9]').hasMatch(v)) {
+                    return 'No se permiten números en los nombres';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 20),
 
@@ -169,9 +175,15 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
               TextFormField(
                 controller: _apellidoController,
                 decoration: _inputDecoration('Ej: Pérez González'),
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? 'Ingrese los apellidos'
-                    : null,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Ingrese los apellidos';
+                  }
+                  if (RegExp(r'[0-9]').hasMatch(v)) {
+                    return 'No se permiten números en los apellidos';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 20),
 
@@ -189,8 +201,16 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: _inputDecoration('Ej: 35'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Ingrese la edad' : null,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Ingrese la edad';
+                  }
+                  final numero = int.tryParse(v) ?? 0;
+                  if (numero <= 0) {
+                    return 'La edad debe ser mayor a 0';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 20),
 
@@ -233,8 +253,19 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
                   );
                 },
                 decoration: _inputDecoration('\$1.500.000'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Ingrese el salario' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) {
+                    return 'Ingrese el salario';
+                  }
+                  final limpio = v.replaceAll(RegExp(r'[^0-9]'), '');
+                  if (limpio.isEmpty) return 'Ingrese el salario';
+
+                  final numero = int.tryParse(limpio) ?? 0;
+                  if (numero <= 0) {
+                    return 'El salario debe ser mayor a 0';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 30),
 

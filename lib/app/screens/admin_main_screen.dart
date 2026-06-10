@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:proyecto_flutter/app/screens/admin_dashboard_screen.dart'; 
 import 'package:proyecto_flutter/app/screens/admin_create_screen.dart'; 
 import 'package:proyecto_flutter/app/screens/admin_workers_list_screen.dart'; 
@@ -39,12 +40,15 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
           initialStatusFilter: _workersStatusFilter,
         ),
         AdminProfileScreen(
-          onLogout: () {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-              (route) => false,
-            );
+          onLogout: () async {
+            await FirebaseAuth.instance.signOut();
+            if (context.mounted) {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                'login',
+                (route) => false,
+              );
+            }
           },
         ),
       ];

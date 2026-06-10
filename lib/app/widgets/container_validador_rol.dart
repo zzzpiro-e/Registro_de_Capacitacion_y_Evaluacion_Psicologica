@@ -79,7 +79,7 @@ class _ContainerRoleValidadorState extends State<ContainerRoleValidador> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(mensaje), backgroundColor: Colors.red.shade800),
     );
-    Navigator.pushReplacementNamed(context, 'login');
+    Navigator.pushNamedAndRemoveUntil(context, 'login', (route) => false);
   }
 
   @override
