@@ -34,7 +34,6 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
         final bool esDerivado = data['derivado'] ?? false;
         final estado = data['estado'] ?? 'Sin estado';
         final derivacionFecha = data['derivacionFecha'];
-        final fichaPsicologica = data['fichaPsicologica'] ?? 'Sin informe';
         final List informes = data['informes'] ?? [];
 
         return Container(
@@ -79,9 +78,9 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.picture_as_pdf, color: Color(0xFF2E7D32)),
+                    const Icon(Icons.attach_file, color: Color(0xFF2E7D32)),
                     const SizedBox(width: 8),
-                    Text('Informe adjunto: ${fichaPsicologica.replaceAll('Informe adjunto: ', '')}'),
+                    Text('Informes adjuntos: ${informes.length}'),
                   ],
                 ),
               ] else ...[
@@ -90,7 +89,6 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
                   style: TextStyle(color: Colors.black87),
                 ),
               ],
-
               const SizedBox(height: 18),
               const Text(
                 'Historial de Informes',
