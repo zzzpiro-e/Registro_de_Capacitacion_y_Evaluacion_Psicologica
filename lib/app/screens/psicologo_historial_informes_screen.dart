@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart'; // Importante para formatear la fecha de forma limpia
 import '../services/informes_descarga_service.dart';
 import '../widgets/container_historial_header.dart';
 import '../widgets/container_fila_informe.dart';
@@ -24,9 +25,17 @@ class HistorialInformesScreen extends StatelessWidget {
       bool yaExiste = informesOrdenados.any((inf) => inf['nombre_archivo'] == nombreLimpio);
       
       if (!yaExiste) {
+        // 🔹 CORRECCIÓN: Validamos y formateamos la fecha de subida para que SIEMPRE sea un String legible
+        String fechaSubidaString = 'Hoy';
+        if (datos['fechaDerivacion'] is Timestamp) {
+          fechaSubidaString = DateFormat('dd/MM/yyyy').format((datos['fechaDerivacion'] as Timestamp).toDate());
+        } else if (datos['fecha'] != null) {
+          fechaSubidaString = datos['fecha'].toString();
+        }
+
         informesOrdenados.add({
           'nombre_archivo': nombreLimpio,
-          'fecha_subida': datos['fecha'] ?? 'Hoy',
+          'fecha_subida': fechaSubidaString, // 🔹 Ahora garantizamos que es un String y no romperá el widget
           'fecha_subida_raw': datos['derivacionFecha'] is Timestamp 
               ? (datos['derivacionFecha'] as Timestamp).toDate() 
               : DateTime.now(),
@@ -93,9 +102,17 @@ class HistorialInformesScreen extends StatelessWidget {
                           final String nombreDelPdf = informe['nombre_archivo'] ?? 'Informe_Psicologico.pdf';
                           final bool esSupa = informe['es_supabase'] ?? false;
 
+                          // 🔹 CONTROL DE SEGURIDAD EXTRA: Si por alguna razón externa aún se colara un Timestamp, lo parseamos aquí
+                          String fechaMuestra = 'Hoy';
+                          if (informe['fecha_subida'] is Timestamp) {
+                            fechaMuestra = DateFormat('dd/MM/yyyy').format((informe['fecha_subida'] as Timestamp).toDate());
+                          } else if (informe['fecha_subida'] != null) {
+                            fechaMuestra = informe['fecha_subida'].toString();
+                          }
+
                           return ContainerInformeRow(
                             nombreArchivo: nombreDelPdf,
-                            fechaSubida: informe['fecha_subida'] ?? 'Hoy',
+                            fechaSubida: fechaMuestra, // Enviamos estrictamente el String mapeado de forma segura
                             onVisualizar: () => archivoService.abrirVisorPdf(context, urlArchivo, nombreDelPdf, esSupa),
                             onDescargar: () => archivoService.descargarPdfAlTelefono(context, urlArchivo, nombreDelPdf, esSupa),
                           );

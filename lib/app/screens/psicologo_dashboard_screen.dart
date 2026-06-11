@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+// 🔹 IMPORTANTE: Importamos FirebaseAuth para obtener la sesión directamente
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PsicologoDashboardScreen extends StatefulWidget {
   const PsicologoDashboardScreen({super.key});
@@ -15,11 +17,16 @@ class _PsicologoDashboardScreenState extends State<PsicologoDashboardScreen> {
     final currentDateRaw = DateFormat('EEEE, d MMMM yyyy', 'es_CL').format(DateTime.now());
     final currentDate = currentDateRaw[0].toUpperCase() + currentDateRaw.substring(1);
 
+    // 🔹 OBTENCIÓN DIRECTA: Recuperamos el email del usuario autenticado en Firebase
+    final String correoPsicologo = FirebaseAuth.instance.currentUser?.email ?? '';
+
     return SafeArea(
       child: StreamBuilder<QuerySnapshot>(
+        // 🔹 FILTRADO AUTOMÁTICO: Usamos la variable local directa sin depender del constructor
         stream: FirebaseFirestore.instance
             .collection('empleados')
             .where('derivado', isEqualTo: true)
+            .where('psicologoEmail', isEqualTo: correoPsicologo)
             .snapshots(),
         builder: (context, snapshot) {
           int pendientes = 0;

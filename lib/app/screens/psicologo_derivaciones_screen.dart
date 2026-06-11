@@ -3,11 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'psicologo_detalle_derivacion_screen.dart';
 import 'package:intl/intl.dart';
 import '../widgets/container_detalle_buscador.dart'; 
+// 🔹 IMPORTANTE: Importamos FirebaseAuth para leer la sesión de forma independiente
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PsicologoDerivacionesScreen extends StatefulWidget {
-  final String? psicologoEmail;
-
-  const PsicologoDerivacionesScreen({super.key, this.psicologoEmail});
+  // 🔹 EXPLICACIÓN: Quitamos el parámetro del constructor para que la pantalla sea 100% autónoma
+  const PsicologoDerivacionesScreen({super.key});
 
   @override
   State<PsicologoDerivacionesScreen> createState() => _PsicologoDerivacionesScreenState();
@@ -45,6 +46,9 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
 
   @override
   Widget build(BuildContext context) {
+    // 🔹 OBTENCIÓN DIRECTA: Conseguimos el email del usuario activo en Firebase
+    final String correoPsicologo = FirebaseAuth.instance.currentUser?.email ?? '';
+
     return SafeArea(
       child: Column(
         children: [
@@ -83,7 +87,7 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
               stream: FirebaseFirestore.instance
                   .collection('empleados')
                   .where('derivado', isEqualTo: true)
-                  .where('psicologoEmail', isEqualTo: widget.psicologoEmail)
+                  .where('psicologoEmail', isEqualTo: correoPsicologo) // 🔹 Filtro directo con la sesión local
                   .where('estado', whereIn: ['Pendiente', 'En Proceso', 'activo'])
                   .snapshots(),
               builder: (context, snapshot) {
