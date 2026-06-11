@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto_flutter/app/screens/detalle_capacitacion_page.dart';
+import 'package:proyecto_flutter/app/services/detalle_capacitacion_service.dart';
 
 class ContainerCapacitacionesTres extends StatelessWidget {
   final List<Map<String, dynamic>> capacitaciones;

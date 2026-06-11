@@ -3,6 +3,8 @@ import '../services/derivaciones_services.dart'; // Tu fuente de verdad con Fire
 import '../widgets/container_historial_card.dart';
 import '../widgets/container_historial_buscador.dart';
 import '../widgets/container_historial_contador.dart';
+// 🔹 IMPORTANTE: Importamos FirebaseAuth para leer la sesión en caliente
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PsicologoHistorialScreen extends StatefulWidget {
   const PsicologoHistorialScreen({super.key});
@@ -23,8 +25,8 @@ class _PsicologoHistorialScreenState extends State<PsicologoHistorialScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Reemplaza este correo por el email del psicólogo autenticado en tu app
-    const String correoPsicologoLogueado = 'psicologo@empresa.cl';
+    // 🔹 OBTENCIÓN DIRECTA: Capturamos el correo del usuario logueado en Firebase de forma reactiva
+    final String correoPsicologoLogueado = FirebaseAuth.instance.currentUser?.email ?? '';
 
     return SafeArea(
       child: Padding(

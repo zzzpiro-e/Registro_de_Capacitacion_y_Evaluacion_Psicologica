@@ -10,6 +10,14 @@ class ContainerListaEmpleadosUno extends StatelessWidget {
     this.onBackTap,
   });
 
+  void _handleBack(BuildContext context) {
+    if (onBackTap != null) {
+      onBackTap!();
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -18,17 +26,15 @@ class ContainerListaEmpleadosUno extends StatelessWidget {
       child: Row(
         children: [
           InkWell(
-            onTap: () {
-              if (onBackTap != null) {
-                onBackTap!();
-              } else {
-                Navigator.pop(context);
-              }
-            },
-            child: const Icon(
-              Icons.arrow_back_ios_new,
-              color: Color(0xFF2E7D32),
-              size: 22,
+            onTap: () => _handleBack(context),
+            borderRadius: BorderRadius.circular(30), // 👈 Feedback táctil
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(
+                Icons.arrow_back_ios_new,
+                color: Color(0xFF2E7D32),
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 12),

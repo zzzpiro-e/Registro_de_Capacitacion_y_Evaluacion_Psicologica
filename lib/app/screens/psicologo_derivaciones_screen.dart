@@ -4,11 +4,10 @@ import 'psicologo_detalle_derivacion_screen.dart';
 import 'package:intl/intl.dart';
 import '../widgets/container_detalle_buscador.dart';
 import '../widgets/container_derivaciones_contador.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PsicologoDerivacionesScreen extends StatefulWidget {
-  final String? psicologoEmail;
-
-  const PsicologoDerivacionesScreen({super.key, this.psicologoEmail});
+  const PsicologoDerivacionesScreen({super.key});
 
   @override
   State<PsicologoDerivacionesScreen> createState() =>
@@ -17,13 +16,11 @@ class PsicologoDerivacionesScreen extends StatefulWidget {
 
 class _PsicologoDerivacionesScreenState
     extends State<PsicologoDerivacionesScreen> {
-  // 🔹 Controladores para manejar el estado del texto del buscador
   final TextEditingController _searchController = TextEditingController();
   String _filtroTexto = '';
 
   @override
   void dispose() {
-    // Es una buena práctica liberar el controlador al destruir el widget
     _searchController.dispose();
     super.dispose();
   }
@@ -56,8 +53,9 @@ class _PsicologoDerivacionesScreenState
 
   @override
   Widget build(BuildContext context) {
-    final String emailProfesional =
-        widget.psicologoEmail ?? 'psicologo@empresa.cl';
+    // 🔹 Usamos la obtención directa de Benja mediante la sesión activa de Firebase
+    final String correoPsicologo =
+        FirebaseAuth.instance.currentUser?.email ?? '';
 
     return SafeArea(
       child: Column(
@@ -76,11 +74,10 @@ class _PsicologoDerivacionesScreenState
               ),
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             child: ContainerDerivacionesContador(
-              psicologoEmail: emailProfesional,
+              psicologoEmail: correoPsicologo,
             ),
           ),
 
@@ -89,7 +86,6 @@ class _PsicologoDerivacionesScreenState
             child: ContainerDetalleBuscador(
               controller: _searchController,
               onChanged: (valor) {
-                // Al escribir, actualizamos la variable y disparamos el rediseño local
                 setState(() {
                   _filtroTexto = valor.toLowerCase().trim();
                 });
@@ -103,7 +99,7 @@ class _PsicologoDerivacionesScreenState
               stream: FirebaseFirestore.instance
                   .collection('empleados')
                   .where('derivado', isEqualTo: true)
-                  .where('psicologoEmail', isEqualTo: emailProfesional)
+                  .where('psicologoEmail', isEqualTo: correoPsicologo)
                   .where(
                     'estado',
                     whereIn: ['Pendiente', 'En Proceso', 'activo'],
@@ -119,7 +115,6 @@ class _PsicologoDerivacionesScreenState
                   );
                 }
 
-                // 1. Mapeamos los documentos originales a una lista de mapas
                 final todosLosEmpleados = snapshot.data!.docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
 
@@ -155,7 +150,6 @@ class _PsicologoDerivacionesScreenState
                   };
                 }).toList();
 
-                // 2. Filtrado en memoria de forma ultra rápida usando Dart
                 final empleadosFiltrados = todosLosEmpleados.where((empleado) {
                   final String nombre = empleado['nombre']
                       .toString()
@@ -165,13 +159,11 @@ class _PsicologoDerivacionesScreenState
                       .toString()
                       .toLowerCase();
 
-                  // Valida si el texto buscado coincide con alguno de estos tres campos
                   return nombre.contains(_filtroTexto) ||
                       rut.contains(_filtroTexto) ||
                       cargo.contains(_filtroTexto);
                 }).toList();
 
-                // Si la búsqueda no arroja ningún resultado coincidente
                 if (empleadosFiltrados.isEmpty) {
                   return Center(
                     child: Padding(
@@ -188,7 +180,6 @@ class _PsicologoDerivacionesScreenState
                   );
                 }
 
-                // 3. Renderizamos el ListView usando la lista ya filtrada
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
