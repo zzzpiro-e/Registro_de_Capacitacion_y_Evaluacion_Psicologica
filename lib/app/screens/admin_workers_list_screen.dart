@@ -307,7 +307,7 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                 final listaTrabajadores = snapshot.data!.docs.where((doc) {
                   final datos = doc.data() as Map<String, dynamic>;
                   final nombre = TextUtils.quitarTildes((datos['nombre'] ?? '').toString());
-                  final rut = TextUtils.quitarTildes((datos['rut'] ?? '').toString());
+                  final rut = TextUtils.quitarTildes((datos['rut']?.toString() ?? ''));
                   final rol = (datos['rol'] ?? '').toString().toLowerCase();
                   final bool esActivo = (datos['activo'] ?? true) == true;
 
@@ -340,13 +340,13 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                     var datos = doc.data() as Map<String, dynamic>;
                     bool esPsicologo = datos['rol'] == 'psicologo';
                     bool isActive = (datos['activo'] ?? true) == true;
-                    String idTrabajador = datos['uid'] ?? doc.id;
-
+                    String idTrabajador = datos['uid']?.toString() ?? doc.id;
+                    
                     return _buildEmployeeCard(
                       uid: idTrabajador,
-                      name: datos['nombre'] ?? 'Sin Nombre',
-                      rut: datos['rut'] ?? 'Sin RUT',
-                      email: datos['email'] ?? 'Sin Correo',
+                      name: datos['nombre'].toString() ?? 'Sin Nombre',
+                      rut: datos['rut'].toString() ?? 'Sin RUT',
+                      email: datos['email'].toString() ?? 'Sin Correo',
                       role: esPsicologo ? 'Psicólogo' : 'RRHH',
                       isPsychologist: esPsicologo,
                       isActive: isActive,

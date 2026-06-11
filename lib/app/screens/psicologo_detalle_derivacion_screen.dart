@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import '../widgets/container_detalle_trabajador.dart';
 import '../widgets/container_detalle_caso.dart';
+import 'package:proyecto_flutter/app/services/auditoria_service.dart';
 
 class PsicologoDetalleDerivacionScreen extends StatefulWidget {
   final Map<String, dynamic> derivacion;
@@ -57,6 +58,13 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
             .collection('empleados')
             .doc(documentoId)
             .update({'estado': nuevoEstado});
+
+        // 📝 REGISTRAR EN AUDITORÍA
+        final String nombreEmpleado = widget.derivacion['nombre'] ?? 'Empleado';
+        await AuditoriaService.psicologoActualizoDerivacion(
+          nombreEmpleado: nombreEmpleado,
+          estadoNuevo: nuevoEstado,
+        );
 
         setState(() {
           _estadoActual = nuevoEstado;
@@ -114,6 +122,13 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
                 'fichaPsicologica': 'Informe adjunto: $nombreArchivo',
                 'estado': 'Completado'
               });
+
+          // 📝 REGISTRAR EN AUDITORÍA
+          final String nombreEmpleado = widget.derivacion['nombre'] ?? 'Empleado';
+          await AuditoriaService.psicologoActualizoDerivacion(
+            nombreEmpleado: nombreEmpleado,
+            estadoNuevo: 'Completado (Con Informe)',
+          );
 
           setState(() {
             _estadoActual = 'Completado';

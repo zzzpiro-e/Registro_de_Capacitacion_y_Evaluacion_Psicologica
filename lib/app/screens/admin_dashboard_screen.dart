@@ -4,8 +4,13 @@ import 'package:intl/intl.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   final void Function(String roleFilter, String statusFilter) onOpenWorkersTab;
+  final VoidCallback onOpenAuditoriaTab;
 
-  const AdminDashboardScreen({super.key, required this.onOpenWorkersTab});
+  const AdminDashboardScreen({
+    super.key, 
+    required this.onOpenWorkersTab,
+    required this.onOpenAuditoriaTab,
+  });
 
   void _abrirTrabajadores({required String filtroRol, required String filtroEstado}) {
     onOpenWorkersTab(filtroRol, filtroEstado);
@@ -122,6 +127,48 @@ class AdminDashboardScreen extends StatelessWidget {
                             _buildGridStatCard(icon: Icons.psychology_outlined, title: 'Psicólogos', value: '$psicologos', color: Colors.blue, onTap: () => _abrirTrabajadores(filtroRol: 'psicologo', filtroEstado: 'todos')),
                             _buildGridStatCard(icon: Icons.badge_outlined, title: 'RRHH', value: '$rrhh', color: Colors.purple, onTap: () => _abrirTrabajadores(filtroRol: 'rrhh', filtroEstado: 'todos')),
                           ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Tarjeta de atajo a Auditoría
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFEAEAEA), width: 1),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(24),
+                            onTap: onOpenAuditoriaTab,
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF3E0),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const Icon(Icons.history_outlined, color: Colors.orange, size: 28),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: const [
+                                        Text('Registro de Auditoría', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+                                        SizedBox(height: 4),
+                                        Text('Ver historial de cambios en el sistema', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right, color: Colors.grey),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 20),
 

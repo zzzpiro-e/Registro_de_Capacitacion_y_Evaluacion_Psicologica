@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:proyecto_flutter/app/services/auditoria_service.dart';
 
 class EditarTrabajadorAdminScreen extends StatefulWidget {
   final String trabajadorId;
@@ -21,6 +22,8 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
   bool _activo = true;
   String _rol = 'rrhh';
   bool _cargando = true;
+
+  Map<String, dynamic> _valoresOriginales = {};
 
   void _formatearTelefonoEnVivo(String valor) {
     String numeros = valor.replaceAll(RegExp(r'[^0-9]'), '');
@@ -84,6 +87,16 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
         _rol = data['rol']?.toString() ?? 'rrhh';
         _activo = data['activo'] ?? true;
         _cargando = false;
+
+        _valoresOriginales = {
+          'nombre': _nombreController.text,
+          'rut': _rutController.text,
+          'email': _emailController.text,
+          'correoPersonal': _correoPersonalController.text,
+          'telefono': _telefonoController.text,
+          'rol': _rol,
+          'activo': _activo,
+        };
       });
     } else {
       setState(() {
@@ -148,6 +161,51 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
       'activo': _activo,
     }, SetOptions(merge: true));
 
+    // 📝 REGISTRAR EN AUDITORÍA
+    final String nuevoNombre = _nombreController.text.trim();
+    
+    if (_valoresOriginales['rol'] != _rol) {
+      await AuditoriaService.adminCambioRol(
+        nombre: nuevoNombre,
+        rolAnterior: _valoresOriginales['rol'],
+        rolNuevo: _rol,
+      );
+    }
+    
+    if (_valoresOriginales['activo'] != _activo) {
+      await AuditoriaService.adminCambioEstado(
+        nombre: nuevoNombre,
+        activado: _activo,
+      );
+    }
+    
+    Map<String, dynamic> camposAntes = {};
+    Map<String, dynamic> camposDespues = {};
+    List<String> camposEditados = [];
+    
+    void check(String key, String oldVal, String newVal) {
+      if (oldVal != newVal) {
+        camposAntes[key] = oldVal;
+        camposDespues[key] = newVal;
+        camposEditados.add(key);
+      }
+    }
+    
+    check('nombre', _valoresOriginales['nombre'], nuevoNombre);
+    check('rut', _valoresOriginales['rut'], rut);
+    check('email', _valoresOriginales['email'], email);
+    check('correoPersonal', _valoresOriginales['correoPersonal'], _correoPersonalController.text.trim());
+    check('telefono', _valoresOriginales['telefono'], _telefonoController.text.trim());
+    
+    if (camposEditados.isNotEmpty) {
+      await AuditoriaService.adminModificoUsuario(
+        nombre: nuevoNombre,
+        campos: camposEditados,
+        camposAntes: camposAntes,
+        camposDespues: camposDespues,
+      );
+    }
+
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -174,6 +232,9 @@ class _EditarTrabajadorAdminScreenState extends State<EditarTrabajadorAdminScree
 
     await FirebaseFirestore.instance.collection('trabajadores').doc(widget.trabajadorId).delete();
     await FirebaseFirestore.instance.collection('usuarios').doc(widget.trabajadorId).delete();
+
+    // 📝 REGISTRAR EN AUDITORÍA
+    await AuditoriaService.adminEliminoUsuario(nombre: _nombreController.text.trim());
 
     if (!mounted) return;
 

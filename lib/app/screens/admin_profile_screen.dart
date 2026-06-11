@@ -23,6 +23,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  bool _obscureUid = true;
 
   @override
   void dispose() {
@@ -129,7 +130,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                       const SizedBox(height: 18),
                       _buildProfileField(icon: Icons.mail_outline, label: 'Correo Electrónico', value: emailAdmin),
                       const SizedBox(height: 14),
-                      _buildProfileField(icon: Icons.vpn_key_outlined, label: 'UID de Administrador', value: _currentUser?.uid ?? 'Sin UID'),
+                      _buildUidField(label: 'UID de Administrador', value: _currentUser?.uid ?? 'Sin UID'),
                     ],
                   ),
                 ),
@@ -187,6 +188,38 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 Text(value, style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUidField({required String label, required String value}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(16)),
+      child: Row(
+        children: [
+          Icon(Icons.vpn_key_outlined, color: Colors.grey.shade600, size: 22),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: Color(0xFF43A047), fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
+                Text(_obscureUid ? '••••••••••••••••' : value, style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(_obscureUid ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey, size: 20),
+            onPressed: () {
+              setState(() {
+                _obscureUid = !_obscureUid;
+              });
+            },
           ),
         ],
       ),

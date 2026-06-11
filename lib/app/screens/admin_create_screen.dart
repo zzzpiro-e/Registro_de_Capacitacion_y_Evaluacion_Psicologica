@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'dart:convert'; // Necesario para el envío de correos vía HTTP JSON
 import 'package:http/http.dart' as http; // Usaremos peticiones HTTP para gatillar el correo
+import 'package:proyecto_flutter/app/services/auditoria_service.dart';
 
 class AdminCreateScreen extends StatefulWidget {
   const AdminCreateScreen({super.key});
@@ -329,6 +330,13 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
         claveProvisoria: claveGenerada,
       );
 
+      // 📝 REGISTRAR EN AUDITORÍA
+      await AuditoriaService.adminCreoUsuario(
+        nombre: nombreTrabajador,
+        rol: rolFirebase,
+        email: emailCorporativoFinal,
+      );
+
       _nombreController.clear();
       _rutController.clear();
       _usuarioCorporativoController.clear();
@@ -396,7 +404,14 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
             ),
             const SizedBox(height: 24),
 
-            _buildInputField(label: 'Nombre Completo *', hint: 'Ej: Juan Pérez González', controller: _nombreController),
+            _buildInputField(
+              label: 'Nombre Completo *', 
+              hint: 'Ej: Juan Pérez González', 
+              controller: _nombreController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]')),
+              ],
+            ),
             const SizedBox(height: 20),
             
             _buildInputField(

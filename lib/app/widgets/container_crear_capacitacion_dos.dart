@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:proyecto_flutter/app/services/auditoria_service.dart';
 
 class ContainerCrearCapacitacionDos extends StatefulWidget {
   const ContainerCrearCapacitacionDos({super.key});
@@ -153,6 +154,9 @@ class _ContainerCrearCapacitacionDosState
         'fechaFin': Timestamp.now(),
         'fechaRegistro': Timestamp.now(),
       });
+
+      // 📝 REGISTRAR EN AUDITORÍA
+      await AuditoriaService.rrhhCreoCapacitacion(titulo: titulo);
 
       _tituloController.clear();
       _descripcionController.clear();

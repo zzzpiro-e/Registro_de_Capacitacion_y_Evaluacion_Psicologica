@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/intl.dart';
 import 'package:proyecto_flutter/app/utils/date_time_input_formatter.dart';
+import 'package:proyecto_flutter/app/services/auditoria_service.dart';
 
 
 class ContainerEditarEmpleadoDos extends StatefulWidget {
@@ -23,6 +25,8 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
   final _edadController = TextEditingController();
   final _fechaIngresoController = TextEditingController();
   final _cargoController = TextEditingController();
+
+  Map<String, dynamic> _valoresOriginales = {};
 
   @override
   void initState() {
@@ -74,6 +78,16 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
           _salarioController.text =
               '\$${NumberFormat.decimalPattern('es_CL').format(numero)}';
         }
+
+        _valoresOriginales = {
+          'nombres': _nombreController.text,
+          'apellidos': _apellidoController.text,
+          'rut': _rutController.text,
+          'edad': _edadController.text,
+          'cargo': _cargoController.text,
+          'fechaIngreso': _fechaIngresoController.text,
+          'salario': _salarioController.text,
+        };
       });
     }
   }
@@ -115,6 +129,36 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
       'cargo': _cargoController.text.trim(),
       'fechaIngreso': fechaParaGuardar,
     });
+
+    // 📝 REGISTRAR EN AUDITORÍA
+    Map<String, dynamic> camposAntes = {};
+    Map<String, dynamic> camposDespues = {};
+    List<String> camposEditados = [];
+    
+    void check(String key, String oldVal, String newVal) {
+      if (oldVal != newVal) {
+        camposAntes[key] = oldVal;
+        camposDespues[key] = newVal;
+        camposEditados.add(key);
+      }
+    }
+    
+    check('nombres', _valoresOriginales['nombres'], _nombreController.text.trim());
+    check('apellidos', _valoresOriginales['apellidos'], _apellidoController.text.trim());
+    check('edad', _valoresOriginales['edad'], _edadController.text.trim());
+    check('cargo', _valoresOriginales['cargo'], _cargoController.text.trim());
+    check('fechaIngreso', _valoresOriginales['fechaIngreso'], _fechaIngresoController.text.trim());
+    check('salario', _valoresOriginales['salario'], _salarioController.text.trim());
+    
+    if (camposEditados.isNotEmpty) {
+      final nombreCompleto = "${_nombreController.text.trim()} ${_apellidoController.text.trim()}";
+      await AuditoriaService.rrhhEditoEmpleado(
+        nombre: nombreCompleto,
+        campos: camposEditados,
+        camposAntes: camposAntes,
+        camposDespues: camposDespues,
+      );
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

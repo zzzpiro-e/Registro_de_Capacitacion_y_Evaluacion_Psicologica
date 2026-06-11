@@ -4,6 +4,7 @@ import 'package:proyecto_flutter/app/screens/admin_dashboard_screen.dart';
 import 'package:proyecto_flutter/app/screens/admin_create_screen.dart'; 
 import 'package:proyecto_flutter/app/screens/admin_workers_list_screen.dart'; 
 import 'package:proyecto_flutter/app/screens/admin_profile_screen.dart';
+import 'package:proyecto_flutter/app/screens/admin_auditoria_screen.dart';
 import 'package:proyecto_flutter/app/screens/login_screen.dart'; 
 
 class AdminMainScreen extends StatefulWidget {
@@ -31,14 +32,24 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     });
   }
 
+  void _abrirAuditoria() {
+    setState(() {
+      _currentIndex = 3;
+    });
+  }
+
   List<Widget> get _pages => [
-        AdminDashboardScreen(onOpenWorkersTab: _abrirTrabajadores),
+        AdminDashboardScreen(
+          onOpenWorkersTab: _abrirTrabajadores,
+          onOpenAuditoriaTab: _abrirAuditoria,
+        ),
         AdminCreateScreen(),
         AdminWorkersListScreen(
           key: ValueKey(_workersRoleFilter),
           initialRoleFilter: _workersRoleFilter,
           initialStatusFilter: _workersStatusFilter,
         ),
+        const AdminAuditoriaScreen(),
         AdminProfileScreen(
           onLogout: () async {
             await FirebaseAuth.instance.signOut();
@@ -77,6 +88,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Inicio'),
           BottomNavigationBarItem(icon: Icon(Icons.person_add_alt_1_outlined), activeIcon: Icon(Icons.person_add_alt_1), label: 'Crear'),
           BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Trabajadores'),
+          BottomNavigationBarItem(icon: Icon(Icons.history_outlined), activeIcon: Icon(Icons.history), label: 'Auditoría'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Mi perfil'),
         ],
       ),
