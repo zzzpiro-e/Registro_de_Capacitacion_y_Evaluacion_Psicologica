@@ -8,7 +8,7 @@ class ContainerPerfilRRHHUno extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('trabajadores').doc(uid).snapshots(),
+      stream: FirebaseFirestore.instance.collection('usuarios').doc(uid).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: Colors.white));

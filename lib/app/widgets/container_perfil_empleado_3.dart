@@ -23,7 +23,8 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)));
+          return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF2E7D32)));
         }
 
         if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -64,13 +65,15 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
                   children: [
                     const Icon(Icons.assignment_ind, color: Color(0xFF2E7D32)),
                     const SizedBox(width: 8),
-                    Text('Estado: $estado', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text('Estado: $estado',
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today, color: Color(0xFF2E7D32), size: 18),
+                    const Icon(Icons.calendar_today,
+                        color: Color(0xFF2E7D32), size: 18),
                     const SizedBox(width: 8),
                     Text('Derivado el: ${_formatearFecha(derivacionFecha)}'),
                   ],
@@ -89,6 +92,128 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
                   style: TextStyle(color: Colors.black87),
                 ),
               ],
+
+              // 🔹 Botón de derivar arriba del historial
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final controller = TextEditingController();
+                    await showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) {
+                        String? errorMessage;
+
+                        return StatefulBuilder(
+                          builder: (context, setState) {
+                            return AlertDialog(
+                              title: const Text('Derivar al psicólogo'),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextField(
+                                    controller: controller,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Correo del psicólogo',
+                                      hintText: 'ej: psicologo@empresa.cl',
+                                    ),
+                                  ),
+                                  if (errorMessage != null) ...[
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      errorMessage!,
+                                      style: const TextStyle(
+                                          color: Colors.red, fontSize: 13),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancelar'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    final email = controller.text.trim();
+
+                                    // Validación de formato
+                                    final regex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$');
+                                    if (!regex.hasMatch(email)) {
+                                      setState(() {
+                                        errorMessage =
+                                            'El correo ingresado no tiene un formato válido.';
+                                      });
+                                      return;
+                                    }
+
+                                    // Validación contra Firestore
+                                    final query = await FirebaseFirestore.instance
+                                        .collection('trabajadores')
+                                        .where('rol', isEqualTo: 'psicologo')
+                                        .where('email', isEqualTo: email)
+                                        .limit(1)
+                                        .get();
+
+                                    if (query.docs.isEmpty) {
+                                      setState(() {
+                                        errorMessage =
+                                            'El correo ingresado no corresponde a ningún psicólogo de la empresa.';
+                                      });
+                                      return;
+                                    }
+
+                                    // Actualizar empleado si pasa validaciones
+                                    await FirebaseFirestore.instance
+                                        .collection('empleados')
+                                        .doc(empleadoId)
+                                        .update({
+                                      'derivado': true,
+                                      'psicologoEmail': email,
+                                      'derivacionFecha': Timestamp.now(),
+                                      'estado': 'Pendiente',
+                                    });
+
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              'Empleado derivado al psicólogo: $email'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
+
+                                    Navigator.pop(context); // cerrar solo si fue exitoso
+                                  },
+                                  child: const Text('Derivar'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.send),
+                  label: const Text('Derivar al psicólogo',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+
+              // 🔹 Historial de informes debajo del botón
               const SizedBox(height: 18),
               const Text(
                 'Historial de Informes',
@@ -114,19 +239,29 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: const [
-                              BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                              BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2)),
                             ],
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                              const Icon(Icons.picture_as_pdf,
+                                  color: Colors.redAccent),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(inf['nombre_archivo'] ?? 'PDF', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    Text('Subido: ${inf['fecha_subida'] ?? 'N/A'}', style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                                    Text(inf['nombre_archivo'] ?? 'PDF',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600)),
+                                    Text(
+                                        'Subido: ${inf['fecha_subida'] ?? 'N/A'}',
+                                        style: const TextStyle(
+                                            color: Colors.black54,
+                                            fontSize: 13)),
                                   ],
                                 ),
                               ),
@@ -135,72 +270,6 @@ class ContainerPerfilEmpleadoTres extends StatelessWidget {
                         );
                       }).toList(),
                     ),
-              const SizedBox(height: 16),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final controller = TextEditingController();
-                    final email = await showDialog<String>(
-                      context: context,
-                      builder: (context) {
-                        return AlertDialog(
-                          title: const Text('Derivar al psicólogo'),
-                          content: TextField(
-                            controller: controller,
-                            decoration: const InputDecoration(
-                              labelText: 'Correo del psicólogo',
-                              hintText: 'ej: psicologo@empresa.cl',
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.pop(context, controller.text.trim()),
-                              child: const Text('Derivar'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-
-                    if (email != null && email.isNotEmpty) {
-                      await FirebaseFirestore.instance
-                          .collection('empleados')
-                          .doc(empleadoId)
-                          .update({
-                        'derivado': true,
-                        'psicologoEmail': email,
-                        'derivacionFecha': Timestamp.now(),
-                        'estado': 'Pendiente',
-                      });
-
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Empleado derivado al psicólogo: $email'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: const Icon(Icons.send),
-                  label: const Text('Derivar al psicólogo', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ),
             ],
           ),
         );

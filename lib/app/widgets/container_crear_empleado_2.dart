@@ -192,7 +192,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView( // 💡 Añadido para evitar desbordamiento (overflow) cuando emerge el teclado
+    return SingleChildScrollView( 
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Form(
