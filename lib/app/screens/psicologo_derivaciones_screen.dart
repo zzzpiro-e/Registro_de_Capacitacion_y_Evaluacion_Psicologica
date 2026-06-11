@@ -53,7 +53,6 @@ class _PsicologoDerivacionesScreenState
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 Usamos la obtención directa de Benja mediante la sesión activa de Firebase
     final String correoPsicologo =
         FirebaseAuth.instance.currentUser?.email ?? '';
 
@@ -194,7 +193,7 @@ class _PsicologoDerivacionesScreenState
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                PsicologoDetalleDerivacionScreen(
+                                PsicologoDetailDerivacionScreen(
                                   derivacion: empleado,
                                 ),
                           ),
