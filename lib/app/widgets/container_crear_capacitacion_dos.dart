@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:proyecto_flutter/app/services/auditoria_service.dart';
 
 class CapacitacionesProvider extends ChangeNotifier {
   int _version = 0;
@@ -167,6 +168,7 @@ class _ContainerCrearCapacitacionDosState
             'fechaRegistro': Timestamp.now(),
           });
       context.read<CapacitacionesProvider>().refresh();
+      await AuditoriaService.rrhhCreoCapacitacion(titulo: titulo);
 
       _tituloController.clear();
       _descripcionController.clear();
@@ -181,9 +183,9 @@ class _ContainerCrearCapacitacionDosState
         _formValido = false;
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Capacitación guardada')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Capacitación guardada con éxito')),
+      );
     } catch (e) {
       setState(() => _isLoading = false);
 

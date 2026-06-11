@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import '../widgets/container_detalle_trabajador.dart';
 import '../widgets/container_detalle_caso.dart';
-import '../widgets/container_detalle_acciones.dart'; 
+import '../widgets/container_detalle_acciones.dart';
 
-class PsicologoDetalleDerivacionScreen extends StatefulWidget {
+class PsicologoDetailDerivacionScreen extends StatefulWidget {
   final Map<String, dynamic> derivacion;
 
-  const PsicologoDetalleDerivacionScreen({
-    super.key,
-    required this.derivacion,
-  });
+  const PsicologoDetailDerivacionScreen({super.key, required this.derivacion});
 
   @override
-  State<PsicologoDetalleDerivacionScreen> createState() => _PsicologoDetalleDerivacionScreenState();
+  State<PsicologoDetailDerivacionScreen> createState() =>
+      _PsicologoDetailDerivacionScreenState();
 }
 
-class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDerivacionScreen> {
+class _PsicologoDetailDerivacionScreenState
+    extends State<PsicologoDetailDerivacionScreen> {
   late String _estadoActual;
   late Map<String, dynamic> _datosDerivacion;
+  bool _estaSubiendo = false;
 
   @override
   void initState() {
@@ -28,19 +28,27 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
 
   Color _colorEstado(String estado) {
     switch (estado) {
-      case 'Pendiente': return const Color(0xFFFFF3CD);
-      case 'En Proceso': return const Color(0xFFD0E2FF);
-      case 'Completado': return const Color(0xFFDFFFD6);
-      default: return Colors.grey.shade200;
+      case 'Pendiente':
+        return const Color(0xFFFFF3CD);
+      case 'En Proceso':
+        return const Color(0xFFD0E2FF);
+      case 'Completado':
+        return const Color(0xFFDFFFD6);
+      default:
+        return Colors.grey.shade200;
     }
   }
 
   Color _colorTextoEstado(String estado) {
     switch (estado) {
-      case 'Pendiente': return const Color(0xFFB8860B);
-      case 'En Proceso': return const Color(0xFF0056B3);
-      case 'Completado': return const Color(0xFF2E7D32);
-      default: return Colors.black54;
+      case 'Pendiente':
+        return const Color(0xFFB8860B);
+      case 'En Proceso':
+        return const Color(0xFF0056B3);
+      case 'Completado':
+        return const Color(0xFF2E7D32);
+      default:
+        return Colors.black54;
     }
   }
 
@@ -57,12 +65,20 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
         appBar: AppBar(
           title: const Text(
             'Detalle de Derivación',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20),
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
           ),
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF2E7D32), size: 20),
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Color(0xFF2E7D32),
+              size: 20,
+            ),
             onPressed: () => Navigator.pop(context, _estadoActual),
           ),
         ),
@@ -72,13 +88,19 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0,
+                    vertical: 16.0,
+                  ),
                   child: Column(
                     children: [
                       Center(
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: _colorEstado(_estadoActual),
                             borderRadius: BorderRadius.circular(20),
@@ -86,8 +108,8 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
                           child: Text(
                             _estadoActual,
                             style: TextStyle(
-                              fontSize: 14, 
-                              fontWeight: FontWeight.bold, 
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                               color: _colorTextoEstado(_estadoActual),
                             ),
                           ),
@@ -111,7 +133,7 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
                   _estadoActual = nuevoEstado;
                   _datosDerivacion = nuevosDatos;
                 });
-                
+
                 if (nuevoEstado == 'Completado') {
                   Navigator.pop(context, nuevoEstado);
                 }
