@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'psicologo_detalle_derivacion_screen.dart';
 import 'package:intl/intl.dart';
-import '../widgets/container_detalle_buscador.dart'; 
+import '../widgets/container_detalle_buscador.dart';
+import '../widgets/container_derivaciones_contador.dart';
 
 class PsicologoDerivacionesScreen extends StatefulWidget {
   final String? psicologoEmail;
@@ -10,10 +11,12 @@ class PsicologoDerivacionesScreen extends StatefulWidget {
   const PsicologoDerivacionesScreen({super.key, this.psicologoEmail});
 
   @override
-  State<PsicologoDerivacionesScreen> createState() => _PsicologoDerivacionesScreenState();
+  State<PsicologoDerivacionesScreen> createState() =>
+      _PsicologoDerivacionesScreenState();
 }
 
-class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScreen> {
+class _PsicologoDerivacionesScreenState
+    extends State<PsicologoDerivacionesScreen> {
   // 🔹 Controladores para manejar el estado del texto del buscador
   final TextEditingController _searchController = TextEditingController();
   String _filtroTexto = '';
@@ -24,27 +27,38 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
     _searchController.dispose();
     super.dispose();
   }
-  
+
   Color _colorEstado(String estado) {
     switch (estado) {
-      case 'Pendiente': return const Color(0xFFFFF3CD);
-      case 'En Proceso': return const Color(0xFFD0E2FF);
-      case 'Completado': return const Color(0xFFDFFFD6);
-      default: return Colors.grey.shade200;
+      case 'Pendiente':
+        return const Color(0xFFFFF3CD);
+      case 'En Proceso':
+        return const Color(0xFFD0E2FF);
+      case 'Completado':
+        return const Color(0xFFDFFFD6);
+      default:
+        return Colors.grey.shade200;
     }
   }
 
   Color _colorTextoEstado(String estado) {
     switch (estado) {
-      case 'Pendiente': return const Color(0xFFB8860B);
-      case 'En Proceso': return const Color(0xFF0056B3);
-      case 'Completado': return const Color(0xFF2E7D32);
-      default: return Colors.black54;
+      case 'Pendiente':
+        return const Color(0xFFB8860B);
+      case 'En Proceso':
+        return const Color(0xFF0056B3);
+      case 'Completado':
+        return const Color(0xFF2E7D32);
+      default:
+        return Colors.black54;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final String emailProfesional =
+        widget.psicologoEmail ?? 'psicologo@empresa.cl';
+
     return SafeArea(
       child: Column(
         children: [
@@ -62,8 +76,14 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
               ),
             ),
           ),
-          
-          // 🔹 Aquí implementamos tu buscador personalizado dentro de un Padding elegante
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: ContainerDerivacionesContador(
+              psicologoEmail: emailProfesional,
+            ),
+          ),
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: ContainerDetalleBuscador(
@@ -83,15 +103,20 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
               stream: FirebaseFirestore.instance
                   .collection('empleados')
                   .where('derivado', isEqualTo: true)
-                  .where('psicologoEmail', isEqualTo: widget.psicologoEmail)
-                  .where('estado', whereIn: ['Pendiente', 'En Proceso', 'activo'])
+                  .where('psicologoEmail', isEqualTo: emailProfesional)
+                  .where(
+                    'estado',
+                    whereIn: ['Pendiente', 'En Proceso', 'activo'],
+                  )
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No hay empleados derivados"));
+                  return const Center(
+                    child: Text("No hay empleados derivados"),
+                  );
                 }
 
                 // 1. Mapeamos los documentos originales a una lista de mapas
@@ -100,9 +125,9 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
 
                   String fechaIngreso = 'N/A';
                   if (data['fechaIngreso'] is Timestamp) {
-                    fechaIngreso = DateFormat('dd/MM/yyyy').format(
-                      (data['fechaIngreso'] as Timestamp).toDate(),
-                    );
+                    fechaIngreso = DateFormat(
+                      'dd/MM/yyyy',
+                    ).format((data['fechaIngreso'] as Timestamp).toDate());
                   }
 
                   final String nombres = data['nombres'] ?? 'Sin nombre';
@@ -121,25 +146,29 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                     'cargo': data['cargo'] ?? 'Sin cargo',
                     'area': data['area'] ?? 'No especificada',
                     'edad': data['edad']?.toString() ?? 'N/A',
-                    'estado': estadoClinico, 
+                    'estado': estadoClinico,
                     'fechaIngreso': fechaIngreso,
-                    'salario': '******', 
+                    'salario': '******',
                     'fichaPsicologica': data['fichaPsicologica'] ?? '',
-                    'motivo': data['motivo'] ?? 'No especificado', 
+                    'motivo': data['motivo'] ?? 'No especificado',
                     'fecha': data['fechaDerivacion'] ?? data['fecha'] ?? 'Hoy',
                   };
                 }).toList();
 
                 // 2. Filtrado en memoria de forma ultra rápida usando Dart
                 final empleadosFiltrados = todosLosEmpleados.where((empleado) {
-                  final String nombre = empleado['nombre'].toString().toLowerCase();
+                  final String nombre = empleado['nombre']
+                      .toString()
+                      .toLowerCase();
                   final String rut = empleado['rut'].toString().toLowerCase();
-                  final String cargo = empleado['cargo'].toString().toLowerCase();
+                  final String cargo = empleado['cargo']
+                      .toString()
+                      .toLowerCase();
 
                   // Valida si el texto buscado coincide con alguno de estos tres campos
-                  return nombre.contains(_filtroTexto) || 
-                         rut.contains(_filtroTexto) || 
-                         cargo.contains(_filtroTexto);
+                  return nombre.contains(_filtroTexto) ||
+                      rut.contains(_filtroTexto) ||
+                      cargo.contains(_filtroTexto);
                 }).toList();
 
                 // Si la búsqueda no arroja ningún resultado coincidente
@@ -149,7 +178,10 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                       padding: const EdgeInsets.all(20.0),
                       child: Text(
                         'No se encontraron resultados para "$_filtroTexto"',
-                        style: const TextStyle(color: Colors.grey, fontSize: 15),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 15,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -158,7 +190,10 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
 
                 // 3. Renderizamos el ListView usando la lista ya filtrada
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
                   itemCount: empleadosFiltrados.length,
                   itemBuilder: (context, index) {
                     final empleado = empleadosFiltrados[index];
@@ -167,7 +202,10 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => PsicologoDetalleDerivacionScreen(derivacion: empleado),
+                            builder: (context) =>
+                                PsicologoDetalleDerivacionScreen(
+                                  derivacion: empleado,
+                                ),
                           ),
                         );
                         setState(() {});
@@ -183,7 +221,7 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                               color: Colors.black12,
                               blurRadius: 4,
                               offset: Offset(0, 2),
-                            )
+                            ),
                           ],
                         ),
                         child: Row(
@@ -194,7 +232,11 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                                 color: const Color(0xFFE8F5E9),
                                 borderRadius: BorderRadius.circular(50),
                               ),
-                              child: const Icon(Icons.person_outline, color: Color(0xFF2E7D32), size: 28),
+                              child: const Icon(
+                                Icons.person_outline,
+                                color: Color(0xFF2E7D32),
+                                size: 28,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -212,19 +254,28 @@ class _PsicologoDerivacionesScreenState extends State<PsicologoDerivacionesScree
                                   const SizedBox(height: 4),
                                   Text(
                                     "Cargo: ${empleado['cargo']}",
-                                    style: const TextStyle(fontSize: 14, color: Colors.black54),
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black54,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     "Motivo: ${empleado['motivo']}",
-                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: _colorEstado(empleado['estado']),
                                 borderRadius: BorderRadius.circular(20),
