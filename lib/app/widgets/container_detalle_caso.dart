@@ -6,16 +6,37 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 
-class ContainerDetalleCaso extends StatelessWidget {
+class ContainerDetalleCaso extends StatefulWidget {
   final Map<String, dynamic> datos;
+  final Function(Map<String, dynamic>)? onInformeEliminado; 
 
   const ContainerDetalleCaso({
     super.key,
     required this.datos,
+    this.onInformeEliminado,
   });
 
-  // Metodo para descargar el archivo PDF, generar la URL firmada de Supabase si corresponde
-  // y abrir el archivo descargado en el visor nativo de la aplicacion.
+  @override
+  State<ContainerDetalleCaso> createState() => _ContainerDetalleCasoState();
+}
+
+class _ContainerDetalleCasoState extends State<ContainerDetalleCaso> {
+  // Copia local mutable para controlar el estado en tiempo real
+  late Map<String, dynamic> _datosLocales;
+
+  @override
+  void initState() {
+    super.initState();
+    _datosLocales = Map<String, dynamic>.from(widget.datos);
+  }
+
+  @override
+  void didUpdateWidget(covariant ContainerDetalleCaso oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Si los datos externos cambian desde el padre, actualizamos la copia local
+    _datosLocales = Map<String, dynamic>.from(widget.datos);
+  }
+
   void _abrirVisorPdf(BuildContext context, String rutaOUrl, String nombreArchivo, {bool esSupabase = false}) async {
     if (rutaOUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -27,7 +48,6 @@ class ContainerDetalleCaso extends StatelessWidget {
       return;
     }
 
-    // Despliegue del indicador de carga mientras se procesa el archivo.
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -39,7 +59,6 @@ class ContainerDetalleCaso extends StatelessWidget {
     try {
       String urlFinal = rutaOUrl;
 
-      // Obtencion de la URL firmada temporal si el archivo esta alojado en el bucket de Supabase.
       if (esSupabase) {
         final String urlFirmada = await Supabase.instance.client.storage
             .from('informes_psicologicos')
@@ -48,19 +67,15 @@ class ContainerDetalleCaso extends StatelessWidget {
         urlFinal = urlFirmada;
       }
 
-      // Descarga de los bytes del archivo a traves de una peticion HTTP.
       final response = await http.get(Uri.parse(urlFinal));
       if (response.statusCode != 200) throw 'Error al descargar el informe desde el servidor web.';
 
-      // Escritura del archivo de forma local en el directorio temporal del dispositivo.
       final dir = await getTemporaryDirectory();
       final archivoLocal = File('${dir.path}/$nombreArchivo');
       await archivoLocal.writeAsBytes(response.bodyBytes);
 
-      // Cierre del indicador de carga de manera segura.
       if (context.mounted) Navigator.pop(context);
 
-      // Redireccion al visor PDF nativo pasando la ruta del archivo local obtenido en cache.
       if (context.mounted) {
         Navigator.pushNamed(
           context, 
@@ -85,7 +100,111 @@ class ContainerDetalleCaso extends StatelessWidget {
     }
   }
 
-  /// Formateador seguro que intercepta 'hoy' y calcula el día real del calendario
+  Future<void> _eliminarInformeDirecto(BuildContext context, Map<String, dynamic> informeObjeto) async {
+    final bool confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('¿Eliminar documento?', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('¿Estás seguro de que deseas eliminar el archivo "${informeObjeto['nombre_archivo']}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+        ],
+      ),
+    ) ?? false;
+
+    if (!confirmar) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.red)),
+    );
+
+    try {
+      String documentoId = _datosLocales['id'] ?? '';
+      if (documentoId.isEmpty) {
+        final String rutSocio = _datosLocales['rut'] ?? '';
+        documentoId = rutSocio.replaceAll('.', '').replaceAll('-', '').trim();
+      }
+
+      final String rutaArchivoSupabase = informeObjeto['ruta_archivo'] ?? '';
+
+      // 1. Borrar de Supabase Storage
+      if (rutaArchivoSupabase.isNotEmpty && (informeObjeto['es_supabase'] ?? false)) {
+        await Supabase.instance.client.storage
+            .from('informes_psicologicos')
+            .remove([rutaArchivoSupabase]);
+      }
+
+      // 2. Borrar de la lista en Firestore
+      await FirebaseFirestore.instance
+          .collection('empleados')
+          .doc(documentoId)
+          .update({
+            'informes': FieldValue.arrayRemove([informeObjeto]),
+          });
+
+      // 3. Reajustar campos principales de la ficha de forma síncrona en Firestore
+      final List informesRestantes = List.from(_datosLocales['informes'] ?? []);
+      informesRestantes.removeWhere((element) => element['ruta_archivo'] == rutaArchivoSupabase);
+
+      if (informesRestantes.isEmpty) {
+        await FirebaseFirestore.instance.collection('empleados').doc(documentoId).update({
+          'fichaPsicologica': '',
+          'urlPdf': '',
+        });
+      } else {
+        final ultimo = informesRestantes.last;
+        await FirebaseFirestore.instance.collection('empleados').doc(documentoId).update({
+          'fichaPsicologica': 'Informe adjunto: ${ultimo['nombre_archivo']}',
+          'urlPdf': ultimo['ruta_archivo'],
+        });
+      }
+
+      // 🛠️ CAMBIO CLAVE: Cambiamos el estado local de forma reactiva con setState interno
+      setState(() {
+        if (_datosLocales['informes'] != null) {
+          (_datosLocales['informes'] as List).removeWhere((inf) => inf['ruta_archivo'] == rutaArchivoSupabase);
+        }
+        
+        if (_datosLocales['urlPdf'] == rutaArchivoSupabase || _datosLocales['url_pdf'] == rutaArchivoSupabase) {
+          if (informesRestantes.isEmpty) {
+            _datosLocales['fichaPsicologica'] = '';
+            _datosLocales['urlPdf'] = '';
+            _datosLocales['url_pdf'] = '';
+          } else {
+            final ultimo = informesRestantes.last;
+            _datosLocales['fichaPsicologica'] = 'Informe adjunto: ${ultimo['nombre_archivo']}';
+            _datosLocales['urlPdf'] = ultimo['ruta_archivo'];
+            _datosLocales['url_pdf'] = ultimo['ruta_archivo'];
+          }
+        }
+      });
+
+      if (context.mounted) Navigator.pop(context); // Quitar Loader
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Documento eliminado con éxito'), backgroundColor: Colors.black87),
+        );
+      }
+
+      if (widget.onInformeEliminado != null) {
+        widget.onInformeEliminado!(_datosLocales);
+      }
+
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context); // Quitar Loader
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al eliminar: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   String _obtenerFechaFormateada(dynamic fechaFormato) {
     if (fechaFormato is Timestamp) {
       return DateFormat('dd/MM/yyyy').format(fechaFormato.toDate());
@@ -98,7 +217,6 @@ class ContainerDetalleCaso extends StatelessWidget {
       if (limpio == 'hoy') {
         return DateFormat('dd/MM/yyyy').format(DateTime.now());
       }
-      // Intenta parsear por si viene una cadena tipo ISO (ej: 2026-06-06)
       final parseada = DateTime.tryParse(fechaFormato);
       if (parseada != null) {
         return DateFormat('dd/MM/yyyy').format(parseada);
@@ -110,24 +228,23 @@ class ContainerDetalleCaso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Lista local destinada a unificar y ordenar los documentos recuperados de la base de datos.
+    final String estadoActual = _datosLocales['estado'] ?? 'Pendiente';
+    final bool yaEstaCompletado = estadoActual == 'Completado';
+
     final List<Map<String, dynamic>> informesOrdenados = [];
 
-    // Validacion e incorporacion del arreglo estructurado de informes historicos.
-    if (datos['informes'] != null) {
-      final List informesRaw = datos['informes'];
+    if (_datosLocales['informes'] != null) {
+      final List informesRaw = _datosLocales['informes'];
       informesOrdenados.addAll(List<Map<String, dynamic>>.from(informesRaw));
     } 
     
-    // Validacion, parseo y extraccion del documento unico basado en la estructura clasica del documento.
-    if (datos['fichaPsicologica'] != null && datos['fichaPsicologica'].toString().isNotEmpty) {
-      final String nombreLimpio = datos['fichaPsicologica'].toString().replaceAll('Informe adjunto: ', '');
+    if (_datosLocales['fichaPsicologica'] != null && _datosLocales['fichaPsicologica'].toString().isNotEmpty) {
+      final String nombreLimpio = _datosLocales['fichaPsicologica'].toString().replaceAll('Informe adjunto: ', '');
       
       bool yaExiste = informesOrdenados.any((inf) => inf['nombre_archivo'] == nombreLimpio);
       
       if (!yaExiste) {
-        // Evaluamos la fecha cruda para guardarla como un DateTime puro y real en informesOrdenados
-        dynamic rawFecha = datos['derivacionFecha'] ?? datos['fecha'];
+        dynamic rawFecha = _datosLocales['derivacionFecha'] ?? _datosLocales['fecha'];
         DateTime fechaObtenida;
 
         if (rawFecha is Timestamp) {
@@ -142,20 +259,18 @@ class ContainerDetalleCaso extends StatelessWidget {
           fechaObtenida = DateTime.now();
         }
 
-        // Usamos el formateador interno para pasarle un string amigable al campo 'fecha_subida'
-        String stringFechaSubida = _obtenerFechaFormateada(datos['derivacionFecha'] ?? datos['fecha'] ?? 'hoy');
+        String stringFechaSubida = _obtenerFechaFormateada(_datosLocales['derivacionFecha'] ?? _datosLocales['fecha'] ?? 'hoy');
 
         informesOrdenados.add({
           'nombre_archivo': nombreLimpio,
           'fecha_subida': stringFechaSubida,
-          'fecha_subida_raw': fechaObtenida, // Garantizado un objeto DateTime real
-          'ruta_archivo': datos['urlPdf'] ?? datos['url_pdf'] ?? '', 
+          'fecha_subida_raw': fechaObtenida, 
+          'ruta_archivo': _datosLocales['urlPdf'] ?? _datosLocales['url_pdf'] ?? '', 
           'es_supabase': false,
         });
       }
     }
 
-    // Ordenamiento de la lista final de informes por fecha de subida real (de más reciente a más antigua)
     informesOrdenados.sort((a, b) {
       final DateTime fechaA = a['fecha_subida_raw'] is DateTime 
           ? a['fecha_subida_raw'] 
@@ -164,7 +279,7 @@ class ContainerDetalleCaso extends StatelessWidget {
               : DateTime.now());
           
       final DateTime fechaB = b['fecha_subida_raw'] is DateTime 
-          ? a['fecha_subida_raw'] 
+          ? b['fecha_subida_raw'] 
           : (b['fecha_subida_raw'] is Timestamp 
               ? (b['fecha_subida_raw'] as Timestamp).toDate() 
               : DateTime.now());
@@ -189,7 +304,6 @@ class ContainerDetalleCaso extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Seccion del encabezado del contenedor de detalles.
           Row(
             children: const [
               Icon(Icons.description_outlined, color: Color(0xFF2E7D32), size: 24),
@@ -202,7 +316,6 @@ class ContainerDetalleCaso extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           
-          // Despliegue de la fecha de derivacion obtenida en tiempo real y formateada.
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -211,7 +324,7 @@ class ContainerDetalleCaso extends StatelessWidget {
                 style: TextStyle(fontSize: 13, color: Color(0xFF2E7D32), fontWeight: FontWeight.w500)),
               const SizedBox(height: 4),
               Text(
-                _obtenerFechaFormateada(datos['derivacionFecha'] ?? datos['fecha'] ?? 'hoy'),
+                _obtenerFechaFormateada(_datosLocales['derivacionFecha'] ?? _datosLocales['fecha'] ?? 'hoy'),
                 style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w400),
               ),
             ],
@@ -220,14 +333,12 @@ class ContainerDetalleCaso extends StatelessWidget {
           const Divider(height: 1, color: Color(0xFFEEEEEE)),
           const SizedBox(height: 16),
 
-          // Seccion informativa encargada de listar los archivos adjuntos.
           const Text(
             'Informes y Documentos Adjuntos',
             style: TextStyle(fontSize: 14, color: Color(0xFF2E7D32), fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
 
-          // Validacion del estado de la coleccion de documentos. Despliega un indicador textual si esta vacia.
           if (informesOrdenados.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
@@ -237,7 +348,6 @@ class ContainerDetalleCaso extends StatelessWidget {
               ),
             )
           else
-            // Generacion dinamica de las tarjetas visuales basadas en la informacion procesada de los PDFs.
             ...informesOrdenados.map((informe) {
               final String urlArchivo = informe['ruta_archivo'] ?? '';
               final String nombreDelPdf = informe['nombre_archivo'] ?? 'Archivo_Sin_Nombre.pdf';
@@ -254,7 +364,6 @@ class ContainerDetalleCaso extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    // Contenedor del icono del formato PDF.
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -264,7 +373,6 @@ class ContainerDetalleCaso extends StatelessWidget {
                       child: const Icon(Icons.picture_as_pdf, color: Color(0xFFC62828), size: 24),
                     ),
                     const SizedBox(width: 14),
-                    // Detalle del nombre y la fecha de subida del documento.
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,12 +393,18 @@ class ContainerDetalleCaso extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.black54,
-                        ),
-                          ),
+                            ),
+          ),
                         ],
                       ),
                     ),
-                    // Boton de accion que invoca el metodo de descarga y despliegue del visor in-app.
+                    
+                    if (!yaEstaCompletado)
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                        onPressed: () => _eliminarInformeDirecto(context, informe),
+                      ),
+
                     IconButton(
                       icon: const Icon(Icons.open_in_new, color: Color(0xFF2E7D32)),
                       onPressed: () => _abrirVisorPdf(context, urlArchivo, nombreDelPdf, esSupabase: esSupa),
