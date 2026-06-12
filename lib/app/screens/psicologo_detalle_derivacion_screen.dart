@@ -118,7 +118,15 @@ class _PsicologoDetailDerivacionScreenState
                       const SizedBox(height: 20),
                       ContainerDetalleTrabajador(datos: _datosDerivacion),
                       const SizedBox(height: 16),
-                      ContainerDetalleCaso(datos: _datosDerivacion),
+                      //AÑADIDO EL CALLBACK PARA ACTUALIZAR LOS DATOS EN CASO DE QUE SE HAYA ELIMINADO UN INFORME DESDE EL DETALLE DEL CASO
+                      ContainerDetalleCaso(
+                        datos: _datosDerivacion,
+                        onInformeEliminado: (datosActualizados) {
+                          setState(() {
+                          _datosDerivacion = Map<String, dynamic>.from(datosActualizados);
+                          });
+                        }
+                      ),
                       const SizedBox(height: 24),
                     ],
                   ),
