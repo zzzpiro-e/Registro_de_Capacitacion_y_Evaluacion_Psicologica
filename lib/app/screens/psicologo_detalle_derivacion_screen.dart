@@ -1,7 +1,12 @@
+// Archivo: psicologo_detalle_derivacion_screen.dart
 import 'package:flutter/material.dart';
+
+// Containers de la captura (manteniendo su naturaleza semántica)
 import '../widgets/container_detalle_trabajador.dart';
 import '../widgets/container_detalle_caso.dart';
 import '../widgets/container_detalle_acciones.dart'; 
+// 🔹 NUEVO CONTAINER CON NOMBRE INTUITIVO Y DESCRIPTIVO
+import '../widgets/container_detalle_estado_psicologo.dart';
 
 class PsicologoDetalleDerivacionScreen extends StatefulWidget {
   final Map<String, dynamic> derivacion;
@@ -24,24 +29,6 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
     super.initState();
     _datosDerivacion = widget.derivacion;
     _estadoActual = _datosDerivacion['estado'] ?? 'Pendiente';
-  }
-
-  Color _colorEstado(String estado) {
-    switch (estado) {
-      case 'Pendiente': return const Color(0xFFFFF3CD);
-      case 'En Proceso': return const Color(0xFFD0E2FF);
-      case 'Completado': return const Color(0xFFDFFFD6);
-      default: return Colors.grey.shade200;
-    }
-  }
-
-  Color _colorTextoEstado(String estado) {
-    switch (estado) {
-      case 'Pendiente': return const Color(0xFFB8860B);
-      case 'En Proceso': return const Color(0xFF0056B3);
-      case 'Completado': return const Color(0xFF2E7D32);
-      default: return Colors.black54;
-    }
   }
 
   @override
@@ -75,35 +62,20 @@ class _PsicologoDetalleDerivacionScreenState extends State<PsicologoDetalleDeriv
                   padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
                   child: Column(
                     children: [
-                      Center(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _colorEstado(_estadoActual),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _estadoActual,
-                            style: TextStyle(
-                              fontSize: 14, 
-                              fontWeight: FontWeight.bold, 
-                              color: _colorTextoEstado(_estadoActual),
-                            ),
-                          ),
-                        ),
-                      ),
+                      // 🏢 LLAMADA AL NUEVO CONTAINER SEMÁNTICO
+                      ContainerDetalleEstadoPsicologo(estadoActual: _estadoActual),
                       const SizedBox(height: 20),
+                      
                       ContainerDetalleTrabajador(datos: _datosDerivacion),
                       const SizedBox(height: 16),
-                      //AÑADIDO EL CALLBACK PARA ACTUALIZAR LOS DATOS EN CASO DE QUE SE HAYA ELIMINADO UN INFORME DESDE EL DETALLE DEL CASO
+                      
                       ContainerDetalleCaso(
                         datos: _datosDerivacion,
                         onInformeEliminado: (datosActualizados) {
                           setState(() {
-                          _datosDerivacion = Map<String, dynamic>.from(datosActualizados);
+                            _datosDerivacion = Map<String, dynamic>.from(datosActualizados);
                           });
-                        }
+                        },
                       ),
                       const SizedBox(height: 24),
                     ],
