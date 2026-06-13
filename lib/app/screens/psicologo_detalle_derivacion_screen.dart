@@ -4,21 +4,20 @@ import '../widgets/container_detalle_caso.dart';
 import '../widgets/container_detalle_acciones.dart';
 import '../widgets/container_detalle_estado_psicologo.dart';
 
-class PsicologoDetailDerivacionScreen extends StatefulWidget {
+class PsicologoDetalleDerivacionScreen extends StatefulWidget {
   final Map<String, dynamic> derivacion;
 
-  const PsicologoDetailDerivacionScreen({super.key, required this.derivacion});
+  const PsicologoDetalleDerivacionScreen({super.key, required this.derivacion});
 
   @override
-  State<PsicologoDetailDerivacionScreen> createState() =>
-      _PsicologoDetailDerivacionScreenState();
+  State<PsicologoDetalleDerivacionScreen> createState() =>
+      _PsicologoDetalleDerivacionScreenState();
 }
 
-class _PsicologoDetailDerivacionScreenState
-    extends State<PsicologoDetailDerivacionScreen> {
+class _PsicologoDetalleDerivacionScreenState
+    extends State<PsicologoDetalleDerivacionScreen> {
   late String _estadoActual;
   late Map<String, dynamic> _datosDerivacion;
-  bool _estaSubiendo = false;
 
   @override
   void initState() {
