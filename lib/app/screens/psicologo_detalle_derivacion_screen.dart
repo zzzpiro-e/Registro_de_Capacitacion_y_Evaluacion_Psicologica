@@ -2,54 +2,28 @@ import 'package:flutter/material.dart';
 import '../widgets/container_detalle_trabajador.dart';
 import '../widgets/container_detalle_caso.dart';
 import '../widgets/container_detalle_acciones.dart';
+import '../widgets/container_detalle_estado_psicologo.dart';
 
-class PsicologoDetailDerivacionScreen extends StatefulWidget {
+class PsicologoDetalleDerivacionScreen extends StatefulWidget {
   final Map<String, dynamic> derivacion;
 
-  const PsicologoDetailDerivacionScreen({super.key, required this.derivacion});
+  const PsicologoDetalleDerivacionScreen({super.key, required this.derivacion});
 
   @override
-  State<PsicologoDetailDerivacionScreen> createState() =>
-      _PsicologoDetailDerivacionScreenState();
+  State<PsicologoDetalleDerivacionScreen> createState() =>
+      _PsicologoDetalleDerivacionScreenState();
 }
 
-class _PsicologoDetailDerivacionScreenState
-    extends State<PsicologoDetailDerivacionScreen> {
+class _PsicologoDetalleDerivacionScreenState
+    extends State<PsicologoDetalleDerivacionScreen> {
   late String _estadoActual;
   late Map<String, dynamic> _datosDerivacion;
-  bool _estaSubiendo = false;
 
   @override
   void initState() {
     super.initState();
     _datosDerivacion = widget.derivacion;
     _estadoActual = _datosDerivacion['estado'] ?? 'Pendiente';
-  }
-
-  Color _colorEstado(String estado) {
-    switch (estado) {
-      case 'Pendiente':
-        return const Color(0xFFFFF3CD);
-      case 'En Proceso':
-        return const Color(0xFFD0E2FF);
-      case 'Completado':
-        return const Color(0xFFDFFFD6);
-      default:
-        return Colors.grey.shade200;
-    }
-  }
-
-  Color _colorTextoEstado(String estado) {
-    switch (estado) {
-      case 'Pendiente':
-        return const Color(0xFFB8860B);
-      case 'En Proceso':
-        return const Color(0xFF0056B3);
-      case 'Completado':
-        return const Color(0xFF2E7D32);
-      default:
-        return Colors.black54;
-    }
   }
 
   @override
@@ -94,38 +68,23 @@ class _PsicologoDetailDerivacionScreenState
                   ),
                   child: Column(
                     children: [
-                      Center(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _colorEstado(_estadoActual),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _estadoActual,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: _colorTextoEstado(_estadoActual),
-                            ),
-                          ),
-                        ),
+                      ContainerDetalleEstadoPsicologo(
+                        estadoActual: _estadoActual,
                       ),
                       const SizedBox(height: 20),
+
                       ContainerDetalleTrabajador(datos: _datosDerivacion),
                       const SizedBox(height: 16),
-                      //AÑADIDO EL CALLBACK PARA ACTUALIZAR LOS DATOS EN CASO DE QUE SE HAYA ELIMINADO UN INFORME DESDE EL DETALLE DEL CASO
+
                       ContainerDetalleCaso(
                         datos: _datosDerivacion,
                         onInformeEliminado: (datosActualizados) {
                           setState(() {
-                          _datosDerivacion = Map<String, dynamic>.from(datosActualizados);
+                            _datosDerivacion = Map<String, dynamic>.from(
+                              datosActualizados,
+                            );
                           });
-                        }
+                        },
                       ),
                       const SizedBox(height: 24),
                     ],

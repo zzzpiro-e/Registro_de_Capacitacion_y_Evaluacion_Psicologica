@@ -137,6 +137,35 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
 
       if (result != null && result.files.single.bytes != null) {
         final platformFile = result.files.single;
+
+        // 🛑 NUEVA VALIDACIÓN: Limitar el tamaño del PDF (Límite: 5 Megabytes)
+        const int maxBytes = 5 * 1024 * 1024; // 5.242.880 bytes
+        if (platformFile.size > maxBytes) {
+          if (mounted) {
+            final double tamanoEnMB = platformFile.size / (1024 * 1024);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'El archivo supera el límite de 5 MB. (Peso actual: ${tamanoEnMB.toStringAsFixed(2)} MB)',
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.red.shade800,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          // Cambiamos el estado de subida a falso y cancelamos el flujo
+          setState(() => _estaSubiendo = false);
+          return;
+        }
+
         final String nombreArchivo = platformFile.name;
         final Uint8List archivoBytes = platformFile.bytes!;
 
@@ -349,6 +378,7 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
                             elevation: 0,
                           ),
                         ),
+                        const SizedBox(height: 10),
                         const Divider(height: 24, thickness: 1),
                       ],
                     ),
