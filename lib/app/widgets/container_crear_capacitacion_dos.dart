@@ -38,9 +38,27 @@ class _ContainerCrearCapacitacionDosState
 
   String _rutLimpio = '';
 
+  // ==========================================
+  // VALIDADORES GENÉRICOS
+  // ==========================================
+  bool _validarTextoConNumeros(String? value, int minLength, int maxLength) {
+    if (value == null) return false;
+    final texto = value.trim();
+    if (texto.length < minLength || texto.length > maxLength) return false;
+    
+    return RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ]').hasMatch(texto);
+  }
+
+  bool _validarTextoSoloLetras(String? value, int minLength, int maxLength) {
+    if (value == null) return false;
+    final texto = value.trim();
+    if (texto.length < minLength || texto.length > maxLength) return false;
+
+    return RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s.,()\-]+$').hasMatch(texto);
+  }
+
   // =========================
   // FORMATO RUT CHILENO REAL
-  // xx.xxx.xxx-x
   // =========================
   String _formatearRut(String input) {
     final clean = input.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
@@ -96,10 +114,10 @@ class _ContainerCrearCapacitacionDosState
 
   void _actualizarEstado() {
     final valido =
-        _tituloController.text.trim().length >= 3 &&
-        _descripcionController.text.trim().length >= 5 &&
-        _institucionController.text.trim().length >= 3 &&
-        _tipoController.text.trim().length >= 3 &&
+        _validarTextoConNumeros(_tituloController.text, 3, 50) &&
+        _validarTextoConNumeros(_descripcionController.text, 10, 200) && // Rango: entre 10 y 200 caract.
+        _validarTextoSoloLetras(_institucionController.text, 3, 50) &&
+        _validarTextoSoloLetras(_tipoController.text, 3, 50) &&
         (_asignarATodos || _rutLimpio.length >= 7);
 
     setState(() {
@@ -108,20 +126,17 @@ class _ContainerCrearCapacitacionDosState
   }
 
   Future<void> _guardar() async {
-    if (!_formValido) return;
+    if (!_formKey.currentState!.validate() || !_formValido) return;
 
     setState(() => _isLoading = true);
 
     try {
       final titulo = _tituloController.text.trim();
-
       final existe = await _existeTitulo(titulo);
 
       if (existe) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ya existe una capacitación con ese nombre'),
-          ),
+          const SnackBar(content: Text('Ya existe una capacitación con ese nombre')),
         );
         setState(() => _isLoading = false);
         return;
@@ -142,9 +157,9 @@ class _ContainerCrearCapacitacionDosState
             .get();
 
         if (!doc.exists) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('El RUT no existe')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('El RUT no existe en la base de datos')),
+          );
           setState(() => _isLoading = false);
           return;
         }
@@ -156,17 +171,18 @@ class _ContainerCrearCapacitacionDosState
           .collection('capacitaciones')
           .doc(titulo)
           .set({
-            'titulo': titulo,
-            'descripcion': _descripcionController.text.trim(),
-            'institucion': _institucionController.text.trim(),
-            'empleadosAsignados': empleadosAsignados,
-            'empleadosRealizaron': <String>[],
-            'tipo': _tipoController.text.trim(),
-            'estado': 'pendiente',
-            'fechaInicio': Timestamp.now(),
-            'fechaFin': Timestamp.now(),
-            'fechaRegistro': Timestamp.now(),
-          });
+        'titulo': titulo,
+        'descripcion': _descripcionController.text.trim(),
+        'institucion': _institucionController.text.trim(),
+        'empleadosAsignados': empleadosAsignados,
+        'empleadosRealizaron': <String>[],
+        'tipo': _tipoController.text.trim(),
+        'estado': 'pendiente',
+        'fechaInicio': Timestamp.now(),
+        'fechaFin': Timestamp.now(),
+        'fechaRegistro': Timestamp.now(),
+      });
+      
       context.read<CapacitacionesProvider>().refresh();
       await AuditoriaService.rrhhCreoCapacitacion(titulo: titulo);
 
@@ -188,17 +204,15 @@ class _ContainerCrearCapacitacionDosState
       );
     } catch (e) {
       setState(() => _isLoading = false);
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
 
   @override
   void initState() {
     super.initState();
-
     _tituloController.addListener(_actualizarEstado);
     _descripcionController.addListener(_actualizarEstado);
     _institucionController.addListener(_actualizarEstado);
@@ -221,6 +235,7 @@ class _ContainerCrearCapacitacionDosState
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Form(
         key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -228,53 +243,52 @@ class _ContainerCrearCapacitacionDosState
             const SizedBox(height: 6),
             TextFormField(
               controller: _tituloController,
+              maxLength: 50, // Límite físico en el teclado
               decoration: const InputDecoration(
-                hintText: 'Ej: Extinción de Fuegos',
+                hintText: 'Ej: Extinción de Fuegos v2',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
               validator: (v) {
-                if (v == null || v.trim().length < 3) {
-                  return 'Mínimo 3 caracteres';
+                if (v == null || v.trim().isEmpty) return 'El campo no puede estar vacío';
+                if (!_validarTextoConNumeros(v, 3, 50)) {
+                  return 'Debe tener entre 3 y 50 caracteres (con letras).';
                 }
                 return null;
               },
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            const Text(
-              'Descripción',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            const Text('Descripción', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _descripcionController,
-              maxLines: 4,
+              maxLines: 3,
+              maxLength: 200, // Evita textos eternos e incluye contador visual
               decoration: const InputDecoration(
-                hintText: 'Descripción de la capacitación',
+                hintText: 'Breve descripción del curso',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
               validator: (v) {
-                if (v == null || v.trim().length < 5) {
-                  return 'Mínimo 5 caracteres';
+                if (v == null || v.trim().isEmpty) return 'El campo no puede estar vacío';
+                if (!_validarTextoConNumeros(v, 10, 200)) {
+                  return 'Debe tener entre 10 y 200 caracteres coherentes.';
                 }
                 return null;
               },
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            const Text(
-              'Institución',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            const Text('Institución', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _institucionController,
+              maxLength: 50,
               decoration: const InputDecoration(
                 hintText: 'Mutual de Seguridad',
                 border: OutlineInputBorder(
@@ -282,14 +296,15 @@ class _ContainerCrearCapacitacionDosState
                 ),
               ),
               validator: (v) {
-                if (v == null || v.trim().length < 3) {
-                  return 'Mínimo 3 caracteres';
+                if (v == null || v.trim().isEmpty) return 'El campo no puede estar vacío';
+                if (!_validarTextoSoloLetras(v, 3, 50)) {
+                  return 'Debe tener entre 3 y 50 caracteres (solo letras).';
                 }
                 return null;
               },
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
             Container(
               decoration: BoxDecoration(
@@ -310,7 +325,7 @@ class _ContainerCrearCapacitacionDosState
 
             const SizedBox(height: 16),
 
-            if (!_asignarATodos)
+            if (!_asignarATodos) ...[
               TextFormField(
                 controller: _empleadosAsignadosController,
                 decoration: const InputDecoration(
@@ -321,46 +336,43 @@ class _ContainerCrearCapacitacionDosState
                 ),
                 onChanged: (value) {
                   final formatted = _formatearRut(value);
-
                   _empleadosAsignadosController.value = TextEditingValue(
                     text: formatted,
-                    selection: TextSelection.collapsed(
-                      offset: formatted.length,
-                    ),
+                    selection: TextSelection.collapsed(offset: formatted.length),
                   );
-
                   _actualizarEstado();
                 },
                 validator: (v) {
                   if (_asignarATodos) return null;
-                  if (_rutLimpio.length < 7) {
-                    return 'RUT inválido';
-                  }
+                  if (v == null || v.trim().isEmpty) return 'Debe ingresar un RUT';
+                  if (_rutLimpio.length < 7) return 'RUT inválido';
                   return null;
                 },
               ),
-
-            const SizedBox(height: 20),
+              const SizedBox(height: 12),
+            ],
 
             const Text('Tipo', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _tipoController,
+              maxLength: 50,
               decoration: const InputDecoration(
-                hintText: 'Ej: seguridad',
+                hintText: 'Ej: Seguridad',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
               validator: (v) {
-                if (v == null || v.trim().length < 3) {
-                  return 'Mínimo 3 caracteres';
+                if (v == null || v.trim().isEmpty) return 'El campo no puede estar vacío';
+                if (!_validarTextoSoloLetras(v, 3, 50)) {
+                  return 'Debe tener entre 3 y 50 caracteres (solo letras).';
                 }
                 return null;
               },
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 24),
 
             SizedBox(
               width: double.infinity,
