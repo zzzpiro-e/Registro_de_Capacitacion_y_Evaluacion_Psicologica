@@ -23,6 +23,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
 
   @override
   void dispose() {
+    // 💡 Liberamos los controladores para evitar fugas de memoria
     _nombreController.dispose();
     _apellidoController.dispose();
     _rutController.dispose();
@@ -30,41 +31,6 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
     _cargoController.dispose();
     _edadController.dispose();
     super.dispose();
-  }
-
-  // ==========================================
-  // VALIDADORES DE ESTRUCTURA DE TEXTO
-  // ==========================================
-  
-  /// Valida que el texto contenga solo letras y espacios, y que obligatoriamente
-  /// posea al menos DOS palabras/bloques (ej: "Juan Carlos" o "Pérez Gómez").
-  bool _validarFormatoDosPalabras(String value) {
-    final texto = value.trim();
-    
-    // 1. Validar que no contenga números ni símbolos raros
-    final soloLetras = RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(texto);
-    if (!soloLetras) return false;
-
-    // 2. Separar por espacios eliminando espacios dobles intermedios
-    final palabras = texto.split(RegExp(r'\s+'));
-    
-    // Exigir al menos 2 palabras y que cada una tenga mínimo 2 letras (ej: "Ab")
-    if (palabras.length < 2) return false;
-    
-    // Verifica que ninguna de las palabras sea un caracter suelto o vacío
-    for (var palabra in palabras) {
-      if (palabra.length < 2) return false;
-    }
-
-    return true;
-  }
-
-  /// Valida que el cargo tenga sentido (letras, espacios, números permitidos, mínimo 3 caracteres)
-  bool _validarCargoCoherente(String value) {
-    final texto = value.trim();
-    final tieneLetras = RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ]').hasMatch(texto);
-    final caracteresValidos = RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.\-/()]+$').hasMatch(texto);
-    return tieneLetras && caracteresValidos && texto.length >= 3;
   }
 
   // --- Validación del RUT ---
@@ -82,7 +48,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
       try {
         suma += int.parse(cuerpo[i]) * factor;
       } catch (e) {
-        return false; 
+        return false; // Por si se coló algún caracter no numérico en el cuerpo
       }
       factor = (factor == 7) ? 2 : factor + 1;
     }
@@ -169,15 +135,14 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
     final rutLimpio = _rutController.text.replaceAll('.', '').replaceAll('-', '').toUpperCase();
     final fechaIngreso = DateFormat('yyyy-MM-dd/HH:mm').format(DateTime.now());
     final edadLimpia = int.tryParse(_edadController.text) ?? 0;
-
     try {
       final docRef = FirebaseFirestore.instance.collection('empleados').doc(rutLimpio);
-      final docSnapshot = await docRef.get().timeout(const Duration(seconds: 7));
+      final docSnapshot = await docRef.get();
 
       if (docSnapshot.exists) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Este RUT ya ha sido registrado previamente')),
+          const SnackBar(content: Text('Este RUT ya ha sido registrado')),
         );
         return;
       }
@@ -185,7 +150,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
       final empleado = {
         'nombres': _nombreController.text.trim(),
         'apellidos': _apellidoController.text.trim(),
-        'rut': _rutController.text.trim().toUpperCase(),
+        'rut': _rutController.text.trim().toUpperCase(), // Guardar siempre la K en mayúscula
         'cargo': _cargoController.text.trim(),
         'salario': int.tryParse(
           _salarioController.text.replaceAll(RegExp(r'[^0-9]'), ''),
@@ -195,43 +160,32 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
         'estado': 'activo',
       };
 
-      await docRef.set(empleado).timeout(const Duration(seconds: 7));
+      await docRef.set(empleado);
 
       if (!mounted) return;
 
-      context.read<EmpleadosProvider>().notificarNuevoEmpleado();
+      context
+          .read<EmpleadosProvider>()
+          .notificarNuevoEmpleado();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          backgroundColor: Colors.green,
           content: Text('Empleado guardado correctamente'),
         ),
       );
 
-      _formKey.currentState!.reset();
-      _nombreController.clear();
-      _apellidoController.clear();
-      _rutController.clear();
-      _cargoController.clear();
-      _salarioController.clear();
-      _edadController.clear();
+          _formKey.currentState!.reset();
+          _nombreController.clear();
+          _apellidoController.clear();
+          _rutController.clear();
+          _cargoController.clear();
+          _salarioController.clear();
+          _edadController.clear();
       
-    } on FirebaseException catch (fe) {
-      if (!mounted) return;
-      String mensajeError = 'No se pudo conectar con el servidor. Revisa tu conexión a internet.';
-      if (fe.code == 'permission-denied') {
-        mensajeError = 'No tienes permisos necesarios para realizar esta operación.';
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(backgroundColor: Colors.redAccent, content: Text(mensajeError)),
-      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.redAccent,
-          content: Text('Error inesperado al guardar. Por favor, intente más tarde.'),
-        ),
+        SnackBar(content: Text('Error al guardar: $e')),
       );
     }
   }
@@ -243,7 +197,6 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Form(
           key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -252,50 +205,70 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _nombreController,
-                maxLength: 40,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(30), // máximo 30 caracteres
+                ],
                 decoration: const InputDecoration(
                   hintText: 'Ej: Juan Carlos',
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) return 'Ingrese los nombres';
-                  if (!_validarFormatoDosPalabras(value)) {
-                    return 'Ingrese al menos dos nombres válidos (solo letras)';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingrese los nombres';
+                  }
+                  if (RegExp(r'[0-9]').hasMatch(value)) {
+                    return 'No se permiten números en los nombres';
+                  }
+                  if (value.trim().length < 3) {
+                    return 'El nombre debe tener al menos 3 caracteres';
+                  }
+                  if (value.trim().length > 30) {
+                    return 'Máximo 30 caracteres alcanzados';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
 
               // --- Apellidos ---
               const Text('Apellidos', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _apellidoController,
-                maxLength: 40,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(40), // máximo 40 caracteres
+                ],
                 decoration: const InputDecoration(
                   hintText: 'Ej: Pérez González',
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) return 'Ingrese los apellidos';
-                  if (!_validarFormatoDosPalabras(value)) {
-                    return 'Ingrese los dos apellidos completos (Paterno y Materno)';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingrese los apellidos';
+                  }
+                  if (RegExp(r'[0-9]').hasMatch(value)) {
+                    return 'No se permiten números en los apellidos';
+                  }
+                  if (value.trim().length < 2) {
+                    return 'El apellido debe tener al menos 2 caracteres';
+                  }
+                  if (value.trim().length > 40) {
+                    return 'Máximo 40 caracteres alcanzados';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
 
               // --- RUT ---
               const Text('RUT', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _rutController,
-                keyboardType: TextInputType.text,
+                keyboardType: TextInputType.text, // 🛠️ CORREGIDO: Permite que aparezca la letra 'K' en teclados móviles
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9kK]')),
-                  LengthLimitingTextInputFormatter(9), 
+                  LengthLimitingTextInputFormatter(9), // Máximo 9 caracteres sin contar puntos/guiones que agrega el formato
                 ],
                 decoration: const InputDecoration(
                   hintText: '12.345.678-9',
@@ -320,43 +293,42 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               TextFormField(
                 controller: _edadController,
                 keyboardType: TextInputType.number,
-                maxLength: 3,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
                   hintText: 'Ej: 35',
-                  counterText: "",
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) return 'Ingrese la edad';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingrese la edad';
+                  }
                   final numero = int.tryParse(value) ?? 0;
-                  if (numero < 18 || numero > 100) {
-                    return 'La edad laboral debe estar entre 18 y 100 años';
+                  if (numero <= 0) {
+                    return 'La edad debe ser mayor a 0';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 20),
 
+
               // --- Cargo ---
               const Text('Cargo', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _cargoController,
-                maxLength: 40,
                 decoration: const InputDecoration(
-                  hintText: 'Ej: Analista de RRHH v2',
+                  hintText: 'Ej: Analista de RRHH',
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) return 'Ingrese el cargo';
-                  if (!_validarCargoCoherente(value)) {
-                    return 'Ingrese un cargo coherente (mínimo 3 letras, sin símbolos)';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingrese el cargo';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
 
               // --- Salario ---
               const Text('Salario (CLP)', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -364,29 +336,29 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               TextFormField(
                 controller: _salarioController,
                 keyboardType: TextInputType.number,
-                maxLength: 12,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
                   hintText: '\$1.500.000',
-                  counterText: "",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                 ),
                 onChanged: _formatearSalario,
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Ingrese el salario';
+                  if (value == null || value.isEmpty) {
+                    return 'Ingrese el salario';
+                  }
                   final limpio = value.replaceAll(RegExp(r'[^0-9]'), '');
                   if (limpio.isEmpty) return 'Ingrese el salario';
 
                   final numero = int.tryParse(limpio) ?? 0;
-                  if (numero < 400000) {
-                    return 'El salario debe ser igual o superior al sueldo mínimo';
+                  if (numero <= 0) {
+                    return 'El salario debe ser mayor a 0';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
 
               // --- Botón Guardar ---
               SizedBox(
