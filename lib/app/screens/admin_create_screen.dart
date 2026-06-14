@@ -71,8 +71,7 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
   }
 
   void _generarClaveAleatoria() {
-    const caracteres =
-        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = Random();
     String claveNueva = List.generate(
       6,
@@ -194,10 +193,8 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
 
   void _formatearTelefonoEnVivo(String valor) {
     String numeros = valor.replaceAll(RegExp(r'[^0-9]'), '');
-    if (numeros.startsWith('569') && numeros.length > 3)
-      numeros = numeros.substring(3);
-    if (numeros.startsWith('9') && numeros.length == 9)
-      numeros = numeros.substring(1);
+    if (numeros.startsWith('569') && numeros.length > 3) numeros = numeros.substring(3);
+    if (numeros.startsWith('9') && numeros.length == 9) numeros = numeros.substring(1);
 
     if (numeros.length == 8 || numeros.length == 9) {
       String telefonoFormateado = '+56 9 $numeros';
@@ -452,301 +449,261 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const Color verdeBoton = Color(0xFF008744); // Verde exacto de tus formularios
+    const Color fondoGrisPantalla = Color(0xFFF5F5F5); // Gris continuo de fondo
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F4F4),
+      backgroundColor: fondoGrisPantalla,
+      // 🟢 APPBAR BLANCO LIMPIO (Sin el cuadro verde superior gigante)
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Crear Trabajador',
+          style: TextStyle(
+            color: Color(0xFF202124), 
+            fontWeight: FontWeight.bold, 
+            fontSize: 22,
+          ),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
-                decoration: const BoxDecoration(color: Color(0xFF388E3C)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Módulo de Registro',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
+              // Campo Nombre Completo
+              _buildInputField(
+                label: 'Nombre Completo *',
+                hint: 'Ej: Juan Pérez González',
+                controller: _nombreController,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Campo RUT
+              _buildInputField(
+                label: 'RUT *',
+                hint: '12.345.678-9',
+                controller: _rutController,
+                focusNode: _rutFocusNode,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r'[0-9kK\.\-]'),
+                  ),
+                  RutFormatter(),
+                ],
+              ),
+              if (_rutError != null) ...[
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: Text(
+                    _rutError!,
+                    style: TextStyle(
+                      color: _isRutValid ? const Color(0xFF388E3C) : Colors.red,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
-                    SizedBox(height: 12),
-                    Text(
-                      'Crear Trabajador',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 34,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+
+              // Campo Usuario Corporativo
+              _buildInputField(
+                label: 'Usuario Corporativo *',
+                hint: 'ej: jperez',
+                controller: _usuarioCorporativoController,
+                focusNode: _usuarioFocusNode,
+                suffixIcon: const Padding(
+                  padding: EdgeInsets.only(right: 16.0, top: 14.0),
+                  child: Text(
+                    '@empresa.cl',
+                    style: TextStyle(
+                      color: Color(0xFF757575),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
-                  ],
+                  ),
                 ),
               ),
-
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 6,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                        border: Border.all(color: const Color(0xFFEAEAEA)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.info_outline,
-                            color: Color(0xFF388E3C),
-                            size: 28,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: const Text(
-                              'El sistema creará una cuenta corporativa @empresa.cl y notificará las credenciales vía EmailJS al correo personal.',
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                height: 1.3,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+              if (_usuarioError != null) ...[
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: Text(
+                    _usuarioError!,
+                    style: TextStyle(
+                      color: _isUsuarioValid ? const Color(0xFF388E3C) : Colors.red,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 24),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
 
-                    _buildInputField(
-                      label: 'Nombre Completo *',
-                      hint: 'Ej: Juan Pérez González',
-                      controller: _nombreController,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]'),
-                        ),
-                      ],
+              // Campo Correo Personal
+              _buildInputField(
+                label: 'Correo Personal (Notificación) *',
+                hint: 'ejemplo@gmail.com',
+                controller: _correoPersonalController,
+                keyboardType: TextInputType.emailAddress,
+                focusNode: _correoPersonalFocusNode,
+              ),
+              if (_correoPersonalError != null) ...[
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: Text(
+                    _correoPersonalError!,
+                    style: TextStyle(
+                      color: _isCorreoPersonalValid ? const Color(0xFF388E3C) : Colors.red,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 20),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
 
-                    _buildInputField(
-                      label: 'RUT *',
-                      hint: '12.345.678-9',
-                      controller: _rutController,
-                      focusNode: _rutFocusNode,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'[0-9kK\.\-]'),
-                        ),
-                        RutFormatter(),
-                      ],
+              // Campo Teléfono
+              _buildInputField(
+                label: 'Teléfono',
+                hint: 'Ej: 91234567',
+                controller: _telefonoController,
+                keyboardType: TextInputType.phone,
+                focusNode: _telefonoFocusNode,
+                onChanged: _formatearTelefonoEnVivo,
+                inputFormatters: [LengthLimitingTextInputFormatter(14)],
+              ),
+              if (_telefonoError != null) ...[
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: Text(
+                    _telefonoError!,
+                    style: TextStyle(
+                      color: _isTelefonoValid ? const Color(0xFF388E3C) : Colors.red,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
-                    if (_rutError != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _rutError!,
-                        style: TextStyle(
-                          color: _isRutValid
-                              ? const Color(0xFF388E3C)
-                              : Colors.red,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
 
-                    _buildInputField(
-                      label: 'Usuario Corporativo *',
-                      hint: 'ej: jperez',
-                      controller: _usuarioCorporativoController,
-                      focusNode: _usuarioFocusNode,
-                      suffixIcon: const Padding(
-                        padding: EdgeInsets.only(right: 16.0, top: 14.0),
-                        child: Text(
-                          '@empresa.cl',
+              // Campo Rol (Dropdown estilizado con el fondo gris de la captura)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8.0, left: 2),
+                child: Text(
+                  'Rol Asignado *',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF202124),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F3F4), // Fondo gris del input
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF757575).withOpacity(0.6), // Contorno fino oscuro
+                    width: 1,
+                  ),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedRole,
+                    isExpanded: true,
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Color(0xFF757575),
+                    ),
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(color: Colors.black87, fontSize: 16),
+                    items: <String>['RRHH', 'Psicólogo'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) => setState(() {
+                      _selectedRole = newValue!;
+                    }),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Campo Clave Provisoria
+              _buildInputField(
+                label: 'Clave Provisoria Autogenerada *',
+                hint: 'Generando...',
+                controller: _claveController,
+                suffixIcon: IconButton(
+                  icon: const Icon(
+                    Icons.refresh,
+                    color: Color(0xFF757575),
+                  ),
+                  onPressed: _generarClaveAleatoria,
+                ),
+              ),
+              const SizedBox(height: 36),
+
+              // 🟢 BOTÓN PRINCIPAL ESTILO "GUARDAR EMPLEADO"
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: verdeBoton,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Color(0xFF007038), width: 1),
+                    ),
+                    elevation: 1,
+                  ),
+                  onPressed: _isLoading ? null : _crearTrabajadorEnFirebase,
+                  icon: _isLoading
+                      ? const SizedBox.shrink()
+                      : const Icon(
+                          Icons.download_outlined, // Icono de guardado estilizado
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                  label: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text(
+                          'Crear e Informar Trabajador',
                           style: TextStyle(
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                             fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                    ),
-                    if (_usuarioError != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _usuarioError!,
-                        style: TextStyle(
-                          color: _isUsuarioValid
-                              ? const Color(0xFF388E3C)
-                              : Colors.red,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-
-                    _buildInputField(
-                      label: 'Correo Personal (Notificación) *',
-                      hint: 'ejemplo@gmail.com',
-                      controller: _correoPersonalController,
-                      keyboardType: TextInputType.emailAddress,
-                      focusNode: _correoPersonalFocusNode,
-                    ),
-                    if (_correoPersonalError != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _correoPersonalError!,
-                        style: TextStyle(
-                          color: _isCorreoPersonalValid
-                              ? const Color(0xFF388E3C)
-                              : Colors.red,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-
-                    _buildInputField(
-                      label: 'Teléfono',
-                      hint: 'Ej: 91234567',
-                      controller: _telefonoController,
-                      keyboardType: TextInputType.phone,
-                      focusNode: _telefonoFocusNode,
-                      onChanged: _formatearTelefonoEnVivo,
-                      inputFormatters: [LengthLimitingTextInputFormatter(14)],
-                    ),
-                    if (_telefonoError != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _telefonoError!,
-                        style: TextStyle(
-                          color: _isTelefonoValid
-                              ? const Color(0xFF388E3C)
-                              : Colors.red,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-
-                    const Text(
-                      'Rol Asignado *',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF202124),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFEAEAEA)),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedRole,
-                          isExpanded: true,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Colors.grey,
-                          ),
-                          items: <String>['RRHH', 'Psicólogo'].map((
-                            String value,
-                          ) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(
-                                value,
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) => setState(() {
-                            _selectedRole = newValue!;
-                          }),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    _buildInputField(
-                      label: 'Clave Provisoria Autogenerada *',
-                      hint: 'Generando...',
-                      controller: _claveController,
-                      suffixIcon: IconButton(
-                        icon: const Icon(
-                          Icons.refresh,
-                          color: Color(0xFF388E3C),
-                        ),
-                        onPressed: _generarClaveAleatoria,
-                      ),
-                    ),
-                    const SizedBox(height: 36),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF388E3C),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                          elevation: 3,
-                          shadowColor: Colors.black38,
-                        ),
-                        onPressed: _isLoading
-                            ? null
-                            : _crearTrabajadorEnFirebase,
-                        icon: _isLoading
-                            ? const SizedBox.shrink()
-                            : const Icon(
-                                Icons.person_add_alt_1_outlined,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                        label: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : const Text(
-                                'Crear e Informar Trabajador',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ],
@@ -770,27 +727,25 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF202124),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0, left: 2),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600, // Semi-bold limpio de tus títulos
+              color: Color(0xFF202124),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFF1F3F4), // Fondo gris suave exacto de tus inputs
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFEAEAEA)),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
+            border: Border.all(
+              color: const Color(0xFF757575).withOpacity(0.6), // Borde exterior definido sutil
+              width: 1,
+            ),
           ),
           child: TextField(
             controller: controller,
@@ -799,13 +754,14 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
             focusNode: focusNode,
             inputFormatters: inputFormatters,
             onChanged: onChanged,
+            style: const TextStyle(color: Colors.black87, fontSize: 16),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+              hintStyle: const TextStyle(color: Color(0xFF757575), fontSize: 15),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 16,
+                vertical: 14,
               ),
               suffixIcon: suffixIcon,
             ),
@@ -826,11 +782,12 @@ class RutFormatter extends TextInputFormatter {
         .replaceAll('.', '')
         .replaceAll('-', '')
         .toUpperCase();
-    if (text.isEmpty)
+    if (text.isEmpty) {
       return newValue.copyWith(
         text: '',
         selection: const TextSelection.collapsed(offset: 0),
       );
+    }
     String formatted = '';
     if (text.length > 1) {
       String cuerpo = text.substring(0, text.length - 1);

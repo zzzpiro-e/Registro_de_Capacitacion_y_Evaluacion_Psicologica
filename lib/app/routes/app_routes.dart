@@ -8,7 +8,7 @@ import '../screens/main_screen.dart';
 import '../screens/psicologo_main_screen.dart';
 import 'package:proyecto_flutter/app/screens/admin_main_screen.dart';
 import 'package:proyecto_flutter/app/screens/admin_auditoria_screen.dart';
-import 'package:proyecto_flutter/app/screens/create_worker_screen.dart';
+import 'package:proyecto_flutter/app/screens/admin_create_screen.dart';
 import 'package:proyecto_flutter/app/screens/crear_empleado_screens.dart';
 import 'package:proyecto_flutter/app/screens/capacitaciones_screen.dart';
 import 'package:proyecto_flutter/app/screens/perfil_rrhh_screens.dart';
@@ -75,7 +75,7 @@ class AppRoutes {
 
     'create_worker': (context) => const ContainerRoleValidador(
       rolRequerido: 'admin',
-      child: CreateWorkerScreen(),
+      child: AdminCreateScreen(),
     ),
 
     'visor_pdf': (BuildContext context) => const ContainerRoleValidador(
