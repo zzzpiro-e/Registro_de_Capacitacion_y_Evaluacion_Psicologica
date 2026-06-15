@@ -5,11 +5,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AdminDashboardScreen extends StatelessWidget {
   final void Function(String roleFilter, String statusFilter) onOpenWorkersTab;
   final VoidCallback onOpenAuditoriaTab;
+  // Añadimos el callback por si necesitas usarlo directamente desde el cuerpo del dashboard
+  final VoidCallback? onReturnToInicio; 
 
   const AdminDashboardScreen({
     super.key,
     required this.onOpenWorkersTab,
     required this.onOpenAuditoriaTab,
+    this.onReturnToInicio,
   });
 
   void _abrirTrabajadores({
@@ -75,7 +78,7 @@ class AdminDashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🟢 HEADER VERDE SÓLIDO (Idéntico en proporciones y textos a tu captura)
+                  // 🟢 HEADER VERDE SÓLIDO
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
@@ -124,12 +127,11 @@ class AdminDashboardScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF2E7D32), // Tono verde oscuro de subtítulos
+                            color: Color(0xFF2E7D32),
                           ),
                         ),
                         const SizedBox(height: 16),
 
-                        // 📊 TARJETAS HORIZONTALES CON EL ESTILO EXACTO DE TU CAPTURA
                         _buildHorizontalStatCard(
                           title: 'Psicólogos registrados',
                           value: snapshot.connectionState == ConnectionState.waiting ? '...' : '$psicologos',
@@ -177,7 +179,7 @@ class AdminDashboardScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
 
-                        // 🛡️ REGISTRO DE AUDITORÍA CON EL NUEVO ESTILO
+                        // 🛡️ REGISTRO DE AUDITORÍA
                         Container(
                           width: double.infinity,
                           margin: const EdgeInsets.only(bottom: 16),
@@ -250,7 +252,7 @@ class AdminDashboardScreen extends StatelessWidget {
                           ),
                         ),
 
-                        // 📈 MÉTRICAS DEL MES AJUSTADAS
+                        // 📈 MÉTRICAS DEL MES
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
@@ -340,7 +342,6 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  // 🛠️ COMPONENTE MAESTRO FIEL A TU CAPTURA DE PANTALLA
   Widget _buildHorizontalStatCard({
     required String title,
     required String value,
@@ -351,17 +352,17 @@ class AdminDashboardScreen extends StatelessWidget {
   }) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16), // Espaciado exacto entre tarjetas
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22), // Redondeado de tus tarjetas
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: const Color(0xFFEAEAEA), // Borde gris claro sutil perimetral
+          color: const Color(0xFFEAEAEA),
           width: 1,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Colors.black12, // Sombra definida hacia abajo igual a tu captura
+            color: Colors.black12,
             blurRadius: 4,
             offset: Offset(0, 2),
           ),
@@ -374,10 +375,9 @@ class AdminDashboardScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(18), // Padding interno balanceado
+            padding: const EdgeInsets.all(18),
             child: Row(
               children: [
-                // Contenedor del icono cuadrado/redondeado suave
                 Container(
                   width: 56,
                   height: 56,
@@ -388,7 +388,6 @@ class AdminDashboardScreen extends StatelessWidget {
                   child: Icon(icon, color: colorIcono, size: 28),
                 ),
                 const SizedBox(width: 18),
-                // Textos estructurados verticalmente pero ordenados a la derecha del icono
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,7 +398,7 @@ class AdminDashboardScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: colorIcono, // Color según el rol o estado
+                          color: colorIcono,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -408,7 +407,7 @@ class AdminDashboardScreen extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black, // Número limpio y sólido
+                          color: Colors.black,
                         ),
                       ),
                     ],
