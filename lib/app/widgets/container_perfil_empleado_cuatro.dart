@@ -42,6 +42,41 @@ class _ContainerPerfilEmpleadoCuatroState
     return {'realizadas': resultados[0].docs, 'pendientes': resultados[1].docs};
   }
 
+  // 🔄 Cambia el estado de la capacitación en Firestore
+  Future<void> _cambiarEstadoCapacitacion({
+    required String idDocumento,
+    required String rutLimpio,
+    required bool esRealizadaActual,
+  }) async {
+    final docRef = FirebaseFirestore.instance
+        .collection('capacitaciones')
+        .doc(idDocumento);
+
+    try {
+      if (esRealizadaActual) {
+        // Pasa de Realizada a Pendiente
+        await docRef.update({
+          'empleadosRealizaron': FieldValue.arrayRemove([rutLimpio]),
+          'empleadosAsignados': FieldValue.arrayUnion([rutLimpio]),
+        });
+      } else {
+        // Pasa de Pendiente a Realizada
+        await docRef.update({
+          'empleadosAsignados': FieldValue.arrayRemove([rutLimpio]),
+          'empleadosRealizaron': FieldValue.arrayUnion([rutLimpio]),
+        });
+      }
+      // Forzar la actualización de la interfaz de usuario
+      setState(() {});
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al actualizar el estado: $e')),
+        );
+      }
+    }
+  }
+
   // 📅 Convierte el Timestamp de Firebase a un String legible (ej: 31/05/2026)
   String _formatearFecha(dynamic fechaFormato) {
     if (fechaFormato == null) return 'Sin fecha';
@@ -88,12 +123,14 @@ class _ContainerPerfilEmpleadoCuatroState
 
             for (var doc in realizadas) {
               todasLasCapacitaciones.add({
+                'id': doc.id,
                 'data': doc.data() as Map<String, dynamic>,
                 'esRealizada': true,
               });
             }
             for (var doc in pendientes) {
               todasLasCapacitaciones.add({
+                'id': doc.id,
                 'data': doc.data() as Map<String, dynamic>,
                 'esRealizada': false,
               });
@@ -146,6 +183,7 @@ class _ContainerPerfilEmpleadoCuatroState
                       itemCount: todasLasCapacitaciones.length,
                       itemBuilder: (context, index) {
                         final item = todasLasCapacitaciones[index];
+                        final idDocumento = item['id'];
                         final curso = item['data'];
                         final bool esRealizada = item['esRealizada'];
 
@@ -196,26 +234,74 @@ class _ContainerPerfilEmpleadoCuatroState
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  // Badge de Estado plano y sutil
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: colorEstado.withOpacity(0.08),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: colorEstado.withOpacity(0.5),
-                                        width: 1,
+                                  // Badge de Estado plano, sutil e interactivo
+                                  InkWell(
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            title: const Text(
+                                              'Modificar Estado',
+                                            ),
+                                            content: Text(
+                                              '¿Deseas cambiar el estado de "$titulo" a ${esRealizada ? "Pendiente" : "Realizada"}?',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: const Text('Cancelar'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+                                                  _cambiarEstadoCapacitacion(
+                                                    idDocumento: idDocumento,
+                                                    rutLimpio: rutLimpio,
+                                                    esRealizadaActual:
+                                                        esRealizada,
+                                                  );
+                                                },
+                                                child: const Text('Confirmar'),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 3,
                                       ),
-                                    ),
-                                    child: Text(
-                                      textoEstado,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: colorEstado,
+                                      decoration: BoxDecoration(
+                                        color: colorEstado.withOpacity(0.08),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: colorEstado.withOpacity(0.5),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            textoEstado,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: colorEstado,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(
+                                            Icons.edit,
+                                            size: 12,
+                                            color: colorEstado,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -281,7 +367,7 @@ class _ContainerPerfilEmpleadoCuatroState
     );
   }
 
-  // 🛠️ Mismo Widget de error y reintentos que tenías originalmente
+  
   Widget _buildErrorWidget() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),

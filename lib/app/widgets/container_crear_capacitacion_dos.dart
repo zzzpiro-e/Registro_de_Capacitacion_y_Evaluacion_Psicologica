@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:proyecto_flutter/app/services/auditoria_service.dart';
-import 'package:flutter/services.dart';
 
 class CapacitacionesProvider extends ChangeNotifier {
   int _version = 0;
@@ -30,18 +29,14 @@ class _ContainerCrearCapacitacionDosState
   final _tituloController = TextEditingController();
   final _descripcionController = TextEditingController();
   final _institucionController = TextEditingController();
-  final _empleadosAsignadosController = TextEditingController();
   final _tipoController = TextEditingController();
+
+  final List<TextEditingController> _rutControllers = [];
 
   bool _asignarATodos = false;
   bool _isLoading = false;
   bool _formValido = false;
 
-  String _rutLimpio = '';
-
-  // ==========================================
-  // VALIDADORES GENÉRICOS
-  // ==========================================
   bool _validarTextoConNumeros(String? value, int minLength, int maxLength) {
     if (value == null) return false;
     final texto = value.trim();
@@ -54,45 +49,66 @@ class _ContainerCrearCapacitacionDosState
     if (value == null) return false;
     final texto = value.trim();
     if (texto.length < minLength || texto.length > maxLength) return false;
-    
-    return RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(texto);
+
+    return RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s.,()\-]+$').hasMatch(texto);
   }
 
-  // =========================
-  // FORMATO RUT CHILENO REAL
-  // =========================
+  void _agregarCampoRut() {
+    final nuevoController = TextEditingController();
+    nuevoController.addListener(_actualizarEstado);
+    setState(() {
+      _rutControllers.add(nuevoController);
+    });
+    _actualizarEstado();
+  }
+
+  void _removerCampoRut(int index) {
+    _rutControllers[index].dispose();
+    setState(() {
+      _rutControllers.removeAt(index);
+    });
+    _actualizarEstado();
+  }
+
+  String _limpiarRutEspecifico(String rutOriginal) {
+    return rutOriginal.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
+  }
+
   String _formatearRut(String input) {
-      // 1. Limpiamos caracteres no válidos
-      String clean = input.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
-      
-      if (clean.length > 9) {
-        clean = clean.substring(0, 9);
-      }
+    final clean = input.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
 
-      _rutLimpio = clean; 
+    if (clean.isEmpty) return '';
 
-      if (clean.isEmpty) return '';
+    String cuerpo;
+    String dv = '';
 
-      String cuerpo = clean.substring(0, clean.length - 1);
-      String dv = clean.substring(clean.length - 1);
-
-      String formattedCuerpo = "";
-      int count = 0;
-      for (int i = cuerpo.length - 1; i >= 0; i--) {
-        formattedCuerpo = cuerpo[i] + formattedCuerpo;
-        count++;
-        if (count == 3 && i != 0) {
-          formattedCuerpo = '.$formattedCuerpo';
-          count = 0;
-        }
-      }
-
-      return cuerpo.isEmpty ? dv : '$formattedCuerpo-$dv';
+    if (clean.length > 1) {
+      cuerpo = clean.substring(0, clean.length - 1);
+      dv = clean.substring(clean.length - 1);
+    } else {
+      cuerpo = clean;
     }
 
-  // =========================
-  // VALIDACIÓN DUPLICADO TITULO
-  // =========================
+    String formatted = '';
+    int count = 0;
+
+    for (int i = cuerpo.length - 1; i >= 0; i--) {
+      formatted = cuerpo[i] + formatted;
+      count++;
+
+      if (count == 3 && i != 0) {
+        formatted = '.$formatted';
+        count = 0;
+      }
+    }
+
+    if (dv.isNotEmpty) {
+      formatted = '$formatted-$dv';
+    }
+
+    return formatted;
+  }
+
   Future<bool> _existeTitulo(String titulo) async {
     final doc = await FirebaseFirestore.instance
         .collection('capacitaciones')
@@ -103,12 +119,20 @@ class _ContainerCrearCapacitacionDosState
   }
 
   void _actualizarEstado() {
+    bool rutsValidos = _rutControllers.isNotEmpty;
+    for (var controller in _rutControllers) {
+      if (_limpiarRutEspecifico(controller.text).length < 7) {
+        rutsValidos = false;
+        break;
+      }
+    }
+
     final valido =
-        _validarTextoConNumeros(_tituloController.text, 10, 60) &&
-        _validarTextoConNumeros(_descripcionController.text, 30, 250) &&
-        _validarTextoSoloLetras(_institucionController.text, 5, 40) &&
-        _validarTextoSoloLetras(_tipoController.text, 5, 25) && // Límite para Tipo
-        (_asignarATodos || (_rutLimpio.length >= 8 && _rutLimpio.length <= 9));
+        _validarTextoConNumeros(_tituloController.text, 3, 50) &&
+        _validarTextoConNumeros(_descripcionController.text, 10, 200) &&
+        _validarTextoSoloLetras(_institucionController.text, 3, 50) &&
+        _validarTextoSoloLetras(_tipoController.text, 3, 50) &&
+        (_asignarATodos || rutsValidos);
 
     setState(() {
       _formValido = valido;
@@ -141,20 +165,38 @@ class _ContainerCrearCapacitacionDosState
 
         empleadosAsignados = snapshot.docs.map((e) => e.id).toList();
       } else {
-        final doc = await FirebaseFirestore.instance
-            .collection('empleados')
-            .doc(_rutLimpio)
-            .get();
+        final rutsALimpiar = _rutControllers
+            .map((c) => _limpiarRutEspecifico(c.text))
+            .where((rut) => rut.isNotEmpty)
+            .toList();
 
-        if (!doc.exists) {
+        final referencias = rutsALimpiar.map((rut) {
+          return FirebaseFirestore.instance.collection('empleados').doc(rut).get();
+        }).toList();
+
+        final resultadosDocs = await Future.wait(referencias);
+        List<String> rutsInexistentes = [];
+
+        for (int i = 0; i < resultadosDocs.length; i++) {
+          if (!resultadosDocs[i].exists) {
+            rutsInexistentes.add(rutsALimpiar[i]);
+          }
+        }
+
+        if (rutsInexistentes.isNotEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('El RUT no existe en la base de datos')),
+            SnackBar(
+              content: Text(
+                'Los siguientes RUTs no existen: ${rutsInexistentes.join(", ")}'
+              ),
+              backgroundColor: Colors.redAccent,
+            ),
           );
           setState(() => _isLoading = false);
           return;
         }
 
-        empleadosAsignados.add(_rutLimpio);
+        empleadosAsignados = rutsALimpiar;
       }
 
       await FirebaseFirestore.instance
@@ -179,12 +221,15 @@ class _ContainerCrearCapacitacionDosState
       _tituloController.clear();
       _descripcionController.clear();
       _institucionController.clear();
-      _empleadosAsignadosController.clear();
       _tipoController.clear();
+      
+      for (var c in _rutControllers) {
+        c.dispose();
+      }
+      _rutControllers.clear();
 
       setState(() {
         _asignarATodos = false;
-        _rutLimpio = '';
         _isLoading = false;
         _formValido = false;
       });
@@ -207,6 +252,7 @@ class _ContainerCrearCapacitacionDosState
     _descripcionController.addListener(_actualizarEstado);
     _institucionController.addListener(_actualizarEstado);
     _tipoController.addListener(_actualizarEstado);
+    _agregarCampoRut();
   }
 
   @override
@@ -214,8 +260,10 @@ class _ContainerCrearCapacitacionDosState
     _tituloController.dispose();
     _descripcionController.dispose();
     _institucionController.dispose();
-    _empleadosAsignadosController.dispose();
     _tipoController.dispose();
+    for (var c in _rutControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -233,7 +281,7 @@ class _ContainerCrearCapacitacionDosState
             const SizedBox(height: 6),
             TextFormField(
               controller: _tituloController,
-              maxLength: 50, // Límite físico en el teclado
+              maxLength: 50,
               decoration: const InputDecoration(
                 hintText: 'Ej: Extinción de Fuegos v2',
                 border: OutlineInputBorder(
@@ -256,7 +304,7 @@ class _ContainerCrearCapacitacionDosState
             TextFormField(
               controller: _descripcionController,
               maxLines: 3,
-              maxLength: 200, // Evita textos eternos e incluye contador visual
+              maxLength: 200,
               decoration: const InputDecoration(
                 hintText: 'Breve descripción del curso',
                 border: OutlineInputBorder(
@@ -279,11 +327,6 @@ class _ContainerCrearCapacitacionDosState
             TextFormField(
               controller: _institucionController,
               maxLength: 50,
-              keyboardType: TextInputType.text,
-              // Bloquea números y caracteres especiales en tiempo real
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]')),
-              ],
               decoration: const InputDecoration(
                 hintText: 'Mutual de Seguridad',
                 border: OutlineInputBorder(
@@ -321,53 +364,95 @@ class _ContainerCrearCapacitacionDosState
             const SizedBox(height: 16),
 
             if (!_asignarATodos) ...[
-              TextFormField(
-                controller: _empleadosAsignadosController,
-                keyboardType: TextInputType.text, 
-                maxLength: 12, 
-                decoration: const InputDecoration(
-                  hintText: '12.345.678-9',
-                  counterText: "",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Empleados Asignados',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                   ),
-                ),
-                onChanged: (value) {
-                  final formatted = _formatearRut(value);
-                  _empleadosAsignadosController.value = TextEditingValue(
-                    text: formatted,
-                    selection: TextSelection.collapsed(offset: formatted.length),
+                  TextButton.icon(
+                    onPressed: _agregarCampoRut,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Agregar Empleado'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF2E7D32),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _rutControllers.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _rutControllers[index],
+                            decoration: InputDecoration(
+                              hintText: 'Empleado ${index + 1}: 12.345.678-9',
+                              border: const OutlineInputBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(12)),
+                              ),
+                            ),
+                            onChanged: (value) {
+                              final formatted = _formatearRut(value);
+                              _rutControllers[index].value = TextEditingValue(
+                                text: formatted,
+                                selection: TextSelection.collapsed(
+                                  offset: formatted.length,
+                                ),
+                              );
+                              _actualizarEstado();
+                            },
+                            validator: (v) {
+                              if (_asignarATodos) return null;
+                              if (v == null || v.trim().isEmpty) {
+                                return 'Debe ingresar un RUT';
+                              }
+                              if (_limpiarRutEspecifico(v).length < 7) {
+                                return 'RUT inválido';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        if (_rutControllers.length > 1) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                            onPressed: () => _removerCampoRut(index),
+                          ),
+                        ],
+                      ],
+                    ),
                   );
-                  _actualizarEstado();
-                },
-                validator: (v) {
-                  if (_asignarATodos) return null;
-                  if (v == null || v.trim().isEmpty) return 'Debe ingresar un RUT';
-                  if (_rutLimpio.length < 8) return 'RUT incompleto';
-                  
-                  return null;
                 },
               ),
+              const SizedBox(height: 12),
             ],
 
             const Text('Tipo', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _tipoController,
-              maxLength: 25, // Ajustado a 25 caracteres
-              keyboardType: TextInputType.text,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]')),
-              ],
+              maxLength: 50,
               decoration: const InputDecoration(
-                hintText: 'Ej: Seguridad, Liderazgo',
-                counterText: "", // Oculta el contador pequeño
+                hintText: 'Ej: Seguridad',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
               validator: (v) {
-                if (v == null || v.trim().length < 5) return 'Mínimo 5 caracteres';
+                if (v == null || v.trim().isEmpty) return 'El campo no puede estar vacío';
+                if (!_validarTextoSoloLetras(v, 3, 50)) {
+                  return 'Debe tener entre 3 y 50 caracteres (solo letras).';
+                }
                 return null;
               },
             ),
