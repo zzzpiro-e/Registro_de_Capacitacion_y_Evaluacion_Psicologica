@@ -60,10 +60,33 @@ class _PsicologoDerivacionesScreenState
                   .where('psicologoEmail', isEqualTo: correoPsicologo)
                   .where(
                     'estado',
-                    whereIn: ['Pendiente', 'En Proceso', 'activo'],
+                    whereIn: [
+                      'Pendiente',
+                      'pendiente',
+                      'En Proceso',
+                      'en proceso',
+                      'activo',
+                      'Activo',
+                    ],
                   )
                   .snapshots(),
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.cloud_off, size: 48, color: Colors.grey),
+                        SizedBox(height: 12),
+                        Text(
+                          "Error de red al obtener las derivaciones",
+                          style: TextStyle(color: Colors.black54, fontSize: 15),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
@@ -75,10 +98,16 @@ class _PsicologoDerivacionesScreenState
                   );
                 }
 
-                return ContainerListaPsicologoTres(
-                  documentosRaw: snapshot.data!.docs,
-                  filtroTexto: _filtroTexto,
-                  onRefresh: () => setState(() {}),
+                return Column(
+                  children: [
+                    Expanded(
+                      child: ContainerListaPsicologoTres(
+                        documentosRaw: snapshot.data!.docs,
+                        filtroTexto: _filtroTexto,
+                        onRefresh: () => setState(() {}),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

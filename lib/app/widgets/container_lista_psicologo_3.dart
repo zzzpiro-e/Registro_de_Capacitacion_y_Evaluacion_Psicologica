@@ -25,14 +25,19 @@ class ContainerListaPsicologoTres extends StatelessWidget {
 
       String fechaIngreso = 'N/A';
       if (data['fechaIngreso'] is Timestamp) {
-        fechaIngreso = DateFormat('dd/MM/yyyy').format(
-          (data['fechaIngreso'] as Timestamp).toDate(),
-        );
+        fechaIngreso = DateFormat(
+          'dd/MM/yyyy',
+        ).format((data['fechaIngreso'] as Timestamp).toDate());
       }
 
-      final String nombres = data['nombres'] ?? 'Sin nombre';
-      final String apellidos = data['apellidos'] ?? '';
-      final String nombreCompleto = "$nombres $apellidos".trim();
+      String nombreCompleto = '';
+      if (data['nombre'] != null && data['nombre'].toString().isNotEmpty) {
+        nombreCompleto = data['nombre'].toString().trim();
+      } else {
+        final String nombres = data['nombres'] ?? 'Sin nombre';
+        final String apellidos = data['apellidos'] ?? '';
+        nombreCompleto = "$nombres $apellidos".trim();
+      }
 
       String estadoClinico = data['estado'] ?? 'Pendiente';
       if (estadoClinico.toLowerCase() == 'activo') {
@@ -46,11 +51,11 @@ class ContainerListaPsicologoTres extends StatelessWidget {
         'cargo': data['cargo'] ?? 'Sin cargo',
         'area': data['area'] ?? 'No especificada',
         'edad': data['edad']?.toString() ?? 'N/A',
-        'estado': estadoClinico, 
+        'estado': estadoClinico,
         'fechaIngreso': fechaIngreso,
-        'salario': '******', 
+        'salario': '******',
         'fichaPsicologica': data['fichaPsicologica'] ?? '',
-        'motivo': data['motivo'] ?? 'No especificado', 
+        'motivo': data['motivo'] ?? 'No especificado',
         'fecha': data['fechaDerivacion'] ?? data['fecha'] ?? 'Hoy',
       };
     }).toList();
@@ -61,9 +66,9 @@ class ContainerListaPsicologoTres extends StatelessWidget {
       final String rut = empleado['rut'].toString().toLowerCase();
       final String cargo = empleado['cargo'].toString().toLowerCase();
 
-      return nombre.contains(filtroTexto) || 
-             rut.contains(filtroTexto) || 
-             cargo.contains(filtroTexto);
+      return nombre.contains(filtroTexto) ||
+          rut.contains(filtroTexto) ||
+          cargo.contains(filtroTexto);
     }).toList();
 
     if (empleadosFiltrados.isEmpty) {
@@ -85,14 +90,15 @@ class ContainerListaPsicologoTres extends StatelessWidget {
       itemCount: empleadosFiltrados.length,
       itemBuilder: (context, index) {
         final empleado = empleadosFiltrados[index];
-        
+
         return ContainerListaPsicologoUno(
           empleado: empleado,
           onTap: () async {
             await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PsicologoDetalleDerivacionScreen(derivacion: empleado),
+                builder: (context) =>
+                    PsicologoDetalleDerivacionScreen(derivacion: empleado),
               ),
             );
             onRefresh(); // Notifica a la pantalla principal que haga el setState

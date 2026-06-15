@@ -6,8 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:proyecto_flutter/app/widgets/container_auth_guardian.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:provider/provider.dart'; // 🔹 Importación agregada de Provider
-import 'package:proyecto_flutter/app/widgets/widgets_crear_empleado.dart'; // 🔹 Importación para acceder a EmpleadosProvider
+import 'package:provider/provider.dart';
+import 'package:proyecto_flutter/app/widgets/widgets_crear_empleado.dart';
 import 'package:proyecto_flutter/app/widgets/container_crear_capacitacion_dos.dart';
 
 void main() async {
@@ -23,7 +23,6 @@ void main() async {
 
   await initializeDateFormatting('es_CL', null);
 
-  // 🔹 Envolvemos la app en MultiProvider para habilitar la comunicación entre pantallas
   runApp(
     MultiProvider(
       providers: [
