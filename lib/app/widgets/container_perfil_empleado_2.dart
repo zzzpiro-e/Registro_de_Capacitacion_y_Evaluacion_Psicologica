@@ -17,6 +17,27 @@ class _ContainerPerfilEmpleadoDosState
   final Color verdePrincipal = const Color(0xFF2E7D32);
   int _retryKey = 0;
 
+  String _formatearRut(String rut) {
+    String value = rut.replaceAll(RegExp(r'[^0-9kK]'), '');
+    if (value.length < 2) return value;
+    
+    String cuerpo = value.substring(0, value.length - 1);
+    String dv = value.substring(value.length - 1).toUpperCase();
+    
+    String cuerpoFormateado = "";
+    int contador = 0;
+    for (int i = cuerpo.length - 1; i >= 0; i--) {
+      cuerpoFormateado = cuerpo[i] + cuerpoFormateado;
+      contador++;
+      if (contador == 3 && i != 0) {
+        cuerpoFormateado = '.$cuerpoFormateado';
+        contador = 0;
+      }
+    }
+    return '$cuerpoFormateado-$dv';
+  }
+  
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
@@ -93,6 +114,12 @@ class _ContainerPerfilEmpleadoDosState
             }
           }
         }
+        String ultimaEdicion = 'Nunca editado';
+        if (data['fechaUltimaEdicion'] is Timestamp) {
+          final ts = data['fechaUltimaEdicion'] as Timestamp;
+          ultimaEdicion = DateFormat('dd/MM/yyyy HH:mm').format(ts.toDate());
+        }
+        
 
         final salario = data['salario'] != null
             ? '\$${NumberFormat.decimalPattern('es_CL').format(data['salario'] is int ? data['salario'] : int.tryParse(data['salario'].toString()) ?? 0)}'
@@ -142,10 +169,17 @@ class _ContainerPerfilEmpleadoDosState
                   color: Colors.black87,
                 ),
               ),
+              const SizedBox(height: 4),
               Text(
-                rut,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                _formatearRut(data['rut']?.toString() ?? ''),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16, // Un poco más grande que el texto normal
+                  fontWeight: FontWeight.w700, // Negrito (w700 es visible pero no negro absoluto)
+                  color: Colors.black87, // Un gris muy oscuro, menos agresivo que negro puro
+                ),
               ),
+
               const SizedBox(height: 20),
               _buildInfoRow(Icons.badge_outlined, 'Edad', edad),
               _buildInfoRow(Icons.work_outline, 'Cargo', cargo),
@@ -155,6 +189,8 @@ class _ContainerPerfilEmpleadoDosState
                 fechaIngreso,
               ),
               _buildInfoRow(Icons.attach_money_outlined, 'Salario', salario),
+              const Divider(height: 20),
+              _buildInfoRow(Icons.history_outlined, 'Última edición', ultimaEdicion),
             ],
           ),
         );

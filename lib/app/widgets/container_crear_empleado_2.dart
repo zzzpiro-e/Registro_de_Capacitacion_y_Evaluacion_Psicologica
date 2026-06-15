@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:proyecto_flutter/app/widgets/widgets_crear_empleado.dart';
-
+import 'package:proyecto_flutter/app/utils/date_input_formatter.dart';
 class ContainerCrearEmpleadoDos extends StatefulWidget {
   const ContainerCrearEmpleadoDos({super.key});
 
@@ -20,6 +20,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
   final _salarioController = TextEditingController();
   final _cargoController = TextEditingController();
   final _edadController = TextEditingController();
+  final _fechaIngresoController = TextEditingController();
 
   @override
   void dispose() {
@@ -30,6 +31,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
     _salarioController.dispose();
     _cargoController.dispose();
     _edadController.dispose();
+    _fechaIngresoController.dispose();
     super.dispose();
   }
 
@@ -133,7 +135,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
     if (!_formKey.currentState!.validate()) return;
 
     final rutLimpio = _rutController.text.replaceAll('.', '').replaceAll('-', '').toUpperCase();
-    final fechaIngreso = DateFormat('yyyy-MM-dd/HH:mm').format(DateTime.now());
+    final fechaIngreso = _fechaIngresoController.text.trim();
     final edadLimpia = int.tryParse(_edadController.text) ?? 0;
     try {
       final docRef = FirebaseFirestore.instance.collection('empleados').doc(rutLimpio);
@@ -161,7 +163,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
       };
 
       await docRef.set(empleado);
-
+    
       if (!mounted) return;
 
       context
@@ -181,6 +183,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
           _cargoController.clear();
           _salarioController.clear();
           _edadController.clear();
+          _fechaIngresoController.clear();
       
     } catch (e) {
       if (!mounted) return;
@@ -206,7 +209,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               TextFormField(
                 controller: _nombreController,
                 inputFormatters: [
-                  LengthLimitingTextInputFormatter(30), // máximo 30 caracteres
+                  // Bloquea cualquier dígito del 0 al 9
+                  FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                  LengthLimitingTextInputFormatter(30),
                 ],
                 decoration: const InputDecoration(
                   hintText: 'Ej: Juan Carlos',
@@ -216,14 +221,8 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Ingrese los nombres';
                   }
-                  if (RegExp(r'[0-9]').hasMatch(value)) {
-                    return 'No se permiten números en los nombres';
-                  }
                   if (value.trim().length < 3) {
                     return 'El nombre debe tener al menos 3 caracteres';
-                  }
-                  if (value.trim().length > 30) {
-                    return 'Máximo 30 caracteres alcanzados';
                   }
                   return null;
                 },
@@ -236,7 +235,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               TextFormField(
                 controller: _apellidoController,
                 inputFormatters: [
-                  LengthLimitingTextInputFormatter(40), // máximo 40 caracteres
+                  // Bloquea cualquier dígito del 0 al 9
+                  FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                  LengthLimitingTextInputFormatter(40),
                 ],
                 decoration: const InputDecoration(
                   hintText: 'Ej: Pérez González',
@@ -246,14 +247,8 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Ingrese los apellidos';
                   }
-                  if (RegExp(r'[0-9]').hasMatch(value)) {
-                    return 'No se permiten números en los apellidos';
-                  }
                   if (value.trim().length < 2) {
                     return 'El apellido debe tener al menos 2 caracteres';
-                  }
-                  if (value.trim().length > 40) {
-                    return 'Máximo 40 caracteres alcanzados';
                   }
                   return null;
                 },
@@ -302,29 +297,92 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Ingrese la edad';
                   }
-                  final numero = int.tryParse(value) ?? 0;
-                  if (numero <= 0) {
-                    return 'La edad debe ser mayor a 0';
+                  final numero = int.tryParse(value);
+                  
+                  // Nueva lógica de validación
+                  if (numero == null) {
+                    return 'Ingrese una edad válida';
+                  }
+                  if (numero < 18) {
+                    return 'La edad mínima requerida es 18 años';
+                  }
+                  if (numero > 75) {
+                    return 'La edad máxima permitida es 75 años';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 20),
 
-
               // --- Cargo ---
               const Text('Cargo', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _cargoController,
+                inputFormatters: [
+                  // Solo permite letras, espacios y algunos caracteres especiales comunes (como guiones o barras)
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\-]')),
+                  LengthLimitingTextInputFormatter(50), 
+                ],
                 decoration: const InputDecoration(
-                  hintText: 'Ej: Analista de RRHH',
+                  hintText: 'Ej: Analista de Compensaciones',
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Ingrese el cargo';
                   }
+                  // Validación adicional por si el usuario logra saltar el inputFormatter
+                  if (RegExp(r'[0-9]').hasMatch(value)) {
+                    return 'El cargo no puede contener números';
+                  }
+                  if (value.trim().length < 3) {
+                    return 'El cargo es muy corto';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              const Text('Fecha de Ingreso', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _fechaIngresoController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(8),
+                  DateInputFormatter(),
+                ],
+                decoration: const InputDecoration(
+                  hintText: 'DD/MM/YYYY',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  labelText: 'Fecha de Ingreso',
+                  prefixIcon: Icon(Icons.calendar_today),
+                ),
+                validator: (value) {
+                  if (value == null || value.length != 10) return 'Formato: DD/MM/YYYY';
+
+                  final partes = value.split('/');
+                  final dia = int.tryParse(partes[0]) ?? 0;
+                  final mes = int.tryParse(partes[1]) ?? 0;
+                  final anio = int.tryParse(partes[2]) ?? 0;
+
+                  // Validación de rango de años (1900 - 2100)
+                  if (anio < 1950 || anio > 2026) return 'Año fuera de rango (1950-2026)';
+                  
+                  // Validación de Mes
+                  if (mes < 1 || mes > 12) return 'Mes inválido';
+
+                  // Validación de Días por Mes
+                  final diasEnMes = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+                  
+                  // Ajuste por año bisiesto
+                  bool esBisiesto = (anio % 4 == 0 && anio % 100 != 0) || (anio % 400 == 0);
+                  if (esBisiesto) diasEnMes[2] = 29;
+
+                  if (dia < 1 || dia > diasEnMes[mes]) return 'Día inválido para el mes seleccionado';
+
                   return null;
                 },
               ),
@@ -338,7 +396,7 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
-                  hintText: '\$1.500.000',
+                  hintText: '\$539.000',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
@@ -348,12 +406,21 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                   if (value == null || value.isEmpty) {
                     return 'Ingrese el salario';
                   }
+                  
+                  // Convertimos el formato con puntos a un número limpio
                   final limpio = value.replaceAll(RegExp(r'[^0-9]'), '');
                   if (limpio.isEmpty) return 'Ingrese el salario';
 
                   final numero = int.tryParse(limpio) ?? 0;
-                  if (numero <= 0) {
-                    return 'El salario debe ser mayor a 0';
+                  
+                  const int sueldoMinimo = 539000;
+                  const int sueldoMaximo = 2500000; // Tope máximo estimado para el cargo
+
+                  if (numero < sueldoMinimo) {
+                    return 'El salario debe ser al menos el mínimo (539.000)';
+                  }
+                  if (numero > sueldoMaximo) {
+                    return 'El salario supera el límite permitido para este cargo';
                   }
                   return null;
                 },

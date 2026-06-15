@@ -23,11 +23,10 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
   final _rutController = TextEditingController();
   final _salarioController = TextEditingController();
   final _edadController = TextEditingController();
-  final _fechaIngresoController = TextEditingController();
-  final _cargoController = TextEditingController();
+  final _cargoController = TextEditingController(); // Fecha eliminada
 
   Map<String, dynamic> _valoresOriginales = {};
-  bool _isLoading = false; // 🔹 Bloquea campos y botones en transiciones de red
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -42,7 +41,6 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
     _rutController.dispose();
     _salarioController.dispose();
     _edadController.dispose();
-    _fechaIngresoController.dispose();
     _cargoController.dispose();
     super.dispose();
   }
@@ -63,62 +61,51 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
   }
 
   Future<void> _cargarDatos() async {
-    setState(() => _isLoading = true);
-    try {
-      // 🔹 Timeout para que no se quede colgado indefinidamente si no hay internet al abrir
-      final doc = await FirebaseFirestore.instance
-          .collection('empleados')
-          .doc(widget.empleadoId)
-          .get()
-          .timeout(const Duration(seconds: 10));
+      setState(() => _isLoading = true);
+      try {
+        // 🔹 Timeout para que no se quede colgado indefinidamente si no hay internet al abrir
+        final doc = await FirebaseFirestore.instance
+            .collection('empleados')
+            .doc(widget.empleadoId)
+            .get()
+            .timeout(const Duration(seconds: 10));
 
-      if (doc.exists && mounted) {
-        final data = doc.data()!;
-        setState(() {
-          _nombreController.text = data['nombres'] ?? '';
-          _apellidoController.text = data['apellidos'] ?? '';
-          _rutController.text = data['rut'] ?? '';
-          _edadController.text = data['edad']?.toString() ?? '';
-          _cargoController.text = data['cargo'] ?? '';
+        if (doc.exists && mounted) {
+          final data = doc.data()!;
+          setState(() {
+            _nombreController.text = data['nombres'] ?? '';
+            _apellidoController.text = data['apellidos'] ?? '';
+            _rutController.text = data['rut'] ?? '';
+            _edadController.text = data['edad']?.toString() ?? '';
+            _cargoController.text = data['cargo'] ?? '';
 
-          if (data['fechaIngreso'] != null) {
-            if (data['fechaIngreso'] is Timestamp) {
-              final ts = data['fechaIngreso'] as Timestamp;
-              _fechaIngresoController.text =
-                  DateFormat('yyyy-MM-dd/HH:mm').format(ts.toDate());
-            } else {
-              _fechaIngresoController.text = data['fechaIngreso'].toString();
+            if (data['salario'] != null) {
+              final numero = data['salario'] is int
+                  ? data['salario']
+                  : int.tryParse(data['salario'].toString()) ?? 0;
+              _salarioController.text =
+                  '\$${NumberFormat.decimalPattern('es_CL').format(numero)}';
             }
-          }
 
-          if (data['salario'] != null) {
-            final numero = data['salario'] is int
-                ? data['salario']
-                : int.tryParse(data['salario'].toString()) ?? 0;
-            _salarioController.text =
-                '\$${NumberFormat.decimalPattern('es_CL').format(numero)}';
-          }
-
-          _valoresOriginales = {
-            'nombres': _nombreController.text,
-            'apellidos': _apellidoController.text,
-            'rut': _rutController.text,
-            'edad': _edadController.text,
-            'cargo': _cargoController.text,
-            'fechaIngreso': _fechaIngresoController.text,
-            'salario': _salarioController.text,
-          };
-        });
+            _valoresOriginales = {
+              'nombres': _nombreController.text,
+              'apellidos': _apellidoController.text,
+              'rut': _rutController.text,
+              'edad': _edadController.text,
+              'cargo': _cargoController.text,
+              'salario': _salarioController.text,
+            };
+          });
+        }
+      } on TimeoutException catch (_) {
+        _mostrarMensajeErrorRed('No se pudieron cargar los datos del empleado. Tiempo de espera agotado.');
+      } catch (e) {
+        debugPrint('Error al cargar datos: $e');
+        _mostrarMensajeErrorRed('Error de red al intentar conectar con el servidor.');
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
-    } on TimeoutException catch (_) {
-      _mostrarMensajeErrorRed('No se pudieron cargar los datos del empleado. Tiempo de espera agotado.');
-    } catch (e) {
-      debugPrint('Error al cargar datos: $e');
-      _mostrarMensajeErrorRed('Error de red al intentar conectar con el servidor.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
-  }
 
   String _formatearMiles(String valor) {
     if (valor.isEmpty) return '';
@@ -150,19 +137,12 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
     setState(() => _isLoading = true);
 
     final salarioLimpio = int.tryParse(
-          _salarioController.text.replaceAll(RegExp(r'[^0-9]'), ''),
-        ) ?? 0;
+      _salarioController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+    ) ?? 0;
 
     final edadLimpia = int.tryParse(_edadController.text) ?? 0;
 
-    dynamic fechaParaGuardar = _fechaIngresoController.text.trim();
     try {
-      final fechaParseada = DateFormat('yyyy-MM-dd/HH:mm').parse(fechaParaGuardar);
-      fechaParaGuardar = Timestamp.fromDate(fechaParseada);
-    } catch (_) {}
-
-    try {
-      // 🔹 Se le asigna un timeout de 10 segundos para mitigar problemas en Edge
       await FirebaseFirestore.instance
           .collection('empleados')
           .doc(widget.empleadoId)
@@ -173,7 +153,7 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
         'salario': salarioLimpio,
         'edad': edadLimpia,
         'cargo': _cargoController.text.trim(),
-        'fechaIngreso': fechaParaGuardar,
+        'fechaUltimaEdicion': FieldValue.serverTimestamp(), // 🔹 Registro automático
       }).timeout(const Duration(seconds: 10));
 
       // 📝 REGISTRAR EN AUDITORÍA
@@ -193,7 +173,6 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
       check('apellidos', _valoresOriginales['apellidos'], _apellidoController.text.trim());
       check('edad', _valoresOriginales['edad'], _edadController.text.trim());
       check('cargo', _valoresOriginales['cargo'], _cargoController.text.trim());
-      check('fechaIngreso', _valoresOriginales['fechaIngreso'], _fechaIngresoController.text.trim());
       check('salario', _valoresOriginales['salario'], _salarioController.text.trim());
       
       if (camposEditados.isNotEmpty) {
@@ -212,24 +191,20 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
         );
         Navigator.pop(context);
       }
-
     } on TimeoutException catch (_) {
-      _mostrarMensajeErrorRed('No se pudo guardar los cambios. Tiempo de espera agotado (Sin respuesta del servidor).');
-    } on FirebaseException catch (fe) {
-      debugPrint('Error de Firebase: ${fe.code}');
-      _mostrarMensajeErrorRed('Fallo de base de datos. Código: ${fe.code}');
+      _mostrarMensajeErrorRed('No se pudo guardar. Tiempo de espera agotado.');
     } catch (e) {
-      debugPrint('Error desconocido al actualizar: $e');
-      _mostrarMensajeErrorRed('Ocurrió un error inesperado de red al procesar la actualización.');
+      debugPrint('Error al actualizar: $e');
+      _mostrarMensajeErrorRed('Ocurrió un error al procesar la actualización.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+
   Future<void> _eliminarEmpleado() async {
     if (_isLoading) return;
 
-    // Diálogo de confirmación antes de borrar directamente
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -294,39 +269,42 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
               TextFormField(
                 controller: _nombreController,
                 enabled: !_isLoading,
+                inputFormatters: [
+                  FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                  LengthLimitingTextInputFormatter(30),
+                ],
                 decoration: _inputDecoration('Ej: Juan Carlos'),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Ingrese los nombres';
-                  if (RegExp(r'[0-9]').hasMatch(v)) return 'No se permiten números en los nombres';
-                  if (!_validarFormatoDosPalabras(v)) return 'Ingrese al menos dos nombres válidos';
+                  if (v.trim().length < 3) return 'El nombre debe tener al menos 3 caracteres';
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-
               _buildLabel('Apellidos'),
               TextFormField(
                 controller: _apellidoController,
                 enabled: !_isLoading,
+                inputFormatters: [
+                  FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                  LengthLimitingTextInputFormatter(40),
+                ],
                 decoration: _inputDecoration('Ej: Pérez González'),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Ingrese los apellidos';
-                  if (RegExp(r'[0-9]').hasMatch(v)) return 'No se permiten números en los apellidos';
-                  if (!_validarFormatoDosPalabras(v)) return 'Ingrese los dos apellidos completos';
+                  if (v.trim().length < 2) return 'El apellido debe tener al menos 2 caracteres';
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-
               _buildLabel('RUT'),
               TextFormField(
                 controller: _rutController,
-                readOnly: true, // El rut actúa como ID único immutable
+                readOnly: true,
                 style: const TextStyle(color: Colors.grey),
                 decoration: _inputDecoration('RUT'),
               ),
               const SizedBox(height: 20),
-
               _buildLabel('Edad'),
               TextFormField(
                 controller: _edadController,
@@ -336,39 +314,30 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
                 decoration: _inputDecoration('Ej: 35'),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Ingrese la edad';
-                  final numero = int.tryParse(v) ?? 0;
-                  if (numero < 18 || numero > 100) return 'La edad debe estar entre 18 y 100 años';
+                  final numero = int.tryParse(v);
+                  if (numero == null) return 'Ingrese una edad válida';
+                  if (numero < 18) return 'La edad mínima requerida es 18 años';
+                  if (numero > 75) return 'La edad máxima permitida es 75 años';
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-
               _buildLabel('Cargo'),
               TextFormField(
                 controller: _cargoController,
                 enabled: !_isLoading,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\-]')),
+                  LengthLimitingTextInputFormatter(50),
+                ],
                 decoration: _inputDecoration('Ej: Analista de RRHH'),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Ingrese el cargo' : null,
-              ),
-              const SizedBox(height: 20),
-
-              _buildLabel('Fecha de Ingreso'),
-              TextFormField(
-                controller: _fechaIngresoController,
-                enabled: !_isLoading,
-                keyboardType: TextInputType.number,
-                inputFormatters: [DateTimeInputFormatter()],
-                decoration: _inputDecoration('Ej: 2026-05-29/17:50'),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Ingrese la fecha';
-                  final regExp = RegExp(r'^\d{4}-\d{2}-\d{2}/\d{2}:\d{2}$');
-                  if (!regExp.hasMatch(v)) return 'Formato inválido (yyyy-MM-dd/HH:mm)';
+                  if (v == null || v.trim().isEmpty) return 'Ingrese el cargo';
+                  if (v.trim().length < 3) return 'El cargo es muy corto';
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-
               _buildLabel('Salario (CLP)'),
               TextFormField(
                 controller: _salarioController,
@@ -382,20 +351,18 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
                     selection: TextSelection.collapsed(offset: formateado.length),
                   );
                 },
-                decoration: _inputDecoration('\$1.500.000'),
+                decoration: _inputDecoration('\$539.000'),
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Ingrese el salario';
                   final limpio = v.replaceAll(RegExp(r'[^0-9]'), '');
                   if (limpio.isEmpty) return 'Ingrese el salario';
-
                   final numero = int.tryParse(limpio) ?? 0;
-                  if (numero < 400000) return 'Debe ser igual o superior al sueldo mínimo (\$400.000)';
-                  if (numero > 20000000) return 'El salario no puede superar los \$20.000.000';
+                  if (numero < 539000) return 'El salario debe ser al menos el mínimo (\$539.000)';
+                  if (numero > 2500000) return 'El salario supera el límite permitido para este cargo';
                   return null;
                 },
               ),
               const SizedBox(height: 30),
-
               if (_isLoading)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 20),

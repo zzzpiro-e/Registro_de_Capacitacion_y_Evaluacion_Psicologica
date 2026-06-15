@@ -8,7 +8,7 @@ class ContainerPerfilRRHHDos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('usuarios').doc(uid).snapshots(),
+      stream: FirebaseFirestore.instance.collection('trabajadores').doc(uid).snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
         final data = snapshot.data!.data() as Map<String, dynamic>;

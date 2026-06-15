@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:proyecto_flutter/app/services/auditoria_service.dart';
+import 'package:flutter/services.dart';
 
 class CapacitacionesProvider extends ChangeNotifier {
   int _version = 0;
@@ -53,52 +54,41 @@ class _ContainerCrearCapacitacionDosState
     if (value == null) return false;
     final texto = value.trim();
     if (texto.length < minLength || texto.length > maxLength) return false;
-
-    return RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s.,()\-]+$').hasMatch(texto);
+    
+    return RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(texto);
   }
 
   // =========================
   // FORMATO RUT CHILENO REAL
   // =========================
   String _formatearRut(String input) {
-    final clean = input.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
-
-    if (clean.isEmpty) {
-      _rutLimpio = '';
-      return '';
-    }
-
-    String cuerpo;
-    String dv = '';
-
-    if (clean.length > 1) {
-      cuerpo = clean.substring(0, clean.length - 1);
-      dv = clean.substring(clean.length - 1);
-    } else {
-      cuerpo = clean;
-    }
-
-    String formatted = '';
-    int count = 0;
-
-    for (int i = cuerpo.length - 1; i >= 0; i--) {
-      formatted = cuerpo[i] + formatted;
-      count++;
-
-      if (count == 3 && i != 0) {
-        formatted = '.$formatted';
-        count = 0;
+      // 1. Limpiamos caracteres no válidos
+      String clean = input.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
+      
+      if (clean.length > 9) {
+        clean = clean.substring(0, 9);
       }
+
+      _rutLimpio = clean; 
+
+      if (clean.isEmpty) return '';
+
+      String cuerpo = clean.substring(0, clean.length - 1);
+      String dv = clean.substring(clean.length - 1);
+
+      String formattedCuerpo = "";
+      int count = 0;
+      for (int i = cuerpo.length - 1; i >= 0; i--) {
+        formattedCuerpo = cuerpo[i] + formattedCuerpo;
+        count++;
+        if (count == 3 && i != 0) {
+          formattedCuerpo = '.$formattedCuerpo';
+          count = 0;
+        }
+      }
+
+      return cuerpo.isEmpty ? dv : '$formattedCuerpo-$dv';
     }
-
-    if (dv.isNotEmpty) {
-      formatted = '$formatted-$dv';
-    }
-
-    _rutLimpio = clean;
-
-    return formatted;
-  }
 
   // =========================
   // VALIDACIÓN DUPLICADO TITULO
@@ -114,11 +104,11 @@ class _ContainerCrearCapacitacionDosState
 
   void _actualizarEstado() {
     final valido =
-        _validarTextoConNumeros(_tituloController.text, 3, 50) &&
-        _validarTextoConNumeros(_descripcionController.text, 10, 200) && // Rango: entre 10 y 200 caract.
-        _validarTextoSoloLetras(_institucionController.text, 3, 50) &&
-        _validarTextoSoloLetras(_tipoController.text, 3, 50) &&
-        (_asignarATodos || _rutLimpio.length >= 7);
+        _validarTextoConNumeros(_tituloController.text, 10, 60) &&
+        _validarTextoConNumeros(_descripcionController.text, 30, 250) &&
+        _validarTextoSoloLetras(_institucionController.text, 5, 40) &&
+        _validarTextoSoloLetras(_tipoController.text, 5, 25) && // Límite para Tipo
+        (_asignarATodos || (_rutLimpio.length >= 8 && _rutLimpio.length <= 9));
 
     setState(() {
       _formValido = valido;
@@ -289,6 +279,11 @@ class _ContainerCrearCapacitacionDosState
             TextFormField(
               controller: _institucionController,
               maxLength: 50,
+              keyboardType: TextInputType.text,
+              // Bloquea números y caracteres especiales en tiempo real
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]')),
+              ],
               decoration: const InputDecoration(
                 hintText: 'Mutual de Seguridad',
                 border: OutlineInputBorder(
@@ -328,8 +323,11 @@ class _ContainerCrearCapacitacionDosState
             if (!_asignarATodos) ...[
               TextFormField(
                 controller: _empleadosAsignadosController,
+                keyboardType: TextInputType.text, 
+                maxLength: 12, 
                 decoration: const InputDecoration(
                   hintText: '12.345.678-9',
+                  counterText: "",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
@@ -345,29 +343,31 @@ class _ContainerCrearCapacitacionDosState
                 validator: (v) {
                   if (_asignarATodos) return null;
                   if (v == null || v.trim().isEmpty) return 'Debe ingresar un RUT';
-                  if (_rutLimpio.length < 7) return 'RUT inválido';
+                  if (_rutLimpio.length < 8) return 'RUT incompleto';
+                  
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
             ],
 
             const Text('Tipo', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _tipoController,
-              maxLength: 50,
+              maxLength: 25, // Ajustado a 25 caracteres
+              keyboardType: TextInputType.text,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]')),
+              ],
               decoration: const InputDecoration(
-                hintText: 'Ej: Seguridad',
+                hintText: 'Ej: Seguridad, Liderazgo',
+                counterText: "", // Oculta el contador pequeño
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'El campo no puede estar vacío';
-                if (!_validarTextoSoloLetras(v, 3, 50)) {
-                  return 'Debe tener entre 3 y 50 caracteres (solo letras).';
-                }
+                if (v == null || v.trim().length < 5) return 'Mínimo 5 caracteres';
                 return null;
               },
             ),
