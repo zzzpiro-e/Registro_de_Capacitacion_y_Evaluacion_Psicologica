@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -29,15 +28,12 @@ class _ContainerPerfilEmpleadoCuatroState
         .toLowerCase();
   }
 
-  // 🔍 Ejecuta la consulta de forma correcta basándose únicamente en los asignados
+  // 🔍 Ejecuta la consulta basándose únicamente en los asignados
   Future<List<DocumentSnapshot>> _obtenerCapacitaciones(
     String rutLimpio,
   ) async {
     final coleccion = FirebaseFirestore.instance.collection('capacitaciones');
-
-    // Buscamos todas las capacitaciones donde el empleado esté asignado originalmente
     final resultado = await coleccion.where('empleadosAsignados', arrayContains: rutLimpio).get();
-
     return resultado.docs;
   }
 
@@ -53,17 +49,14 @@ class _ContainerPerfilEmpleadoCuatroState
 
     try {
       if (esRealizadaActual) {
-        // Pasa de Realizada a Pendiente: Solo lo sacamos de los que realizaron
         await docRef.update({
           'empleadosRealizaron': FieldValue.arrayRemove([rutLimpio]),
         });
       } else {
-        // Pasa de Pendiente a Realizada: Lo sumamos a realizaron, y lo DEJAMOS en asignados
         await docRef.update({
           'empleadosRealizaron': FieldValue.arrayUnion([rutLimpio]),
         });
       }
-      // Forzar la actualización de la interfaz de usuario
       setState(() {});
     } catch (e) {
       if (mounted) {
@@ -74,7 +67,37 @@ class _ContainerPerfilEmpleadoCuatroState
     }
   }
 
-  // 📅 Convierte el Timestamp de Firebase a un String legible (ej: 31/05/2026)
+  // 🔥 NUEVA FUNCIÓN: Elimina por completo al empleado de la capacitación
+  Future<void> _desasignarCapacitacion({
+    required String idDocumento,
+    required String rutLimpio,
+  }) async {
+    final docRef = FirebaseFirestore.instance
+        .collection('capacitaciones')
+        .doc(idDocumento);
+
+    try {
+      await docRef.update({
+        'empleadosAsignados': FieldValue.arrayRemove([rutLimpio]),
+        'empleadosRealizaron': FieldValue.arrayRemove([rutLimpio]),
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Empleado desasignado correctamente.')),
+        );
+      }
+      setState(() {}); // Refresca la pantalla
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al desasignar: $e')),
+        );
+      }
+    }
+  }
+
+  // 📅 Convierte el Timestamp de Firebase a un String legible
   String _formatearFecha(dynamic fechaFormato) {
     if (fechaFormato == null) return 'Sin fecha';
     if (fechaFormato is Timestamp) {
@@ -86,7 +109,7 @@ class _ContainerPerfilEmpleadoCuatroState
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
-      key: ValueKey(_retryKey), // Tu reconexión nativa intacta
+      key: ValueKey(_retryKey),
       stream: FirebaseFirestore.instance
           .collection('empleados')
           .doc(widget.empleadoId)
@@ -117,13 +140,10 @@ class _ContainerPerfilEmpleadoCuatroState
 
             for (var doc in documentos) {
               final data = doc.data() as Map<String, dynamic>;
-              
-              // Extraemos la lista de los que realizaron para verificar si este RUT específico ya está allí
               final realizararonLista = data['empleadosRealizaron'] is List
                   ? List.from(data['empleadosRealizaron'])
                   : [];
 
-              // Es realizada para ESTE empleado si su RUT ya figura en la lista de los que completaron
               final bool esteEmpleadoLaHizo = realizararonLista.contains(rutLimpio);
 
               todasLasCapacitaciones.add({
@@ -185,22 +205,12 @@ class _ContainerPerfilEmpleadoCuatroState
                         final curso = item['data'];
                         final bool esRealizada = item['esRealizada'];
 
-                        final titulo =
-                            curso['titulo'] ?? 'Capacitación sin título';
-                        final institucion =
-                            curso['institucion'] ??
-                            'Institución no especificada';
-                        final fechaVencimiento = _formatearFecha(
-                          curso['fechaFin'],
-                        );
+                        final titulo = curso['titulo'] ?? 'Capacitación sin título';
+                        final institucion = curso['institucion'] ?? 'Institución no especificada';
+                        final fechaVencimiento = _formatearFecha(curso['fechaFin']);
 
-                        // Configuración de la etiqueta de estado
-                        final Color colorEstado = esRealizada
-                            ? verdePrincipal
-                            : Colors.orange;
-                        final String textoEstado = esRealizada
-                            ? 'Realizada'
-                            : 'Pendiente';
+                        final Color colorEstado = esRealizada ? verdePrincipal : Colors.orange;
+                        final String textoEstado = esRealizada ? 'Realizada' : 'Pendiente';
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
@@ -213,8 +223,7 @@ class _ContainerPerfilEmpleadoCuatroState
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
@@ -228,75 +237,60 @@ class _ContainerPerfilEmpleadoCuatroState
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  InkWell(
-                                    onTap: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            title: const Text(
-                                              'Modificar Estado',
-                                            ),
-                                            content: Text(
-                                              '¿Deseas cambiar el estado de "$titulo" a ${esRealizada ? "Pendiente" : "Realizada"}?',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: const Text('Cancelar'),
-                                              ),
-                                              TextButton(
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-                                                  _cambiarEstadoCapacitacion(
-                                                    idDocumento: idDocumento,
-                                                    rutLimpio: rutLimpio,
-                                                    esRealizadaActual:
-                                                        esRealizada,
-                                                  );
-                                                },
-                                                child: const Text('Confirmar'),
-                                              ),
-                                            ],
-                                          );
+                                  
+                                  // Fila de acciones (Estado + Botón Desasignar)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Badge de Estado Interactivo
+                                      InkWell(
+                                        onTap: () {
+                                          _mostrarDialogoEstado(titulo, esRealizada, idDocumento, rutLimpio);
                                         },
-                                      );
-                                    },
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 3,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: colorEstado.withOpacity(0.08),
                                         borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(
-                                          color: colorEstado.withOpacity(0.5),
-                                          width: 1,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: colorEstado.withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: colorEstado.withOpacity(0.5),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Text(
+                                                textoEstado,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: colorEstado,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(Icons.edit, size: 12, color: colorEstado),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            textoEstado,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: colorEstado,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Icon(
-                                            Icons.edit,
-                                            size: 12,
-                                            color: colorEstado,
-                                          ),
-                                        ],
+                                      const SizedBox(width: 6),
+                                      
+                                      // 🔥 BOTÓN PARA DESASIGNAR (Eliminar de la capacitación)
+                                      IconButton(
+                                        constraints: const BoxConstraints(),
+                                        padding: const EdgeInsets.all(4),
+                                        icon: const Icon(
+                                          Icons.delete_outline,
+                                          color: Colors.redAccent,
+                                          size: 20,
+                                        ),
+                                        tooltip: 'Desasignar empleado',
+                                        onPressed: () {
+                                          _mostrarDialogoDesasignar(titulo, idDocumento, rutLimpio);
+                                        },
                                       ),
-                                    ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -305,11 +299,7 @@ class _ContainerPerfilEmpleadoCuatroState
                               // Institución
                               Row(
                                 children: [
-                                  Icon(
-                                    Icons.business,
-                                    size: 16,
-                                    color: verdePrincipal,
-                                  ),
+                                  Icon(Icons.business, size: 16, color: verdePrincipal),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
@@ -325,14 +315,10 @@ class _ContainerPerfilEmpleadoCuatroState
                               ),
                               const SizedBox(height: 6),
 
-                              // Fecha de Vencimiento / Fin
+                              // Fecha de Vencimiento
                               Row(
                                 children: [
-                                  Icon(
-                                    Icons.calendar_today,
-                                    size: 16,
-                                    color: verdePrincipal,
-                                  ),
+                                  Icon(Icons.calendar_today, size: 16, color: verdePrincipal),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Vence: $fechaVencimiento',
@@ -358,6 +344,66 @@ class _ContainerPerfilEmpleadoCuatroState
     );
   }
 
+  // 💬 Ventana de confirmación para cambiar estado
+  void _mostrarDialogoEstado(String titulo, bool esRealizada, String idDocumento, String rutLimpio) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Modificar Estado'),
+          content: Text('¿Deseas cambiar el estado de "$titulo" a ${esRealizada ? "Pendiente" : "Realizada"}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _cambiarEstadoCapacitacion(
+                  idDocumento: idDocumento,
+                  rutLimpio: rutLimpio,
+                  esRealizadaActual: esRealizada,
+                );
+              },
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 💬 Ventana de confirmación para desasignar por completo
+  void _mostrarDialogoDesasignar(String titulo, String idDocumento, String rutLimpio) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Desasignación', style: TextStyle(color: Colors.redAccent)),
+          content: Text('¿Estás seguro de que deseas quitar a este empleado de la capacitación "$titulo"?\n\nSe borrará todo su progreso en este curso.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              onPressed: () {
+                Navigator.pop(context);
+                _desasignarCapacitacion(
+                  idDocumento: idDocumento,
+                  rutLimpio: rutLimpio,
+                );
+              },
+              child: const Text('Desasignar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildErrorWidget() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -371,10 +417,7 @@ class _ContainerPerfilEmpleadoCuatroState
           children: [
             const Icon(Icons.cloud_off, size: 40, color: Colors.grey),
             const SizedBox(height: 8),
-            const Text(
-              "Error al cargar capacitaciones",
-              style: TextStyle(color: Colors.black54),
-            ),
+            const Text("Error al cargar capacitaciones", style: TextStyle(color: Colors.black54)),
             const SizedBox(height: 8),
             TextButton.icon(
               onPressed: () => setState(() => _retryKey++),
