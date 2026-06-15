@@ -1,98 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ContainerPerfilRRHHDos extends StatelessWidget {
-  const ContainerPerfilRRHHDos({super.key});
+  final String uid;
+  const ContainerPerfilRRHHDos({super.key, required this.uid});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 2,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Información de Contacto',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Fila Correo
-          Row(
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('usuarios').doc(uid).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 8)]),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.email_outlined, color: Color(0xFF388E3C), size: 24),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Correo Electrónico',
-                      style: TextStyle(
-                        color: Color(0xFF388E3C),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'andrea.torres@empresa.cl',
-                      style: TextStyle(color: Colors.black87, fontSize: 15),
-                    ),
-                  ],
-                ),
-              ),
+              const Text('Información de Contacto', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              _buildRow(Icons.email_outlined, 'Correo', data['email'] ?? 'N/A'),
+              const SizedBox(height: 18),
+              _buildRow(Icons.phone_outlined, 'Teléfono', data['telefono'] ?? 'N/A'),
             ],
           ),
-          const SizedBox(height: 18),
-
-          // Fila Teléfono
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.phone_outlined, color: Color(0xFF388E3C), size: 24),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Teléfono',
-                      style: TextStyle(
-                        color: Color(0xFF388E3C),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      '+56 9 1234 5678',
-                      style: TextStyle(color: Colors.black87, fontSize: 15),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
+
+  Widget _buildRow(IconData icon, String label, String val) => Row(children: [Icon(icon, color: const Color(0xFF388E3C)), const SizedBox(width: 14), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Color(0xFF388E3C), fontSize: 13)), Text(val, style: const TextStyle(fontSize: 15))])]);
 }

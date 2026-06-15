@@ -181,7 +181,7 @@ class CardFechasCapacitacion extends StatelessWidget {
 }
 
 class CardListaEmpleadosCruce extends StatelessWidget {
-  final dynamic rutsCampo;
+  final List<Map<String, dynamic>> rutsCampo;
   final String tituloSeccion;
   final IconData icono;
   final Color colorIcono;
@@ -196,37 +196,8 @@ class CardListaEmpleadosCruce extends StatelessWidget {
     required this.mensajeVacio,
   });
 
-  String _limpiarRut(String rutRaw) {
-    return rutRaw.toLowerCase().replaceAll(RegExp(r'[^0-9kK]'), '').trim();
-  }
-
-  List<String> _procesarRuts(dynamic campo) {
-    if (campo == null) return [];
-    if (campo is List) {
-      return campo
-          .map((e) => _limpiarRut(e.toString()))
-          .where((e) => e.isNotEmpty)
-          .toList();
-    }
-    if (campo is String) {
-      if (campo.trim().isEmpty) return [];
-      return campo
-          .split(',')
-          .map((e) => _limpiarRut(e))
-          .where((e) => e.isNotEmpty)
-          .toList();
-    }
-    return [];
-  }
-
   @override
   Widget build(BuildContext context) {
-    final rutsCapacitacion = _procesarRuts(rutsCampo);
-
-    // 🟢 PRINT DIAGNÓSTICO 1
-    print("=== [DEBUG] $tituloSeccion ===");
-    print("RUTs que llegaron procesados de la capacitación: $rutsCapacitacion");
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -234,7 +205,11 @@ class CardListaEmpleadosCruce extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
@@ -249,116 +224,73 @@ class CardListaEmpleadosCruce extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          if (rutsCapacitacion.isEmpty)
+          const SizedBox(height: 12),
+
+          if (rutsCampo.isEmpty)
             Text(
               mensajeVacio,
-              style: const TextStyle(color: Colors.black45, fontSize: 14),
+              style: const TextStyle(
+                color: Colors.black54,
+              ),
             )
           else
-            FutureBuilder<QuerySnapshot>(
-              future: FirebaseFirestore.instance.collection('empleados').get(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: rutsCampo.length,
+              itemBuilder: (context, index) {
+                final emp = rutsCampo[index];
+
+                final nombre =
+                    emp['nombre']?.toString() ?? '';
+
+                final apellido =
+                    emp['apellido']?.toString() ?? '';
+
+                final rut =
+                    emp['rut']?.toString() ?? '';
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.account_circle,
                         color: Color(0xFF2E7D32),
+                        size: 24,
                       ),
-                    ),
-                  );
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Text(
-                    "No se encontraron empleados registrados en el sistema.",
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
-                  );
-                }
+                      const SizedBox(width: 12),
 
-                // Filtrar empleados
-                final empleadosFiltrados = snapshot.data!.docs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final rutEmpleadoRaw = data['rut']?.toString() ?? '';
-                  final rutEmpleadoLimpio = _limpiarRut(rutEmpleadoRaw);
-
-                  final coincide = rutsCapacitacion.contains(rutEmpleadoLimpio);
-
-                  // 🟢 PRINT DIAGNÓSTICO 2 (Ver por qué no coincide)
-                  print(
-                    "Comparando en BD: Original='$rutEmpleadoRaw' -> Limpio='$rutEmpleadoLimpio' | ¿Coincide?: $coincide",
-                  );
-
-                  return coincide;
-                }).toList();
-
-                print(
-                  "Total empleados cruzados que sí hicieron match: ${empleadosFiltrados.length}",
-                );
-
-                if (empleadosFiltrados.isEmpty) {
-                  return Text(
-                    mensajeVacio,
-                    style: const TextStyle(fontSize: 14, color: Colors.black45),
-                  );
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: empleadosFiltrados.length,
-                  itemBuilder: (context, index) {
-                    final emp =
-                        empleadosFiltrados[index].data()
-                            as Map<String, dynamic>;
-                    final nombreCompleto =
-                        "${emp['nombres'] ?? ''} ${emp['apellidos'] ?? ''}";
-                    final cargo = emp['cargo'] ?? 'Sin cargo asignado';
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6.0),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.account_circle,
-                            color: Color(0xFF2E7D32),
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  nombreCompleto,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                Text(
-                                  "$cargo • RUT: ${emp['rut']}",
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                              ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "$nombre $apellido",
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
+                            Text(
+                              rut,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 );
               },
             ),
@@ -367,3 +299,4 @@ class CardListaEmpleadosCruce extends StatelessWidget {
     );
   }
 }
+

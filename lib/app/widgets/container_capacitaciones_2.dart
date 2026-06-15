@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:proyecto_flutter/app/services/capacitaciones_service.dart';
 
 class ContainerCapacitacionesDos extends StatefulWidget {
   const ContainerCapacitacionesDos({super.key});
@@ -12,6 +12,7 @@ class ContainerCapacitacionesDos extends StatefulWidget {
 class _ContainerCapacitacionesDosState
     extends State<ContainerCapacitacionesDos> {
   late Future<Map<String, int>> _conteoFuture;
+  final CapacitacionesService _service = CapacitacionesService();
 
   @override
   void initState() {
@@ -20,33 +21,7 @@ class _ContainerCapacitacionesDosState
   }
 
   void _cargarConteos() {
-    _conteoFuture = _obtenerConteoCapacitaciones();
-  }
-
-  Future<Map<String, int>> _obtenerConteoCapacitaciones() async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('capacitaciones')
-          .get()
-          .timeout(const Duration(seconds: 10));
-
-      int pendientes = 0;
-      int realizadas = 0;
-
-      for (var doc in snapshot.docs) {
-        final estado = (doc['estado'] ?? '').toString().trim().toLowerCase();
-        if (estado == 'pendiente') pendientes++;
-        if (estado == 'realizada') realizadas++;
-      }
-
-      return {
-        'pendientes': pendientes,
-        'realizadas': realizadas,
-        'totales': snapshot.docs.length,
-      };
-    } catch (e) {
-      throw Exception('Fallo al conectar con el servidor');
-    }
+    _conteoFuture = _service.obtenerConteos();
   }
 
   @override
@@ -87,7 +62,10 @@ class _ContainerCapacitacionesDosState
         }
 
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
 
         final data = snapshot.data!;

@@ -45,7 +45,7 @@ class ContainerDetalleTrabajador extends StatelessWidget {
           Row(
             children: [
               Expanded(child: _buildDatoItemWithIcon(Icons.business_center_outlined, 'Cargo', datos['cargo'] ?? 'Analista de Sistemas')),
-              Expanded(child: _buildDatoItemWithIcon(Icons.domain_outlined, 'Área', datos['area'] ?? 'Tecnología')),
+              //Expanded(child: _buildDatoItemWithIcon(Icons.domain_outlined, 'Área', datos['area'] ?? 'Tecnología')), (No existe "Area" recordar eliminar este campo)
             ],
           ),
         ],

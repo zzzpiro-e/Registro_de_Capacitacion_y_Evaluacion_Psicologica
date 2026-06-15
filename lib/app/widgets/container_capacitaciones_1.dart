@@ -16,7 +16,7 @@ class ContainerCapacitacionesUno extends StatelessWidget {
             onTap: onBackTap ?? () => Navigator.pop(context),
             child: const Icon(
               Icons.arrow_back_ios_new,
-              color: Color(0xFF2E7D32), // verde institucional
+              color: Color(0xFF2E7D32),
               size: 22,
             ),
           ),

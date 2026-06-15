@@ -104,6 +104,28 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
 
   Future<void> _seleccionarYSubirInforme() async {
     if (_estaSubiendo) return;
+
+    // 🔹 CORRECCIÓN / REQUISITO: Validar el límite máximo de 4 PDFs
+    final listadoInformesActuales = widget.derivacion['informes'] as List?;
+    if (listadoInformesActuales != null && listadoInformesActuales.length >= 4) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.white),
+                SizedBox(width: 10),
+                Expanded(child: Text('Límite alcanzado: Máximo 4 informes por derivación.')),
+              ],
+            ),
+            backgroundColor: Colors.amber.shade900,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return; // Detiene la ejecución antes de abrir el FilePicker
+    }
+
     setState(() => _estaSubiendo = true);
 
     try {
@@ -115,6 +137,35 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
 
       if (result != null && result.files.single.bytes != null) {
         final platformFile = result.files.single;
+
+        // 🛑 NUEVA VALIDACIÓN: Limitar el tamaño del PDF (Límite: 5 Megabytes)
+        const int maxBytes = 5 * 1024 * 1024; // 5.242.880 bytes
+        if (platformFile.size > maxBytes) {
+          if (mounted) {
+            final double tamanoEnMB = platformFile.size / (1024 * 1024);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'El archivo supera el límite de 5 MB. (Peso actual: ${tamanoEnMB.toStringAsFixed(2)} MB)',
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.red.shade800,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          // Cambiamos el estado de subida a falso y cancelamos el flujo
+          setState(() => _estaSubiendo = false);
+          return;
+        }
+
         final String nombreArchivo = platformFile.name;
         final Uint8List archivoBytes = platformFile.bytes!;
 
@@ -233,6 +284,10 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
     final Map<String, dynamic> datosMapeadosParaPdf = Map<String, dynamic>.from(widget.derivacion);
     datosMapeadosParaPdf['id_documento'] = widget.derivacion['id'] ?? 'N/A';
 
+    // 🔹 EXTRA: Validamos la cantidad de PDFs directamente para cambiar el estilo o deshabilitar visualmente el botón
+    final listadoInformesActuales = widget.derivacion['informes'] as List?;
+    final bool alcanzoLimitePdfs = listadoInformesActuales != null && listadoInformesActuales.length >= 4;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       decoration: BoxDecoration(
@@ -260,7 +315,6 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
                     padding: const EdgeInsets.only(bottom: 16, top: 8),
                     child: Column(
                       children: [
-                        // Acción 1: Iniciar Atención Rápida
                         ElevatedButton.icon(
                           onPressed: () async {
                             if (widget.estadoActual == 'Pendiente') {
@@ -282,11 +336,9 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Acción 2: Generar Comprobante PDF
                         ContainerComprobanteBoton(derivacion: datosMapeadosParaPdf),
                         const SizedBox(height: 10),
 
-                        // Acción 3: Cambiar Estado Manual
                         OutlinedButton.icon(
                           onPressed: _estaSubiendo ? null : _mostrarMenuEstados,
                           icon: const Icon(Icons.edit_note_outlined, color: Color(0xFF2E7D32)),
@@ -299,23 +351,34 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Acción 4: Subir Informe Psicológico
+                        // Botón de subir informe con control visual de límite
                         ElevatedButton.icon(
+                          // Si ya está subiendo, completado o alcanzó el límite, cambia el comportamiento
                           onPressed: (_estaSubiendo || yaEstaCompletado) ? null : _seleccionarYSubirInforme,
                           icon: _estaSubiendo 
                               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                               : const Icon(Icons.assignment_turned_in_outlined, color: Colors.white),
                           label: Text(
-                            _estaSubiendo ? 'Cargando Archivo...' : 'Subir Informe Psicológico', 
+                            _estaSubiendo 
+                                ? 'Cargando Archivo...' 
+                                : alcanzoLimitePdfs 
+                                    ? 'Límite alcanzado (4/4 PDFs)' 
+                                    : 'Subir Informe Psicológico', 
                             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: yaEstaCompletado ? Colors.grey : const Color(0xFF4CAF50),
+                            // Si se alcanzó el límite de 4, pintamos el botón gris o naranja oscuro para denotar bloqueo
+                            backgroundColor: yaEstaCompletado 
+                                ? Colors.grey 
+                                : alcanzoLimitePdfs 
+                                    ? Colors.orange.shade800 
+                                    : const Color(0xFF4CAF50),
                             minimumSize: const Size(double.infinity, 48),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
                         ),
+                        const SizedBox(height: 10),
                         const Divider(height: 24, thickness: 1),
                       ],
                     ),
@@ -323,14 +386,13 @@ class _ContainerDetalleAccionesState extends State<ContainerDetalleAcciones> {
                 : const SizedBox.shrink(),
           ),
 
-          // BOTÓN CENTRAL ÚNICO
           SizedBox(
             width: double.infinity,
             height: 52,
             child: ElevatedButton.icon(
               onPressed: () {
                 setState(() {
-                  _mostrarMenuAcciones = !_mostrarMenuAcciones; // Invierte el estado desplegado
+                  _mostrarMenuAcciones = !_mostrarMenuAcciones;
                 });
               },
               icon: Icon(

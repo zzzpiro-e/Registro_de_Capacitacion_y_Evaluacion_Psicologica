@@ -1,53 +1,110 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 class CapacitacionesService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // ==================== STREAMS ORIGINALES ====================
+  // ==================== STREAMS ====================
   
   Stream<QuerySnapshot> obtenerCapacitaciones() {
     return _firestore.collection('capacitaciones').snapshots();
   }
 
-  // NUEVO: Obtener capacitaciones filtradas por estado (optimizado)
   Stream<QuerySnapshot> obtenerCapacitacionesPorEstado(String estado) {
     if (estado == 'todas') {
       return obtenerCapacitaciones();
     }
-    
     return _firestore
         .collection('capacitaciones')
         .where('estado', isEqualTo: estado)
         .snapshots();
   }
 
-  // ==================== MÉTODOS EXISTENTES (MANTENIDOS) ====================
+  // ==================== MÉTODOS PARA CONTEOS ====================
+  
+  Future<Map<String, int>> obtenerConteos() async {
+    try {
+      final snapshot = await _firestore
+          .collection('capacitaciones')
+          .get()
+          .timeout(const Duration(seconds: 10));
+
+      int pendientes = 0;
+      int realizadas = 0;
+
+      for (var doc in snapshot.docs) {
+        final estado = (doc['estado'] ?? '').toString().trim().toLowerCase();
+        if (estado == 'pendiente') pendientes++;
+        if (estado == 'realizada') realizadas++;
+      }
+
+      return {
+        'pendientes': pendientes,
+        'realizadas': realizadas,
+        'totales': snapshot.docs.length,
+      };
+    } catch (e) {
+      throw Exception('Fallo al conectar con el servidor');
+    }
+  }
+
+  // ==================== MÉTODOS PARA LISTAS ====================
   
   List<String> convertirAListaString(dynamic campo) {
     if (campo == null) return [];
-
     if (campo is List) {
       return campo
           .map((e) => e.toString().trim())
           .where((e) => e.isNotEmpty)
           .toList();
     }
-
     if (campo is String) {
       if (campo.trim().isEmpty) return [];
-
       return campo
           .split(',')
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList();
     }
-
     return [];
   }
 
-  // MÉTODO EXISTENTE MEJORADO
+  // ==================== MÉTODOS PARA CONVERSIÓN ====================
+  
+  Map<String, dynamic> convertirDocumento(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final docId = doc.id;
+
+    return {
+      ...data,
+      'id': docId,
+      'fechaInicioFormateada': _formatearFecha(data['fechaInicio']),
+      'fechaFinFormateada': _formatearFecha(data['fechaFin']),
+      'estadoNormalizado': (data['estado'] ?? 'pendiente').toString().toLowerCase(),
+      'esRealizada': (data['estado'] ?? 'pendiente').toString().toLowerCase() == 'realizada',
+    };
+  }
+
+  List<Map<String, dynamic>> convertirLista(QuerySnapshot snapshot) {
+    return snapshot.docs.map((doc) => convertirDocumento(doc)).toList();
+  }
+
+  // ==================== MÉTODOS PARA FILTRADO ====================
+  
+  List<Map<String, dynamic>> filtrarPorEstado(
+    List<Map<String, dynamic>> capacitaciones,
+    String estado,
+  ) {
+    if (estado == 'todas') return capacitaciones;
+    
+    return capacitaciones.where((cap) {
+      final estadoCap = (cap['estado'] ?? 'pendiente').toString().toLowerCase();
+      return estadoCap == estado;
+    }).toList();
+  }
+
+  // ==================== MÉTODOS PARA ESTADOS ====================
+  
   Future<void> verificarYActualizarEstado(
     String docId,
     dynamic asignados,
@@ -72,7 +129,6 @@ class CapacitacionesService {
             .collection('capacitaciones')
             .doc(docId)
             .update({'estado': 'realizada'});
-
         debugPrint('Capacitación $docId completada con éxito.');
       } catch (e) {
         debugPrint('Error en actualización automática: $e');
@@ -80,14 +136,11 @@ class CapacitacionesService {
     }
   }
 
-  // NUEVO: Verificar múltiples capacitaciones (para initState)
   Future<void> verificarTodosLosEstados() async {
     final snapshot = await _firestore.collection('capacitaciones').get();
-    
     for (final doc in snapshot.docs) {
       final data = doc.data();
       final estadoActual = (data['estado'] ?? 'pendiente').toString();
-      
       await verificarYActualizarEstado(
         doc.id,
         data['empleadosAsignados'],
@@ -97,73 +150,29 @@ class CapacitacionesService {
     }
   }
 
-  // ==================== NUEVOS MÉTODOS OPTIMIZADOS ====================
-
-  // Convertir un solo documento a modelo
-  Map<String, dynamic> convertirDocumento(QueryDocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    final docId = doc.id;
-
-    return {
-      ...data,
-      'id': docId,
-      'estadoNormalizado': _normalizarEstado(data['estado']),
-      'fechaInicioFormateada': _formatearFecha(data['fechaInicio']),
-      'fechaFinFormateada': _formatearFecha(data['fechaFin']),
-      'progreso': _calcularProgreso(
-        data['empleadosAsignados'],
-        data['empleadosRealizaron'],
-      ),
-    };
+  // ==================== MÉTODOS ESTÁTICOS PARA UI ====================
+  
+  static Color getColorEtiqueta(String estado) {
+    final esRealizada = estado.toLowerCase() == 'realizada';
+    return esRealizada ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
   }
 
-  // Convertir lista completa (reemplaza el map que hacías en el widget)
-  List<Map<String, dynamic>> convertirLista(QuerySnapshot snapshot) {
-    return snapshot.docs.map((doc) => convertirDocumento(doc)).toList();
+  static Color getColorTexto(String estado) {
+    final esRealizada = estado.toLowerCase() == 'realizada';
+    return esRealizada ? const Color(0xFF2E7D32) : Colors.orange;
   }
 
-  // Filtrar en memoria (fallback si no usas el stream filtrado)
-  List<Map<String, dynamic>> filtrarPorEstado(
-    List<Map<String, dynamic>> capacitaciones,
-    String estado,
-  ) {
-    if (estado == 'todas') return capacitaciones;
-    
-    return capacitaciones.where((cap) {
-      final estadoCap = (cap['estado'] ?? 'pendiente').toString().toLowerCase();
-      return estadoCap == estado;
-    }).toList();
+  static IconData getIconoEstado(String estado) {
+    final esRealizada = estado.toLowerCase() == 'realizada';
+    return esRealizada ? Icons.check_circle : Icons.schedule;
   }
 
-  // Obtener estadísticas para el dashboard
-  Future<Map<String, int>> obtenerEstadisticas() async {
-    final snapshot = await _firestore.collection('capacitaciones').get();
-    
-    int pendientes = 0;
-    int realizadas = 0;
-    
-    for (final doc in snapshot.docs) {
-      final estado = (doc.data()['estado'] ?? 'pendiente').toString().toLowerCase();
-      if (estado == 'pendiente') {
-        pendientes++;
-      } else if (estado == 'realizada') {
-        realizadas++;
-      }
-    }
-    
-    return {
-      'pendientes': pendientes,
-      'realizadas': realizadas,
-      'totales': snapshot.docs.length,
-    };
+  static String getTextoEstado(String estado) {
+    final esRealizada = estado.toLowerCase() == 'realizada';
+    return esRealizada ? 'Realizada' : 'Pendiente';
   }
 
   // ==================== MÉTODOS PRIVADOS ====================
-
-  String _normalizarEstado(dynamic estado) {
-    final estadoStr = (estado ?? 'pendiente').toString().trim().toLowerCase();
-    return estadoStr;
-  }
 
   String _formatearFecha(Timestamp? timestamp) {
     if (timestamp == null) return 'Sin fecha';
@@ -171,14 +180,73 @@ class CapacitacionesService {
     return "${fecha.day}/${fecha.month}/${fecha.year}";
   }
 
-  int _calcularProgreso(dynamic asignados, dynamic realizaron) {
-    final listaAsignados = convertirAListaString(asignados);
-    final listaRealizaron = convertirAListaString(realizaron);
-    
-    final total = listaAsignados.length;
-    final realizados = listaRealizaron.length;
-    
-    if (total == 0) return 0;
-    return ((realizados / total) * 100).round();
+  // ==================== MÉTODOS ADICIONALES ====================
+
+Future<List<Map<String, dynamic>>> obtenerDetallesEmpleados(
+  List<String> ruts,
+) async {
+  String normalizar(String rut) {
+    return rut
+        .replaceAll('.', '')
+        .replaceAll('-', '')
+        .replaceAll(' ', '')
+        .trim()
+        .toLowerCase();
   }
+
+  final snapshot = await _firestore.collection('empleados').get();
+
+  List<Map<String, dynamic>> resultado = [];
+
+  for (final rutBuscado in ruts) {
+    final rutNormalizado = normalizar(rutBuscado);
+
+    debugPrint("");
+    debugPrint("=================================");
+    debugPrint("BUSCANDO RUT: $rutBuscado");
+    debugPrint("NORMALIZADO: $rutNormalizado");
+
+    Map<String, dynamic>? empleado;
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+
+      final rutCampo =
+          data['rut']?.toString() ??
+          '';
+
+      final rutCampoNormalizado = normalizar(rutCampo);
+
+      if (rutCampoNormalizado == rutNormalizado) {
+        empleado = {
+          'rut': rutCampo,
+          'nombre': data['nombres'] ?? '',
+          'apellido': data['apellidos'] ?? '',
+        };
+
+        debugPrint(
+          "ENCONTRADO -> ${data['nombres']} ${data['apellidos']}",
+        );
+
+        break;
+      }
+    }
+
+    if (empleado != null) {
+      resultado.add(empleado);
+    } else {
+      debugPrint("NO ENCONTRADO -> $rutBuscado");
+
+      resultado.add({
+        'rut': rutBuscado,
+        'nombre': 'RUT: $rutBuscado',
+        'apellido': '(Perfil pendiente)',
+      });
+    }
+  }
+
+  debugPrint("=================================");
+
+  return resultado;
+}
 }
