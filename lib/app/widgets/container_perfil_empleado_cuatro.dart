@@ -1,12 +1,4 @@
-El error está exactamente en la función **`_cambiarEstadoCapacitacion`**. Al pasar un empleado a "Realizada", el código ejecuta un `FieldValue.arrayRemove` dentro de `empleadosAsignados`. Eso causa que el RUT se borre de la lista original.
 
-Si tu idea es que **`empleadosAsignados` sea la lista fija de todos los que deben tomar el curso** y que `empleadosRealizaron` solo vaya sumando a los que terminan (sin sacarlos de la primera), no debemos removerlos de ninguna parte.
-
-Además, para que las consultas (`FutureBuilder`) no dupliquen tarjetas en la pantalla ahora que un empleado puede estar en ambas listas al mismo tiempo, corregí la función **`_obtenerCapacitaciones`** y unifiqué la lógica para que determine el estado real de forma precisa.
-
-Aquí tienes el código completo corregido:
-
-```dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -396,5 +388,3 @@ class _ContainerPerfilEmpleadoCuatroState
     );
   }
 }
-
-```
