@@ -7,11 +7,14 @@ import 'package:proyecto_flutter/app/utils/text_utils.dart';
 class AdminWorkersListScreen extends StatefulWidget {
   final String initialRoleFilter;
   final String initialStatusFilter;
+  // 🟢 1. Declaramos el callback requerido
+  final VoidCallback onReturnToInicio; 
 
   const AdminWorkersListScreen({
     super.key,
     this.initialRoleFilter = 'todos',
     this.initialStatusFilter = 'todos',
+    required this.onReturnToInicio, // 🟢 2. Lo exigimos en el constructor
   });
 
   @override
@@ -442,164 +445,169 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
     const Color verdeBoton = Color(0xFF008744);
     const Color fondoGrisPantalla = Color(0xFFF5F5F5);
 
-    return Scaffold(
-      backgroundColor: fondoGrisPantalla,
-      // 🟢 APPBAR BLANCO LIMPIO (Sin el cuadro verde superior gigante)
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Lista de Trabajadores',
-          style: TextStyle(
-            color: Color(0xFF202124),
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
+    // 🟢 3. Envolvemos el Scaffold con el PopScope para atrapar el botón físico/gesto de atrás
+    return PopScope(
+      canPop: false, // Cancelamos la destrucción nativa de la pantalla
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        widget.onReturnToInicio(); // Forzamos el salto a la pestaña de Inicio
+      },
+      child: Scaffold(
+        backgroundColor: fondoGrisPantalla,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
+            // 🟢 4. Cambiamos el Navigator.pop por nuestro callback de la Navbar
+            onPressed: () => widget.onReturnToInicio(), 
+          ),
+          title: const Text(
+            'Lista de Trabajadores',
+            style: TextStyle(
+              color: Color(0xFF202124),
+              fontWeight: FontWeight.bold,
+              fontSize: 22,
+            ),
           ),
         ),
-      ),
-      body: Column(
-        children: [
-          // 🟢 BARRA DE BÚSQUEDA ADAPTADA AL ESTILO DE TUS INPUTS (Gris perimetral plano)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 12.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F3F4), // Gris exacto de los inputs anteriores
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: const Color(0xFF757575).withOpacity(0.4),
-                  width: 1,
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 12.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F3F4),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF757575).withOpacity(0.4),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 16, right: 8),
+                      child: Icon(
+                        Icons.search,
+                        color: Color(0xFF757575),
+                        size: 22,
+                    ),
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        style: const TextStyle(color: Colors.black87, fontSize: 16),
+                        decoration: const InputDecoration(
+                          hintText: 'Buscar por nombre o RUT...',
+                          hintStyle: TextStyle(color: Color(0xFF757575), fontSize: 15),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _query = TextUtils.quitarTildes(value.trim());
+                          });
+                        },
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Filtros',
+                      onPressed: _abrirFiltros,
+                      icon: const Icon(
+                        Icons.filter_alt_outlined,
+                        color: verdeBoton,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(left: 16, right: 8),
-                    child: Icon(
-                      Icons.search,
-                      color: Color(0xFF757575),
-                      size: 22,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: Colors.black87, fontSize: 16),
-                      decoration: const InputDecoration(
-                        hintText: 'Buscar por nombre o RUT...',
-                        hintStyle: TextStyle(color: Color(0xFF757575), fontSize: 15),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 14),
+            ),
+
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('trabajadores')
+                    .orderBy('fechaCreacion', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: verdeBoton),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No hay trabajadores registrados.',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _query = TextUtils.quitarTildes(value.trim());
-                        });
-                      },
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Filtros',
-                    onPressed: _abrirFiltros,
-                    icon: const Icon(
-                      Icons.filter_alt_outlined,
-                      color: verdeBoton,
-                    ),
-                  ),
-                ],
+                    );
+                  }
+
+                  final listaTrabajadores = snapshot.data!.docs.where((doc) {
+                    final datos = doc.data() as Map<String, dynamic>;
+                    final nombre = TextUtils.quitarTildes((datos['nombre'] ?? '').toString());
+                    final rut = TextUtils.quitarTildes((datos['rut']?.toString() ?? ''));
+                    final rol = (datos['rol'] ?? '').toString().toLowerCase();
+                    final bool esActivo = (datos['activo'] ?? true) == true;
+
+                    final coincideBusqueda =
+                        _query.isEmpty || nombre.contains(_query) || rut.contains(_query);
+                    final coincideRol =
+                        _selectedRoleFilter == 'todos' || rol == _selectedRoleFilter;
+                    final coincideEstado =
+                        _selectedStatusFilter == 'todos' ||
+                        (_selectedStatusFilter == 'activo' && esActivo) ||
+                        (_selectedStatusFilter == 'desactivado' && !esActivo);
+
+                    return coincideBusqueda && coincideRol && coincideEstado;
+                  }).toList();
+
+                  if (listaTrabajadores.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No hay trabajadores para ese filtro.',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(24.0, 12.0, 24.0, 24.0),
+                    itemCount: listaTrabajadores.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 14),
+                    itemBuilder: (context, index) {
+                      var doc = listaTrabajadores[index];
+                      var datos = doc.data() as Map<String, dynamic>;
+                      bool esPsicologo = datos['rol'] == 'psicologo';
+                      bool isActive = (datos['activo'] ?? true) == true;
+                      String idTrabajador = datos['uid']?.toString() ?? doc.id;
+
+                      return _buildEmployeeCard(
+                        uid: idTrabajador,
+                        name: datos['nombre'] ?? 'Sin Nombre',
+                        rut: datos['rut'] ?? 'Sin RUT',
+                        role: esPsicologo ? 'Psicólogo' : 'RRHH',
+                        isPsychologist: esPsicologo,
+                        isActive: isActive,
+                      );
+                    },
+                  );
+                },
               ),
             ),
-          ),
-
-          // Listado reactivo de trabajadores
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('trabajadores')
-                  .orderBy('fechaCreacion', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: verdeBoton),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No hay trabajadores registrados.',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                    ),
-                  );
-                }
-
-                final listaTrabajadores = snapshot.data!.docs.where((doc) {
-                  final datos = doc.data() as Map<String, dynamic>;
-                  final nombre = TextUtils.quitarTildes((datos['nombre'] ?? '').toString());
-                  final rut = TextUtils.quitarTildes((datos['rut']?.toString() ?? ''));
-                  final rol = (datos['rol'] ?? '').toString().toLowerCase();
-                  final bool esActivo = (datos['activo'] ?? true) == true;
-
-                  final coincideBusqueda =
-                      _query.isEmpty || nombre.contains(_query) || rut.contains(_query);
-                  final coincideRol =
-                      _selectedRoleFilter == 'todos' || rol == _selectedRoleFilter;
-                  final coincideEstado =
-                      _selectedStatusFilter == 'todos' ||
-                      (_selectedStatusFilter == 'activo' && esActivo) ||
-                      (_selectedStatusFilter == 'desactivado' && !esActivo);
-
-                  return coincideBusqueda && coincideRol && coincideEstado;
-                }).toList();
-
-                if (listaTrabajadores.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No hay trabajadores para ese filtro.',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                    ),
-                  );
-                }
-
-                return ListView.separated(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(24.0, 12.0, 24.0, 24.0),
-                  itemCount: listaTrabajadores.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 14),
-                  itemBuilder: (context, index) {
-                    var doc = listaTrabajadores[index];
-                    var datos = doc.data() as Map<String, dynamic>;
-                    bool esPsicologo = datos['rol'] == 'psicologo';
-                    bool isActive = (datos['activo'] ?? true) == true;
-                    String idTrabajador = datos['uid']?.toString() ?? doc.id;
-
-                    return _buildEmployeeCard(
-                      uid: idTrabajador,
-                      name: datos['nombre'] ?? 'Sin Nombre',
-                      rut: datos['rut'] ?? 'Sin RUT',
-                      role: esPsicologo ? 'Psicólogo' : 'RRHH',
-                      isPsychologist: esPsicologo,
-                      isActive: isActive,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // 🟢 TARJETAS DE TRABAJADORES ESTILO PLANO LIMPIO (Sin sombras pesadas, con borde sutil)
   Widget _buildEmployeeCard({
     required String uid,
     required String name,
@@ -618,13 +626,12 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFEAEAEA), // Borde plano sutil perimetral
+          color: const Color(0xFFEAEAEA),
           width: 1.5,
         ),
       ),
       child: Row(
         children: [
-          // Contenedor del ícono lateral de persona
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -711,7 +718,6 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
             ),
           ),
 
-          // Acciones rápidas (Editar / Eliminar)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [

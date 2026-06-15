@@ -13,8 +13,7 @@ class AdminMainScreen extends StatefulWidget {
   @override
   State<AdminMainScreen> createState() => _AdminMainScreenState();
 }
-
-class _AdminMainScreenState extends State<AdminMainScreen> {
+class _AdminMainScreenState extends State<AdminMainScreen> with WidgetsBindingObserver {
   int _currentIndex = 0; 
   String _workersRoleFilter = 'todos';
   String _workersStatusFilter = 'todos';
@@ -22,35 +21,81 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      _destruirSesionAdminPorSeguridad();
+    }
+  }
+
+  void _destruirSesionAdminPorSeguridad() async {
+    debugPrint("⚠️ Seguridad Admin: Detectado cierre o segundo plano. Destruyendo sesión activa...");
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (e) {
+      debugPrint("Error al cerrar sesión de forma automática: $e");
+    }
   }
 
   void _abrirTrabajadores(String filtroRol, String filtroEstado) {
     setState(() {
       _workersRoleFilter = filtroRol;
       _workersStatusFilter = filtroEstado;
-      _currentIndex = 2;
+      _currentIndex = 2; 
     });
   }
 
   void _abrirAuditoria() {
     setState(() {
-      _currentIndex = 3;
+      _currentIndex = 3; 
     });
   }
 
-  List<Widget> get _pages => [
-        AdminDashboardScreen(
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return AdminDashboardScreen(
           onOpenWorkersTab: _abrirTrabajadores,
           onOpenAuditoriaTab: _abrirAuditoria,
-        ),
-        AdminCreateScreen(),
-        AdminWorkersListScreen(
-          key: ValueKey(_workersRoleFilter),
+        );
+      case 1:
+        return AdminCreateScreen(
+          onReturnToInicio: () {
+            setState(() {
+              _currentIndex = 0; 
+            });
+          },
+        );
+      case 2:
+        return AdminWorkersListScreen(
+          key: ValueKey('${_workersRoleFilter}_${_workersStatusFilter}'), 
           initialRoleFilter: _workersRoleFilter,
           initialStatusFilter: _workersStatusFilter,
-        ),
-        const AdminAuditoriaScreen(),
-        AdminProfileScreen(
+          onReturnToInicio: () {
+            setState(() {
+              _currentIndex = 0; 
+            });
+          },
+        );
+      case 3:
+        return AdminAuditoriaScreen(
+          onReturnToInicio: () {
+            setState(() {
+              _currentIndex = 0; 
+            });
+          },
+        );
+      case 4:
+        return AdminProfileScreen(
           onLogout: () async {
             await FirebaseAuth.instance.signOut();
             if (context.mounted) {
@@ -61,20 +106,27 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
               );
             }
           },
-        ),
-      ];
+        );
+      default:
+        return const Center(child: Text('Página no encontrada'));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
       body: SafeArea(
-        child: _pages[_currentIndex], 
+        child: _buildPage(_currentIndex), 
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
+            if (index != 2) {
+              _workersRoleFilter = 'todos';
+              _workersStatusFilter = 'todos';
+            }
             _currentIndex = index;
           });
         },

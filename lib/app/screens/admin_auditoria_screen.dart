@@ -3,7 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class AdminAuditoriaScreen extends StatefulWidget {
-  const AdminAuditoriaScreen({super.key});
+  final VoidCallback onReturnToInicio;
+
+  const AdminAuditoriaScreen({
+    super.key,
+    required this.onReturnToInicio, 
+  });
 
   @override
   State<AdminAuditoriaScreen> createState() => _AdminAuditoriaScreenState();
@@ -13,7 +18,6 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
   String _filtroTipo   = 'todos';
   String _filtroModulo = 'todos';
 
-  // Línea visual unificada basada en el color corporativo plano y acentos limpios
   static const Color verdeBoton = Color(0xFF008744);
   static const Color fondoGrisPantalla = Color(0xFFF5F5F5);
 
@@ -97,150 +101,159 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: fondoGrisPantalla,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Historial & Auditoría',
-          style: TextStyle(
-            color: Color(0xFF202124),
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
+    // 🟢 3. Envolvemos con PopScope para atajar el botón físico/gesto nativo del sistema Android o iOS
+    return PopScope(
+      canPop: false, // Bloqueamos la salida por defecto
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        widget.onReturnToInicio(); // Redirige internamente al Inicio
+      },
+      child: Scaffold(
+        backgroundColor: fondoGrisPantalla,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
+            // 🟢 4. Cambiamos Navigator.pop por la llamada al callback
+            onPressed: () => widget.onReturnToInicio(),
           ),
-        ),
-      ),
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
-
-          // ── Filtro Módulo Estilizado ─────────────────────────────────────────
-          SizedBox(
-            height: 34,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              itemCount: _filtrosModulo.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final f   = _filtrosModulo[i];
-                final sel = _filtroModulo == f['valor'];
-                final col = f['color'] as Color;
-                return GestureDetector(
-                  onTap: () => setState(() => _filtroModulo = f['valor']),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: sel ? col.withOpacity(0.12) : Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: sel ? col : const Color(0xFFEAEAEA),
-                        width: sel ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Text(f['label'] as String,
-                        style: TextStyle(
-                          color: sel ? col : const Color(0xFF757575),
-                          fontWeight: sel ? FontWeight.bold : FontWeight.w500,
-                          fontSize: 12,
-                        )),
-                  ),
-                );
-              },
+          title: const Text(
+            'Historial & Auditoría',
+            style: TextStyle(
+              color: Color(0xFF202124),
+              fontWeight: FontWeight.bold,
+              fontSize: 22,
             ),
           ),
-
-          const SizedBox(height: 8),
-
-          // ── Filtro Tipo Estilizado ───────────────────────────────────────────
-          SizedBox(
-            height: 34,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              itemCount: _filtrosTipo.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final f   = _filtrosTipo[i];
-                final sel = _filtroTipo == f['valor'];
-                return GestureDetector(
-                  onTap: () => setState(() => _filtroTipo = f['valor']),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: sel ? verdeBoton.withOpacity(0.12) : Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: sel ? verdeBoton : const Color(0xFFEAEAEA),
-                        width: sel ? 1.5 : 1,
+        ),
+        body: Column(
+          children: [
+            const SizedBox(height: 16),
+    
+            // ── Filtro Módulo Estilizado ─────────────────────────────────────────
+            SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                itemCount: _filtrosModulo.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final f   = _filtrosModulo[i];
+                  final sel = _filtroModulo == f['valor'];
+                  final col = f['color'] as Color;
+                  return GestureDetector(
+                    onTap: () => setState(() => _filtroModulo = f['valor']),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: sel ? col.withOpacity(0.12) : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: sel ? col : const Color(0xFFEAEAEA),
+                          width: sel ? 1.5 : 1,
+                        ),
                       ),
-                    ),
-                    child: Row(children: [
-                      Icon(f['icon'] as IconData,
-                          size: 14,
-                          color: sel ? verdeBoton : const Color(0xFF757575)),
-                      const SizedBox(width: 6),
-                      Text(f['label'] as String,
+                      child: Text(f['label'] as String,
                           style: TextStyle(
-                            color: sel ? verdeBoton : const Color(0xFF757575),
+                            color: sel ? col : const Color(0xFF757575),
                             fontWeight: sel ? FontWeight.bold : FontWeight.w500,
                             fontSize: 12,
                           )),
-                    ]),
-                  ),
-                );
-              },
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // ── Listado de Eventos (Plano, Limpio y de Altura Constante) ─────────
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('auditoria')
-                  .orderBy('fecha', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator(color: verdeBoton, strokeWidth: 2.5));
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return _emptyState();
-                }
-
-                final docs = snapshot.data!.docs.where((doc) {
-                  final d = doc.data() as Map<String, dynamic>;
-                  final tipoOk = _filtroTipo == 'todos' || d['tipo'] == _filtroTipo;
-                  final moduloOk = _filtroModulo == 'todos' || d['modulo'] == _filtroModulo;
-                  return tipoOk && moduloOk;
-                }).toList();
-
-                if (docs.isEmpty) return _emptyState();
-
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final d = docs[index].data() as Map<String, dynamic>;
-                    return _eventCard(d);
-                  },
-                );
-              },
+    
+            const SizedBox(height: 8),
+    
+            // ── Filtro Tipo Estilizado ───────────────────────────────────────────
+            SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                itemCount: _filtrosTipo.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final f   = _filtrosTipo[i];
+                  final sel = _filtroTipo == f['valor'];
+                  return GestureDetector(
+                    onTap: () => setState(() => _filtroTipo = f['valor']),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: sel ? verdeBoton.withOpacity(0.12) : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: sel ? verdeBoton : const Color(0xFFEAEAEA),
+                          width: sel ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(children: [
+                        Icon(f['icon'] as IconData,
+                            size: 14,
+                            color: sel ? verdeBoton : const Color(0xFF757575)),
+                        const SizedBox(width: 6),
+                        Text(f['label'] as String,
+                            style: TextStyle(
+                              color: sel ? verdeBoton : const Color(0xFF757575),
+                              fontWeight: sel ? FontWeight.bold : FontWeight.w500,
+                              fontSize: 12,
+                            )),
+                      ]),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+    
+            const SizedBox(height: 16),
+    
+            // ── Listado de Eventos (Plano, Limpio y de Altura Constante) ─────────
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('auditoria')
+                    .orderBy('fecha', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                        child: CircularProgressIndicator(color: verdeBoton, strokeWidth: 2.5));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return _emptyState();
+                  }
+    
+                  final docs = snapshot.data!.docs.where((doc) {
+                    final d = doc.data() as Map<String, dynamic>;
+                    final tipoOk = _filtroTipo == 'todos' || d['tipo'] == _filtroTipo;
+                    final moduloOk = _filtroModulo == 'todos' || d['modulo'] == _filtroModulo;
+                    return tipoOk && moduloOk;
+                  }).toList();
+    
+                  if (docs.isEmpty) return _emptyState();
+    
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final d = docs[index].data() as Map<String, dynamic>;
+                      return _eventCard(d);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -276,7 +289,7 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center, // Centrado simétrico de los elementos
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: 38,
@@ -317,7 +330,6 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
                             overflow: TextOverflow.ellipsis),
                       ),
                     ]),
-                    // 🔲 El bloque de descripción repetitivo se removió para homogeneizar el tamaño
                     if (rolAnterior != null && rolNuevo != null) ...[
                       const SizedBox(height: 8),
                       Container(
@@ -555,7 +567,6 @@ class _DetalleAuditoria extends StatelessWidget {
                     if (fechaStr.isNotEmpty)
                       _infoRow(Icons.access_time_outlined, 'Fecha y hora', fechaStr),
                     const SizedBox(height: 12),
-                    // ℹ️ Aquí se conserva el mensaje para que el administrador pueda auditar el texto completo si lo desea
                     _infoRow(Icons.description_outlined, 'Descripción completa', descripcion),
 
                     if (rolAnterior != null && rolNuevo != null) ...[

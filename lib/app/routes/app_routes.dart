@@ -33,10 +33,13 @@ class AppRoutes {
       rolRequerido: 'admin',
       child: AdminMainScreen(),
     ),
-
-    'admin_auditoria': (BuildContext context) => const ContainerRoleValidador(
+    'admin_auditoria': (BuildContext context) => ContainerRoleValidador(
       rolRequerido: 'admin',
-      child: AdminAuditoriaScreen(),
+      child: AdminAuditoriaScreen(
+        onReturnToInicio: () {
+          Navigator.pop(context); 
+        },
+      ),
     ),
 
     'psicologo_main': (BuildContext context) => const ContainerRoleValidador(
@@ -73,9 +76,13 @@ class AppRoutes {
       child: CrearCapacitacionScreen(),
     ),
 
-    'create_worker': (context) => const ContainerRoleValidador(
+    'create_worker': (context) => ContainerRoleValidador(
       rolRequerido: 'admin',
-      child: AdminCreateScreen(),
+      child: AdminCreateScreen(
+        onReturnToInicio: () {
+          Navigator.pop(context);
+        },
+      ),
     ),
 
     'visor_pdf': (BuildContext context) => const ContainerRoleValidador(
