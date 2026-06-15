@@ -314,7 +314,10 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               TextFormField(
                 controller: _edadController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(2), // 🔹 Límite de 2 dígitos
+                ],
                 decoration: const InputDecoration(
                   hintText: 'Ej: 35',
                   border: OutlineInputBorder(
@@ -326,17 +329,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                     return 'Ingrese la edad';
                   }
                   final numero = int.tryParse(value);
-                  
-                  // Nueva lógica de validación
-                  if (numero == null) {
-                    return 'Ingrese una edad válida';
-                  }
-                  if (numero < 18) {
-                    return 'La edad mínima requerida es 18 años';
-                  }
-                  if (numero > 75) {
-                    return 'La edad máxima permitida es 75 años';
-                  }
+                  if (numero == null) return 'Ingrese una edad válida';
+                  if (numero < 18) return 'La edad mínima requerida es 18 años';
+                  if (numero > 75) return 'La edad máxima permitida es 75 años';
                   return null;
                 },
               ),
@@ -428,7 +423,10 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               TextFormField(
                 controller: _salarioController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(7),
+                ],
                 decoration: const InputDecoration(
                   hintText: '\$539.000',
                   border: OutlineInputBorder(
@@ -437,25 +435,17 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                 ),
                 onChanged: _formatearSalario,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingrese el salario';
-                  }
+                  if (value == null || value.isEmpty) return 'Ingrese el salario';
                   
-                  // Convertimos el formato con puntos a un número limpio
                   final limpio = value.replaceAll(RegExp(r'[^0-9]'), '');
                   if (limpio.isEmpty) return 'Ingrese el salario';
 
                   final numero = int.tryParse(limpio) ?? 0;
-                  
                   const int sueldoMinimo = 539000;
-                  const int sueldoMaximo = 2500000; // Tope máximo estimado para el cargo
+                  const int sueldoMaximo = 2500000;
 
-                  if (numero < sueldoMinimo) {
-                    return 'El salario debe ser al menos el mínimo (539.000)';
-                  }
-                  if (numero > sueldoMaximo) {
-                    return 'El salario supera el límite permitido para este cargo';
-                  }
+                  if (numero < sueldoMinimo) return 'El salario debe ser al menos \$539.000';
+                  if (numero > sueldoMaximo) return 'El salario supera el límite permitido';
                   return null;
                 },
               ),

@@ -310,14 +310,20 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
                 controller: _edadController,
                 enabled: !_isLoading,
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(2), // Restringe a máximo 2 caracteres
+                ],
                 decoration: _inputDecoration('Ej: 35'),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Ingrese la edad';
+                  
                   final numero = int.tryParse(v);
                   if (numero == null) return 'Ingrese una edad válida';
+                  
                   if (numero < 18) return 'La edad mínima requerida es 18 años';
                   if (numero > 75) return 'La edad máxima permitida es 75 años';
+                  
                   return null;
                 },
               ),
@@ -343,7 +349,10 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
                 controller: _salarioController,
                 enabled: !_isLoading,
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(7), // 🔹 Limita a 8 dígitos máximo
+                ],
                 onChanged: (value) {
                   final formateado = _formatearMiles(value);
                   _salarioController.value = TextEditingValue(
@@ -356,9 +365,10 @@ class _EditarEmpleadoDosState extends State<ContainerEditarEmpleadoDos> {
                   if (v == null || v.isEmpty) return 'Ingrese el salario';
                   final limpio = v.replaceAll(RegExp(r'[^0-9]'), '');
                   if (limpio.isEmpty) return 'Ingrese el salario';
+                  
                   final numero = int.tryParse(limpio) ?? 0;
-                  if (numero < 539000) return 'El salario debe ser al menos el mínimo (\$539.000)';
-                  if (numero > 2500000) return 'El salario supera el límite permitido para este cargo';
+                  if (numero < 539000) return 'El salario debe ser al menos \$539.000';
+                  if (numero > 2500000) return 'El salario supera el límite permitido';
                   return null;
                 },
               ),
