@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class AdminAuditoriaScreen extends StatefulWidget {
-  const AdminAuditoriaScreen({super.key});
+  final VoidCallback? onReturnToDashboard;
+
+  const AdminAuditoriaScreen({super.key, this.onReturnToDashboard});
 
   @override
   State<AdminAuditoriaScreen> createState() => _AdminAuditoriaScreenState();
@@ -105,7 +107,13 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (widget.onReturnToDashboard != null) {
+              widget.onReturnToDashboard!();
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: const Text(
           'Historial & Auditoría',

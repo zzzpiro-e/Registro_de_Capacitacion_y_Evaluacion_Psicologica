@@ -43,13 +43,18 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
           onOpenWorkersTab: _abrirTrabajadores,
           onOpenAuditoriaTab: _abrirAuditoria,
         ),
-        AdminCreateScreen(),
+        AdminCreateScreen(
+          onReturnToDashboard: () => setState(() => _currentIndex = 0),
+        ),
         AdminWorkersListScreen(
           key: ValueKey(_workersRoleFilter),
           initialRoleFilter: _workersRoleFilter,
           initialStatusFilter: _workersStatusFilter,
+          onReturnToDashboard: () => setState(() => _currentIndex = 0),
         ),
-        const AdminAuditoriaScreen(),
+        AdminAuditoriaScreen(
+          onReturnToDashboard: () => setState(() => _currentIndex = 0),
+        ),
         AdminProfileScreen(
           onLogout: () async {
             await FirebaseAuth.instance.signOut();

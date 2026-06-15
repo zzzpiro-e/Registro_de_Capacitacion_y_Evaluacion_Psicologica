@@ -7,11 +7,13 @@ import 'package:proyecto_flutter/app/utils/text_utils.dart';
 class AdminWorkersListScreen extends StatefulWidget {
   final String initialRoleFilter;
   final String initialStatusFilter;
+  final VoidCallback? onReturnToDashboard;
 
   const AdminWorkersListScreen({
     super.key,
     this.initialRoleFilter = 'todos',
     this.initialStatusFilter = 'todos',
+    this.onReturnToDashboard,
   });
 
   @override
@@ -451,7 +453,13 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (widget.onReturnToDashboard != null) {
+              widget.onReturnToDashboard!();
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: const Text(
           'Lista de Trabajadores',

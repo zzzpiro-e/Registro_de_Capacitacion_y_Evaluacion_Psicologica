@@ -9,7 +9,9 @@ import 'package:http/http.dart' as http;
 import 'package:proyecto_flutter/app/services/auditoria_service.dart';
 
 class AdminCreateScreen extends StatefulWidget {
-  const AdminCreateScreen({super.key});
+  final VoidCallback? onReturnToDashboard;
+
+  const AdminCreateScreen({super.key, this.onReturnToDashboard});
 
   @override
   State<AdminCreateScreen> createState() => _AdminCreateScreenState();
@@ -461,7 +463,13 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (widget.onReturnToDashboard != null) {
+              widget.onReturnToDashboard!();
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: const Text(
           'Crear Trabajador',

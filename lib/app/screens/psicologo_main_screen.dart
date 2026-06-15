@@ -97,6 +97,7 @@ class _PsicologoMainScreenState extends State<PsicologoMainScreen> {
       backgroundColor: const Color(0xFFF4F4F4),
       appBar: _currentIndex == 2 || _currentIndex == 3
           ? AppBar(
+              automaticallyImplyLeading: false,
               title: Text(
                 _currentIndex == 2 ? 'Historial de Informes' : 'Mi Perfil',
                 style: const TextStyle(
