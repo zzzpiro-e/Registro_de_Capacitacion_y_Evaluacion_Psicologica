@@ -66,8 +66,8 @@ class _EditarTrabajadorAdminScreenState
     String dvEsperado = dvEsperadoNum == 11
         ? '0'
         : dvEsperadoNum == 10
-        ? 'K'
-        : dvEsperadoNum.toString();
+            ? 'K'
+            : dvEsperadoNum.toString();
     return dv == dvEsperado;
   }
 
@@ -137,16 +137,9 @@ class _EditarTrabajadorAdminScreenState
     return query.docs.any((doc) => doc.id != widget.trabajadorId);
   }
 
-  Future<bool> _correoPersonalYaExiste(String correo) async {
-    final query = await FirebaseFirestore.instance
-        .collection('trabajadores')
-        .where('correoPersonal', isEqualTo: correo.trim().toLowerCase())
-        .get();
-    return query.docs.any((doc) => doc.id != widget.trabajadorId);
-  }
-
   Future<void> _notificarCambiosPorCorreo() async {
     final Map<String, String> cambiosEfectuados = {};
+    
     if (_nombreController.text.trim() != _valoresOriginales['nombre'])
       cambiosEfectuados['Nombre'] = _nombreController.text.trim();
     if (_rutController.text.trim() != _valoresOriginales['rut'])
@@ -164,6 +157,11 @@ class _EditarTrabajadorAdminScreenState
       cambiosEfectuados['Teléfono'] = '+569 ${_telefonoController.text.trim()}';
     if (_rol != _valoresOriginales['rol'])
       cambiosEfectuados['Rol en Plataforma'] = _rol.toUpperCase();
+      
+    // Notificar el cambio de Estado Activo
+    if (_activo != _valoresOriginales['activo']) {
+      cambiosEfectuados['Estado de la Cuenta'] = _activo ? 'ACTIVO / HABILITADO' : 'INACTIVO / DESHABILITADO';
+    }
 
     if (cambiosEfectuados.isEmpty) return;
 
@@ -181,10 +179,20 @@ class _EditarTrabajadorAdminScreenState
     const String serviceId = 'service_lk6356k';
     const String templateId = 'template_q1vbqx4';
     const String publicKey = 'C06WRa_nkaY0OUDL_';
+    const String accessToken = 'cWgB9XiLdDZYN0s0Gb6K6';
+
+    String nombreLimpio = _nombreController.text.trim();
+    String primerNombre = nombreLimpio.contains(' ')
+        ? nombreLimpio.split(' ')[0]
+        : nombreLimpio;
+
+    if (primerNombre.isEmpty) {
+      primerNombre = "Trabajador";
+    }
 
     try {
       final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
-      await http.post(
+      final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
@@ -194,13 +202,15 @@ class _EditarTrabajadorAdminScreenState
           'service_id': serviceId,
           'template_id': templateId,
           'user_id': publicKey,
+          'accessToken': accessToken,
           'template_params': {
-            'to_email': _correoPersonalController.text.trim().toLowerCase(),
-            'user_name': _nombreController.text.split(' ')[0],
+            'worker_email': _correoPersonalController.text.trim().toLowerCase(),
+            'user_name': primerNombre,
             'changes_details': resumenCambios,
           },
         }),
       );
+      print('📝 Respuesta EmailJS: [${response.statusCode}] ${response.body}');
     } catch (e) {
       print('❌ Error de red al conectar con EmailJS: $e');
     }
@@ -226,7 +236,7 @@ class _EditarTrabajadorAdminScreenState
                   Icon(Icons.shield_outlined, color: Color(0xFF388E3C)),
                   SizedBox(width: 10),
                   Text(
-                    'Confirmar Cambios',
+                    'Confirmación Requerida',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ],
@@ -236,7 +246,7 @@ class _EditarTrabajadorAdminScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Introduce tu contraseña para autorizar las modificaciones en la base de datos:',
+                    'Introduce tu contraseña para autorizar esta acción en la base de datos:',
                     style: TextStyle(fontSize: 14, color: Colors.black87),
                   ),
                   const SizedBox(height: 16),
@@ -301,9 +311,9 @@ class _EditarTrabajadorAdminScreenState
                       if (adminUser != null && adminUser.email != null) {
                         AuthCredential credential =
                             EmailAuthProvider.credential(
-                              email: adminUser.email!,
-                              password: passwordInput,
-                            );
+                          email: adminUser.email!,
+                          password: passwordInput,
+                        );
                         await adminUser.reauthenticateWithCredential(
                           credential,
                         );
@@ -360,7 +370,6 @@ class _EditarTrabajadorAdminScreenState
         .toLowerCase();
     final String nuevoNombre = _nombreController.text.trim();
 
-    // 1. Validación de RUT duplicado
     if (rut != _valoresOriginales['rut']) {
       bool existe = await _rutYaExiste(rut);
       if (existe) {
@@ -373,27 +382,12 @@ class _EditarTrabajadorAdminScreenState
       }
     }
 
-    // 2. Validación de Correo Corporativo duplicado
     if (email != _valoresOriginales['email'].toString().toLowerCase()) {
       bool existeEmail = await _emailCorporativoYaExiste(email);
       if (existeEmail) {
         setState(() => _cargando = false);
         _mostrarSnackBar(
           'El correo corporativo ya está ocupado por otro trabajador',
-          Colors.red,
-        );
-        return;
-      }
-    }
-
-    // 3. Validación de Correo Personal duplicado
-    if (correoPersonal !=
-        _valoresOriginales['correoPersonal'].toString().toLowerCase()) {
-      bool existeCorreo = await _correoPersonalYaExiste(correoPersonal);
-      if (existeCorreo) {
-        setState(() => _cargando = false);
-        _mostrarSnackBar(
-          'El correo personal ya está registrado por otro trabajador',
           Colors.red,
         );
         return;
@@ -409,32 +403,30 @@ class _EditarTrabajadorAdminScreenState
       setState(() => _cargando = true);
       String telefonoCompleto = '+569${_telefonoController.text.trim()}';
 
-      // Actualización atómica en la colección de trabajadores
       await FirebaseFirestore.instance
           .collection('trabajadores')
           .doc(widget.trabajadorId)
           .update({
-            'nombre': nuevoNombre,
-            'rut': rut,
-            'email': email,
-            'correoPersonal': correoPersonal,
-            'telefono': telefonoCompleto,
-            'rol': _rol,
-            'activo': _activo,
-          });
+        'nombre': nuevoNombre,
+        'rut': rut,
+        'email': email,
+        'correoPersonal': correoPersonal,
+        'telefono': telefonoCompleto,
+        'rol': _rol,
+        'activo': _activo,
+      });
 
-      // Actualización en cascada de la colección usuarios de control de login
       await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(widget.trabajadorId)
           .set({
-            'uid': widget.trabajadorId,
-            'nombre': nuevoNombre,
-            'rut': rut,
-            'email': email,
-            'rol': _rol,
-            'activo': _activo,
-          }, SetOptions(merge: true));
+        'uid': widget.trabajadorId,
+        'nombre': nuevoNombre,
+        'rut': rut,
+        'email': email,
+        'rol': _rol,
+        'activo': _activo,
+      }, SetOptions(merge: true));
 
       if (_valoresOriginales['rol'] != _rol) {
         await AuditoriaService.adminCambioRol(
@@ -501,65 +493,6 @@ class _EditarTrabajadorAdminScreenState
     }
   }
 
-  Future<void> _eliminarTrabajador() async {
-    final confirmar =
-        await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text(
-              '¿Eliminar trabajador?',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            content: const Text(
-              'Esta acción quitará todos sus accesos de forma permanente del sistema.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  elevation: 0,
-                ),
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Eliminar'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-
-    if (!confirmar) return;
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('trabajadores')
-          .doc(widget.trabajadorId)
-          .delete();
-      await FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(widget.trabajadorId)
-          .delete();
-      await AuditoriaService.adminEliminoUsuario(
-        nombre: _nombreController.text.trim(),
-      );
-
-      if (!mounted) return;
-      _mostrarSnackBar(
-        'Trabajador eliminado de forma permanente',
-        Colors.black87,
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      _mostrarSnackBar('Error al eliminar: $e', Colors.red);
-    }
-  }
-
   void _mostrarSnackBar(String mensaje, Color colorFondo) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -571,6 +504,51 @@ class _EditarTrabajadorAdminScreenState
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+    );
+  }
+
+  Widget _campoTexto(
+    TextEditingController controller,
+    String label,
+    IconData icono,
+    List<TextInputFormatter>? formatters,
+    String? Function(String?)? validator,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+              fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFEAEAEA)),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextFormField(
+            controller: controller,
+            inputFormatters: formatters,
+            validator: validator,
+            decoration: InputDecoration(
+              prefixIcon: Icon(icono, color: Colors.grey, size: 22),
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -685,8 +663,8 @@ class _EditarTrabajadorAdminScreenState
                                 if (val == null || val.isEmpty)
                                   return 'El correo corporativo es obligatorio';
                                 if (!val.trim().toLowerCase().endsWith(
-                                  '@empresa.cl',
-                                ))
+                                      '@empresa.cl',
+                                    ))
                                   return 'Debe usar el dominio @empresa.cl';
                                 return null;
                               },
@@ -827,96 +805,48 @@ class _EditarTrabajadorAdminScreenState
                                     ),
                                   ),
                                 ],
-                                onChanged: (value) =>
-                                    setState(() => _rol = value ?? 'rrhh'),
+                                onChanged: (val) =>
+                                    setState(() => _rol = val!),
                               ),
                             ),
                             const SizedBox(height: 20),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF9F9F9),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: const Color(0xFFEAEAEA),
-                                ),
-                              ),
-                              child: SwitchListTile(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                title: const Text(
-                                  'Trabajador activo',
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Estado Activo',
                                   style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
-                                subtitle: Text(
-                                  _activo
-                                      ? 'Puede ingresar a la app'
-                                      : 'Acceso desactivado',
-                                  style: const TextStyle(fontSize: 13),
+                                Switch(
+                                  value: _activo,
+                                  activeColor: verdePrincipal,
+                                  onChanged: (val) =>
+                                      setState(() => _activo = val),
                                 ),
-                                value: _activo,
-                                activeThumbColor: const Color(0xFF388E3C),
-                                onChanged: (value) =>
-                                    setState(() => _activo = value),
-                              ),
+                              ],
                             ),
-                            const SizedBox(height: 28),
+                            const SizedBox(height: 24),
                             SizedBox(
                               width: double.infinity,
+                              height: 52,
                               child: ElevatedButton.icon(
-                                onPressed: _guardarCambios,
-                                icon: const Icon(
-                                  Icons.check_circle_outline,
-                                  size: 20,
-                                ),
-                                label: const Text(
-                                  'Guardar cambios',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF388E3C),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
+                                  backgroundColor: verdePrincipal,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
+                                  elevation: 0,
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: _eliminarTrabajador,
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: Colors.red,
-                                ),
-                                label: const Text(
-                                  'Eliminar de la Base de Datos',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                  side: BorderSide(color: Colors.red.shade200),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
+                                onPressed: _guardarCambios,
+                                icon: const Icon(Icons.save_outlined,
+                                    color: Colors.white),
+                                label: const Text('Guardar Cambios',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16)),
                               ),
                             ),
                           ],
@@ -929,97 +859,33 @@ class _EditarTrabajadorAdminScreenState
       ),
     );
   }
-
-  Widget _campoTexto(
-    TextEditingController controller,
-    String label,
-    IconData icon,
-    List<TextInputFormatter>? formatters,
-    String? Function(String?)? validator,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFEAEAEA)),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextFormField(
-            controller: controller,
-            inputFormatters: formatters,
-            style: const TextStyle(fontSize: 15),
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: Colors.grey, size: 22),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 14,
-                horizontal: 16,
-              ),
-            ),
-            validator:
-                validator ??
-                (value) => value == null || value.trim().isEmpty
-                    ? 'Este campo es obligatorio'
-                    : null,
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class RutFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    String text = newValue.text
-        .replaceAll('.', '')
-        .replaceAll('-', '')
-        .toUpperCase();
-    if (text.isEmpty)
-      return newValue.copyWith(
-        text: '',
-        selection: const TextSelection.collapsed(offset: 0),
-      );
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    String text =
+        newValue.text.replaceAll('.', '').replaceAll('-', '').toUpperCase();
+    if (text.isEmpty) return newValue;
+    if (text.length > 9) text = text.substring(0, 9);
+
     String formatted = '';
-    if (text.length > 1) {
-      String cuerpo = text.substring(0, text.length - 1);
-      String dv = text.substring(text.length - 1);
-      String cuerpoConPuntos = '';
-      int contador = 0;
-      for (int i = cuerpo.length - 1; i >= 0; i--) {
-        cuerpoConPuntos = cuerpo[i] + cuerpoConPuntos;
-        contador++;
-        if (contador == 3 && i != 0) {
-          cuerpoConPuntos = '.$cuerpoConPuntos';
-          contador = 0;
-        }
+    String dv = text.length > 1 ? text.substring(text.length - 1) : '';
+    String nums = text.length > 1 ? text.substring(0, text.length - 1) : text;
+
+    if (nums.length > 3) {
+      formatted = '.${nums.substring(nums.length - 3)}';
+      nums = nums.substring(0, nums.length - 3);
+      if (nums.length > 3) {
+        formatted = '.${nums.substring(nums.length - 3)}$formatted';
+        nums = nums.substring(0, nums.length - 3);
       }
-      formatted = '$cuerpoConPuntos-$dv';
-    } else {
-      formatted = text;
     }
-    return newValue.copyWith(
+    formatted = nums + formatted;
+    if (text.length > 1) formatted = '$formatted-$dv';
+
+    return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
     );

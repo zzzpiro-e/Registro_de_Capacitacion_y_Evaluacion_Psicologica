@@ -9,7 +9,8 @@ class ContainerCrearEmpleadoDos extends StatefulWidget {
   const ContainerCrearEmpleadoDos({super.key});
 
   @override
-  State<ContainerCrearEmpleadoDos> createState() => _ContainerCrearEmpleadoDosState();
+  State<ContainerCrearEmpleadoDos> createState() =>
+      _ContainerCrearEmpleadoDosState();
 }
 
 class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
@@ -76,7 +77,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
       return;
     }
 
-    String cuerpo = limpio.length > 1 ? limpio.substring(0, limpio.length - 1) : limpio;
+    String cuerpo = limpio.length > 1
+        ? limpio.substring(0, limpio.length - 1)
+        : limpio;
     String dv = limpio.length > 1 ? limpio.substring(limpio.length - 1) : '';
 
     final buffer = StringBuffer();
@@ -90,7 +93,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
       }
     }
     String cuerpoFormateado = buffer.toString().split('').reversed.join('');
-    String rutFormateado = dv.isNotEmpty ? '$cuerpoFormateado-$dv' : cuerpoFormateado;
+    String rutFormateado = dv.isNotEmpty
+        ? '$cuerpoFormateado-$dv'
+        : cuerpoFormateado;
 
     _rutController.value = TextEditingValue(
       text: rutFormateado,
@@ -138,7 +143,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
     final fechaIngreso = _fechaIngresoController.text.trim();
     final edadLimpia = int.tryParse(_edadController.text) ?? 0;
     try {
-      final docRef = FirebaseFirestore.instance.collection('empleados').doc(rutLimpio);
+      final docRef = FirebaseFirestore.instance
+          .collection('empleados')
+          .doc(rutLimpio);
       final docSnapshot = await docRef.get();
 
       if (docSnapshot.exists) {
@@ -152,11 +159,15 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
       final empleado = {
         'nombres': _nombreController.text.trim(),
         'apellidos': _apellidoController.text.trim(),
-        'rut': _rutController.text.trim().toUpperCase(), // Guardar siempre la K en mayúscula
+        'rut': _rutController.text
+            .trim()
+            .toUpperCase(), // Guardar siempre la K en mayúscula
         'cargo': _cargoController.text.trim(),
-        'salario': int.tryParse(
-          _salarioController.text.replaceAll(RegExp(r'[^0-9]'), ''),
-        ) ?? 0,
+        'salario':
+            int.tryParse(
+              _salarioController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+            ) ??
+            0,
         'edad': edadLimpia,
         'fechaIngreso': fechaIngreso,
         'estado': 'activo',
@@ -187,9 +198,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
       
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al guardar: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
     }
   }
 
@@ -204,7 +215,10 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // --- Nombres ---
-              const Text('Nombres', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text(
+                'Nombres',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _nombreController,
@@ -215,7 +229,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                 ],
                 decoration: const InputDecoration(
                   hintText: 'Ej: Juan Carlos',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -230,7 +246,10 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               const SizedBox(height: 20),
 
               // --- Apellidos ---
-              const Text('Apellidos', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text(
+                'Apellidos',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _apellidoController,
@@ -241,7 +260,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                 ],
                 decoration: const InputDecoration(
                   hintText: 'Ej: Pérez González',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -260,14 +281,19 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _rutController,
-                keyboardType: TextInputType.text, // 🛠️ CORREGIDO: Permite que aparezca la letra 'K' en teclados móviles
+                keyboardType: TextInputType
+                    .text, // 🛠️ CORREGIDO: Permite que aparezca la letra 'K' en teclados móviles
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9kK]')),
-                  LengthLimitingTextInputFormatter(9), // Máximo 9 caracteres sin contar puntos/guiones que agrega el formato
+                  LengthLimitingTextInputFormatter(
+                    9,
+                  ), // Máximo 9 caracteres sin contar puntos/guiones que agrega el formato
                 ],
                 decoration: const InputDecoration(
                   hintText: '12.345.678-9',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
                 ),
                 onChanged: _formatearRut,
                 validator: (value) {
@@ -291,7 +317,9 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
                   hintText: 'Ej: 35',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -315,7 +343,10 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               const SizedBox(height: 20),
 
               // --- Cargo ---
-              const Text('Cargo', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text(
+                'Cargo',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _cargoController,
@@ -389,7 +420,10 @@ class _ContainerCrearEmpleadoDosState extends State<ContainerCrearEmpleadoDos> {
               const SizedBox(height: 20),
 
               // --- Salario ---
-              const Text('Salario (CLP)', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text(
+                'Salario (CLP)',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _salarioController,

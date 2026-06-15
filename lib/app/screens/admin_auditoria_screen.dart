@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:proyecto_flutter/app/services/auditoria_service.dart';
 
 class AdminAuditoriaScreen extends StatefulWidget {
   const AdminAuditoriaScreen({super.key});
@@ -14,6 +13,10 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
   String _filtroTipo   = 'todos';
   String _filtroModulo = 'todos';
 
+  // Línea visual unificada basada en el color corporativo plano y acentos limpios
+  static const Color verdeBoton = Color(0xFF008744);
+  static const Color fondoGrisPantalla = Color(0xFFF5F5F5);
+
   final List<Map<String, dynamic>> _filtrosTipo = [
     {'label': 'Todos',        'valor': 'todos',                  'icon': Icons.list_alt_outlined},
     {'label': 'Roles',        'valor': 'cambio_rol',             'icon': Icons.manage_accounts_outlined},
@@ -25,26 +28,26 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
   ];
 
   final List<Map<String, dynamic>> _filtrosModulo = [
-    {'label': 'Todos',      'valor': 'todos',      'color': const Color(0xFF546E7A)},
-    {'label': 'Admin',      'valor': 'admin',      'color': const Color(0xFF6A1B9A)},
-    {'label': 'RRHH',       'valor': 'rrhh',       'color': const Color(0xFF1565C0)},
-    {'label': 'Psicólogo',  'valor': 'psicologo',  'color': const Color(0xFF00695C)},
+    {'label': 'Todos',      'valor': 'todos',      'color': Color(0xFF757575)},
+    {'label': 'Admin',      'valor': 'admin',      'color': Color(0xFF6A1B9A)},
+    {'label': 'RRHH',       'valor': 'rrhh',       'color': Color(0xFF1A73E8)},
+    {'label': 'Psicólogo',  'valor': 'psicologo',  'color': Color(0xFF00796B)},
   ];
 
   Color _colorPorTipo(String tipo) {
     switch (tipo) {
-      case 'cambio_rol':               return const Color(0xFF7B1FA2);
-      case 'modificacion_usuario':     return const Color(0xFF1565C0);
-      case 'creacion_usuario':         return const Color(0xFF2E7D32);
+      case 'cambio_rol':               return const Color(0xFF6A1B9A);
+      case 'modificacion_usuario':     return const Color(0xFF1A73E8);
+      case 'creacion_usuario':         return verdeBoton;
       case 'eliminacion_usuario':      return const Color(0xFFC62828);
       case 'cambio_estado':            return const Color(0xFFE65100);
-      case 'login':                    return const Color(0xFF00695C);
-      case 'creacion_capacitacion':    return const Color(0xFF1976D2);
+      case 'login':                    return const Color(0xFF00796B);
+      case 'creacion_capacitacion':    return const Color(0xFF1A73E8);
       case 'modificacion_capacitacion':return const Color(0xFF0288D1);
-      case 'eliminacion_capacitacion': return const Color(0xFFB71C1C);
+      case 'eliminacion_capacitacion': return const Color(0xFFC62828);
       case 'creacion_derivacion':      return const Color(0xFF00796B);
       case 'actualizacion_derivacion': return const Color(0xFF00897B);
-      default:                         return const Color(0xFF546E7A);
+      default:                         return const Color(0xFF757575);
     }
   }
 
@@ -68,9 +71,9 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
   Color _colorModulo(String? modulo) {
     switch (modulo) {
       case 'admin':     return const Color(0xFF6A1B9A);
-      case 'rrhh':      return const Color(0xFF1565C0);
-      case 'psicologo': return const Color(0xFF00695C);
-      default:          return const Color(0xFF546E7A);
+      case 'rrhh':      return const Color(0xFF1A73E8);
+      case 'psicologo': return const Color(0xFF00796B);
+      default:          return const Color(0xFF757575);
     }
   }
 
@@ -83,7 +86,6 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
     }
   }
 
-  // ─── Abre el panel de detalle ────────────────────────────────────────────────
   void _abrirDetalle(Map<String, dynamic> data) {
     showModalBottomSheet(
       context: context,
@@ -96,50 +98,34 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F4F4),
+      backgroundColor: fondoGrisPantalla,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Historial & Auditoría',
+          style: TextStyle(
+            color: Color(0xFF202124),
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
+      ),
       body: Column(
         children: [
-          // ── Header ─────────────────────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(0xFF43A047),
-              borderRadius: BorderRadius.only(
-                bottomLeft:  Radius.circular(32),
-                bottomRight: Radius.circular(32),
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: const [
-                  Icon(Icons.security_outlined, color: Colors.white, size: 16),
-                  SizedBox(width: 8),
-                  Text('Panel de Administración',
-                      style: TextStyle(color: Colors.white70, fontSize: 13)),
-                ]),
-                const SizedBox(height: 10),
-                const Text('Historial & Auditoría',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                const Text('Toca cualquier registro para ver el detalle completo',
-                    style: TextStyle(color: Colors.white60, fontSize: 13)),
-              ],
-            ),
-          ),
+          const SizedBox(height: 16),
 
-          const SizedBox(height: 14),
-
-          // ── Filtro módulo ───────────────────────────────────────────────────
+          // ── Filtro Módulo Estilizado ─────────────────────────────────────────
           SizedBox(
-            height: 36,
+            height: 34,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               itemCount: _filtrosModulo.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
@@ -149,18 +135,21 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
                 return GestureDetector(
                   onTap: () => setState(() => _filtroModulo = f['valor']),
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
+                    duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      color: sel ? col : Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: sel ? col : const Color(0xFFDDDDDD)),
+                      color: sel ? col.withOpacity(0.12) : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: sel ? col : const Color(0xFFEAEAEA),
+                        width: sel ? 1.5 : 1,
+                      ),
                     ),
                     child: Text(f['label'] as String,
                         style: TextStyle(
-                          color: sel ? Colors.white : Colors.grey[700],
-                          fontWeight: sel ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 13,
+                          color: sel ? col : const Color(0xFF757575),
+                          fontWeight: sel ? FontWeight.bold : FontWeight.w500,
+                          fontSize: 12,
                         )),
                   ),
                 );
@@ -168,14 +157,14 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
             ),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
-          // ── Filtro tipo ─────────────────────────────────────────────────────
+          // ── Filtro Tipo Estilizado ───────────────────────────────────────────
           SizedBox(
-            height: 36,
+            height: 34,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               itemCount: _filtrosTipo.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
@@ -184,23 +173,25 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
                 return GestureDetector(
                   onTap: () => setState(() => _filtroTipo = f['valor']),
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
+                    duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: sel ? const Color(0xFF43A047) : Colors.white,
-                      borderRadius: BorderRadius.circular(18),
+                      color: sel ? verdeBoton.withOpacity(0.12) : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                          color: sel ? const Color(0xFF43A047) : const Color(0xFFDDDDDD)),
+                        color: sel ? verdeBoton : const Color(0xFFEAEAEA),
+                        width: sel ? 1.5 : 1,
+                      ),
                     ),
                     child: Row(children: [
                       Icon(f['icon'] as IconData,
                           size: 14,
-                          color: sel ? Colors.white : Colors.grey[600]),
-                      const SizedBox(width: 5),
+                          color: sel ? verdeBoton : const Color(0xFF757575)),
+                      const SizedBox(width: 6),
                       Text(f['label'] as String,
                           style: TextStyle(
-                            color: sel ? Colors.white : Colors.grey[700],
-                            fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+                            color: sel ? verdeBoton : const Color(0xFF757575),
+                            fontWeight: sel ? FontWeight.bold : FontWeight.w500,
                             fontSize: 12,
                           )),
                     ]),
@@ -210,9 +201,9 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
-          // ── Lista ───────────────────────────────────────────────────────────
+          // ── Listado de Eventos (Plano, Limpio y de Altura Constante) ─────────
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -222,7 +213,7 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                      child: CircularProgressIndicator(color: Color(0xFF43A047)));
+                      child: CircularProgressIndicator(color: verdeBoton, strokeWidth: 2.5));
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return _emptyState();
@@ -230,15 +221,16 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
 
                 final docs = snapshot.data!.docs.where((doc) {
                   final d = doc.data() as Map<String, dynamic>;
-                  final tipoOk   = _filtroTipo   == 'todos' || d['tipo']   == _filtroTipo;
-                  final moduloOk = _filtroModulo  == 'todos' || d['modulo'] == _filtroModulo;
+                  final tipoOk = _filtroTipo == 'todos' || d['tipo'] == _filtroTipo;
+                  final moduloOk = _filtroModulo == 'todos' || d['modulo'] == _filtroModulo;
                   return tipoOk && moduloOk;
                 }).toList();
 
                 if (docs.isEmpty) return _emptyState();
 
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                  physics: const BouncingScrollPhysics(),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
                     final d = docs[index].data() as Map<String, dynamic>;
@@ -256,7 +248,6 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
   Widget _eventCard(Map<String, dynamic> data) {
     final String tipo        = data['tipo']        ?? 'otro';
     final String quien       = data['quien']       ?? 'Sistema';
-    final String descripcion = data['descripcion'] ?? '';
     final String? rolAnterior = data['rolAnterior'];
     final String? rolNuevo    = data['rolNuevo'];
     final String? modulo      = data['modulo'];
@@ -266,43 +257,41 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
 
     String fechaStr = '';
     if (data['fecha'] != null) {
-      fechaStr = DateFormat("d MMM yyyy, HH:mm", 'es_ES')
+      fechaStr = DateFormat("d MMM, HH:mm", 'es_ES')
           .format((data['fecha'] as Timestamp).toDate());
     }
 
     return GestureDetector(
       onTap: () => _abrirDetalle(data),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: tieneDetalle
-                ? color.withOpacity(0.25)
-                : const Color(0xFFF0F0F0),
-            width: tieneDetalle ? 1.5 : 1,
+            color: const Color(0xFFEAEAEA),
+            width: 1.5,
           ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center, // Centrado simétrico de los elementos
             children: [
-              // Ícono
               Container(
-                width: 42,
-                height: 42,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(13),
+                  color: color.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(_iconPorTipo(tipo), color: color, size: 21),
+                child: Icon(_iconPorTipo(tipo), color: color, size: 18),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
@@ -312,65 +301,62 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
                           _badge(_labelModulo(modulo), colorMod),
                         const Spacer(),
                         Text(fechaStr,
-                            style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                            style: const TextStyle(color: Color(0xFF757575), fontSize: 11, fontWeight: FontWeight.w500)),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Row(children: [
-                      const Icon(Icons.person_outline, size: 13, color: Colors.grey),
+                      const Icon(Icons.person_outline, size: 13, color: Color(0xFF757575)),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(quien,
                             style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF333333)),
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF202124)),
                             overflow: TextOverflow.ellipsis),
                       ),
                     ]),
-                    if (descripcion.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(descripcion,
-                          style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
-                    // Cambio de rol visual
+                    // 🔲 El bloque de descripción repetitivo se removió para homogeneizar el tamaño
                     if (rolAnterior != null && rolNuevo != null) ...[
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8F0FF),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFE1BEE7)),
+                          color: const Color(0xFFF1F3F4),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFEAEAEA)),
                         ),
-                        child: Row(children: [
-                          _rolChip(rolAnterior, isOld: true),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: Icon(Icons.arrow_forward, size: 14, color: Colors.purple),
-                          ),
-                          _rolChip(rolNuevo, isOld: false),
-                        ]),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _rolChip(rolAnterior, isOld: true),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(Icons.arrow_forward_ios_rounded, size: 9, color: Color(0xFF757575)),
+                            ),
+                            _rolChip(rolNuevo, isOld: false),
+                          ],
+                        ),
                       ),
                     ],
-                    // Indicador de que hay detalle disponible
-                    if (tieneDetalle) ...[
-                      const SizedBox(height: 8),
+                    if (tieneDetalle && (rolAnterior == null || rolNuevo == null)) ...[
+                      const SizedBox(height: 6),
                       Row(children: [
-                        Icon(Icons.touch_app_outlined, size: 12, color: color.withOpacity(0.7)),
+                        Icon(Icons.touch_app_outlined, size: 13, color: color.withOpacity(0.8)),
                         const SizedBox(width: 4),
                         Text('Ver campos modificados',
                             style: TextStyle(
                                 fontSize: 11,
                                 color: color,
-                                fontWeight: FontWeight.w600)),
+                                fontWeight: FontWeight.bold)),
                       ]),
                     ],
                   ],
                 ),
               ),
-              // Chevron
-              Icon(Icons.chevron_right, color: Colors.grey[300], size: 18),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFBCC1C6), size: 20),
             ],
           ),
         ),
@@ -379,10 +365,11 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
   }
 
   Widget _badge(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withOpacity(0.15), width: 1),
         ),
         child: Text(text,
             style: TextStyle(
@@ -390,18 +377,20 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
       );
 
   Widget _rolChip(String rol, {required bool isOld}) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
-          color: isOld
-              ? Colors.grey[200]
-              : const Color(0xFF43A047).withOpacity(0.15),
+          color: isOld ? const Color(0xFFEAEAEA) : verdeBoton.withOpacity(0.12),
           borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isOld ? const Color(0xFFD2D2D2) : verdeBoton.withOpacity(0.2),
+            width: 1,
+          ),
         ),
         child: Text(rol.toUpperCase(),
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: FontWeight.bold,
-              color: isOld ? Colors.grey[700] : const Color(0xFF2E7D32),
+              color: isOld ? const Color(0xFF5F6368) : verdeBoton,
             )),
       );
 
@@ -410,55 +399,57 @@ class _AdminAuditoriaScreenState extends State<AdminAuditoriaScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
-                color: const Color(0xFF43A047).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(22),
+                color: verdeBoton.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(Icons.history_outlined,
-                  size: 36, color: Color(0xFF43A047)),
+                  size: 32, color: verdeBoton),
             ),
             const SizedBox(height: 14),
             const Text('Sin registros aún',
                 style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333))),
-            const SizedBox(height: 6),
+                    color: Color(0xFF202124))),
+            const SizedBox(height: 4),
             const Text('Los cambios del sistema aparecerán aquí',
-                style: TextStyle(fontSize: 13, color: Colors.grey)),
+                style: TextStyle(fontSize: 12, color: Color(0xFF5F6368))),
           ],
         ),
       );
 }
 
-// ─── PANEL DETALLE ────────────────────────────────────────────────────────────
+// ─── PANEL DETALLE HOJA INFERIOR ──────────────────────────────────────────────
 
 class _DetalleAuditoria extends StatelessWidget {
   final Map<String, dynamic> data;
   const _DetalleAuditoria({required this.data});
 
+  static const Color verdeBoton = Color(0xFF008744);
+
   Color _colorPorTipo(String tipo) {
     switch (tipo) {
-      case 'cambio_rol':               return const Color(0xFF7B1FA2);
-      case 'modificacion_usuario':     return const Color(0xFF1565C0);
-      case 'creacion_usuario':         return const Color(0xFF2E7D32);
+      case 'cambio_rol':               return const Color(0xFF6A1B9A);
+      case 'modificacion_usuario':     return const Color(0xFF1A73E8);
+      case 'creacion_usuario':         return verdeBoton;
       case 'eliminacion_usuario':      return const Color(0xFFC62828);
       case 'cambio_estado':            return const Color(0xFFE65100);
-      case 'creacion_capacitacion':    return const Color(0xFF1976D2);
+      case 'creacion_capacitacion':    return const Color(0xFF1A73E8);
       case 'modificacion_capacitacion':return const Color(0xFF0288D1);
       case 'actualizacion_derivacion': return const Color(0xFF00897B);
-      default:                         return const Color(0xFF546E7A);
+      default:                         return const Color(0xFF757575);
     }
   }
 
   Color _colorModulo(String? modulo) {
     switch (modulo) {
       case 'admin':     return const Color(0xFF6A1B9A);
-      case 'rrhh':      return const Color(0xFF1565C0);
-      case 'psicologo': return const Color(0xFF00695C);
-      default:          return const Color(0xFF546E7A);
+      case 'rrhh':      return const Color(0xFF1A73E8);
+      case 'psicologo': return const Color(0xFF00796B);
+      default:          return const Color(0xFF757575);
     }
   }
 
@@ -482,13 +473,8 @@ class _DetalleAuditoria extends StatelessWidget {
     final Color  color        = _colorPorTipo(tipo);
     final Color  colorMod     = _colorModulo(modulo);
 
-    // Campos antes/después
-    final Map<String, dynamic> camposAntes   =
-        Map<String, dynamic>.from(data['camposAntes']   ?? {});
-    final Map<String, dynamic> camposDespues =
-        Map<String, dynamic>.from(data['camposDespues'] ?? {});
-
-    // Unión de todas las claves de campos modificados
+    final Map<String, dynamic> camposAntes   = Map<String, dynamic>.from(data['camposAntes']   ?? {});
+    final Map<String, dynamic> camposDespues = Map<String, dynamic>.from(data['camposDespues'] ?? {});
     final Set<String> allKeys = {...camposAntes.keys, ...camposDespues.keys};
 
     String fechaStr = '';
@@ -506,102 +492,90 @@ class _DetalleAuditoria extends StatelessWidget {
         return Container(
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
-              // Handle
               Padding(
                 padding: const EdgeInsets.only(top: 12, bottom: 4),
                 child: Container(
-                  width: 40, height: 4,
+                  width: 36, height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: const Color(0xFFEAEAEA),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-
-              // Barra superior con título y botón cerrar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Row(
                   children: [
                     Container(
-                      width: 38, height: 38,
+                      width: 36, height: 36,
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(11),
+                        color: color.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(_iconPorTipo(tipo), color: color, size: 20),
+                      child: Icon(_iconPorTipo(tipo), color: color, size: 18),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
+                    const Expanded(
                       child: Text(
                         'Detalle del Registro',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF202124)),
                       ),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Container(
-                        width: 36, height: 36,
+                        width: 32, height: 32,
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(10),
+                          color: const Color(0xFFF1F3F4),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.arrow_back_ios_new,
-                            size: 16, color: Colors.black54),
+                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF5F6368)),
                       ),
                     ),
                   ],
                 ),
               ),
-
-              const Divider(height: 1),
-
-              // Contenido scrollable
+              const Divider(height: 1, color: Color(0xFFEAEAEA)),
               Expanded(
                 child: ListView(
                   controller: scrollCtrl,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   children: [
-                    // Badges
                     Wrap(spacing: 8, runSpacing: 8, children: [
                       _badge(tipo.label, color),
                       _badge(_labelModulo(modulo), colorMod),
                     ]),
                     const SizedBox(height: 16),
-
-                    // Quién y cuándo
                     _infoRow(Icons.person_outline, 'Realizado por', quien),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     if (fechaStr.isNotEmpty)
                       _infoRow(Icons.access_time_outlined, 'Fecha y hora', fechaStr),
-                    const SizedBox(height: 10),
-                    _infoRow(Icons.description_outlined, 'Descripción', descripcion),
+                    const SizedBox(height: 12),
+                    // ℹ️ Aquí se conserva el mensaje para que el administrador pueda auditar el texto completo si lo desea
+                    _infoRow(Icons.description_outlined, 'Descripción completa', descripcion),
 
-                    // Cambio de rol
                     if (rolAnterior != null && rolNuevo != null) ...[
                       const SizedBox(height: 20),
                       _seccionTitulo('Cambio de Rol', Icons.manage_accounts_outlined, color),
                       const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8F0FF),
+                          color: const Color(0xFFF9F9F9),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE1BEE7)),
+                          border: Border.all(color: const Color(0xFFEAEAEA)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _rolChip(rolAnterior, isOld: true),
                             const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Icon(Icons.arrow_forward,
-                                  color: Colors.purple, size: 20),
+                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              child: Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF757575), size: 12),
                             ),
                             _rolChip(rolNuevo, isOld: false),
                           ],
@@ -609,7 +583,6 @@ class _DetalleAuditoria extends StatelessWidget {
                       ),
                     ],
 
-                    // Campos modificados (antes → después)
                     if (allKeys.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       _seccionTitulo(
@@ -625,16 +598,13 @@ class _DetalleAuditoria extends StatelessWidget {
                           )),
                     ],
 
-                    // Si no hay diff pero hay campos de datos extra
                     if (allKeys.isEmpty && rolAnterior == null) ...[
                       const SizedBox(height: 20),
-                      _seccionTitulo('Información adicional',
-                          Icons.info_outline, Colors.blueGrey),
+                      _seccionTitulo('Información adicional', Icons.info_outline, const Color(0xFF5F6368)),
                       const SizedBox(height: 10),
                       ..._extraFields(data),
                     ],
-
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -645,7 +615,6 @@ class _DetalleAuditoria extends StatelessWidget {
     );
   }
 
-  // ── Ícono por tipo (duplicado local para no depender del state) ──────────────
   IconData _iconPorTipo(String tipo) {
     switch (tipo) {
       case 'cambio_rol':               return Icons.manage_accounts_outlined;
@@ -663,37 +632,31 @@ class _DetalleAuditoria extends StatelessWidget {
     }
   }
 
-  // ── Widgets auxiliares ───────────────────────────────────────────────────────
-
   Widget _badge(String text, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.15)),
         ),
         child: Text(text,
-            style: TextStyle(
-                color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
       );
 
   Widget _infoRow(IconData icon, String label, String value) => Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 15, color: const Color(0xFF5F6368)),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w500)),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF5F6368), fontWeight: FontWeight.w500)),
                 const SizedBox(height: 2),
                 Text(value,
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF202124))),
               ],
             ),
           ),
@@ -702,13 +665,10 @@ class _DetalleAuditoria extends StatelessWidget {
 
   Widget _seccionTitulo(String titulo, IconData icon, Color color) => Row(
         children: [
-          Icon(icon, size: 16, color: color),
+          Icon(icon, size: 15, color: color),
           const SizedBox(width: 6),
           Text(titulo,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: color)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
         ],
       );
 
@@ -722,102 +682,77 @@ class _DetalleAuditoria extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFEEEEEE)),
+          border: Border.all(color: const Color(0xFFEAEAEA)),
           color: Colors.white,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Nombre del campo
             Container(
               width: double.infinity,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.07),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF9F9F9),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+                border: Border(bottom: BorderSide(color: Color(0xFFEAEAEA))),
               ),
               child: Text(campo,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: color)),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF202124))),
             ),
-            // Antes
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(children: const [
-                          Icon(Icons.remove_circle_outline,
-                              size: 13, color: Color(0xFFC62828)),
+                        const Row(children: [
+                          Icon(Icons.remove_circle_outline, size: 12, color: Color(0xFFC62828)),
                           SizedBox(width: 4),
                           Text('Antes',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  color: Color(0xFFC62828),
-                                  fontWeight: FontWeight.w600)),
+                              style: TextStyle(fontSize: 10, color: Color(0xFF757575), fontWeight: FontWeight.w600)),
                         ]),
                         const SizedBox(height: 4),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF3F3),
+                            color: const Color(0xFFFFF5F5),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: const Color(0xFFFFCDD2)),
+                            border: Border.all(color: const Color(0xFFFFCDD2).withOpacity(0.5)),
                           ),
                           child: Text(antes,
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFFC62828),
-                                  fontWeight: FontWeight.w500)),
+                              style: const TextStyle(fontSize: 13, color: Color(0xFFC62828), fontWeight: FontWeight.w500)),
                         ),
                       ],
                     ),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(Icons.arrow_forward,
-                        size: 16, color: Colors.grey),
+                    child: Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF757575)),
                   ),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(children: const [
-                          Icon(Icons.add_circle_outline,
-                              size: 13, color: Color(0xFF2E7D32)),
+                        const Row(children: [
+                          Icon(Icons.add_circle_outline, size: 12, color: verdeBoton),
                           SizedBox(width: 4),
                           Text('Después',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  color: Color(0xFF2E7D32),
-                                  fontWeight: FontWeight.w600)),
+                              style: TextStyle(fontSize: 10, color: verdeBoton, fontWeight: FontWeight.w600)),
                         ]),
                         const SizedBox(height: 4),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF0FFF0),
+                            color: const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: const Color(0xFFC8E6C9)),
+                            border: Border.all(color: verdeBoton.withOpacity(0.2)),
                           ),
                           child: Text(despues,
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF2E7D32),
-                                  fontWeight: FontWeight.w500)),
+                              style: const TextStyle(fontSize: 13, color: verdeBoton, fontWeight: FontWeight.w500)),
                         ),
                       ],
                     ),
@@ -832,20 +767,21 @@ class _DetalleAuditoria extends StatelessWidget {
   Widget _rolChip(String rol, {required bool isOld}) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: isOld
-              ? Colors.grey[200]
-              : const Color(0xFF43A047).withOpacity(0.15),
+          color: isOld ? const Color(0xFFF1F3F4) : verdeBoton.withOpacity(0.12),
           borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isOld ? const Color(0xFFEAEAEA) : verdeBoton.withOpacity(0.2),
+            width: 1,
+          ),
         ),
         child: Text(rol.toUpperCase(),
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: isOld ? Colors.grey[700] : const Color(0xFF2E7D32),
+              color: isOld ? const Color(0xFF5F6368) : verdeBoton,
             )),
       );
 
-  /// Muestra campos extra genéricos (nombre, email, etc.) cuando no hay diff
   List<Widget> _extraFields(Map<String, dynamic> data) {
     final campos = {
       'Nombre': data['nombre'],
@@ -861,14 +797,13 @@ class _DetalleAuditoria extends StatelessWidget {
     return campos.entries
         .where((e) => e.value != null && e.value.toString().isNotEmpty)
         .map((e) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 10),
               child: _infoRow(Icons.info_outline, e.key, e.value.toString()),
             ))
         .toList();
   }
 }
 
-// Extensión para label desde String
 extension _TipoLabelExt on String {
   String get label {
     switch (this) {
