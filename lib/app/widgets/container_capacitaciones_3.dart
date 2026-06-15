@@ -17,9 +17,22 @@ class ContainerCapacitacionesTres extends StatelessWidget {
         final titulo = cap['titulo'] ?? 'Sin título';
         final institucion = cap['institucion'] ?? 'Sin institución';
         final fecha = cap['fechaInicioFormateada'] ?? 'Sin fecha';
-        final estado = (cap['estado'] ?? 'pendiente').toString().toLowerCase();
+        
+        // 1. Obtener el estado escrito en texto
+        final estadoTexto = (cap['estado'] ?? 'pendiente').toString().toLowerCase();
 
-        final esRealizada = estado == 'realizada';
+        // 2. Extraer las listas de empleados de forma segura para comparar
+        final asignados = cap['empleadosAsignados'] is List 
+            ? List.from(cap['empleadosAsignados']) 
+            : [];
+            
+        final realizaron = cap['empleadosRealizaron'] is List 
+            ? List.from(cap['empleadosRealizaron']) 
+            : [];
+
+        // 🔥 LA CORRECCIÓN: Es realizada si el estado lo dice O si todos los asignados ya completaron
+        final bool todosCompletaron = asignados.isNotEmpty && (realizaron.length >= asignados.length);
+        final bool esRealizada = estadoTexto == 'realizada' || estadoTexto == 'completado' || todosCompletaron;
 
         final colorEtiqueta = esRealizada
             ? const Color(0xFFE8F5E9)

@@ -1,3 +1,12 @@
+El error está exactamente en la función **`_cambiarEstadoCapacitacion`**. Al pasar un empleado a "Realizada", el código ejecuta un `FieldValue.arrayRemove` dentro de `empleadosAsignados`. Eso causa que el RUT se borre de la lista original.
+
+Si tu idea es que **`empleadosAsignados` sea la lista fija de todos los que deben tomar el curso** y que `empleadosRealizaron` solo vaya sumando a los que terminan (sin sacarlos de la primera), no debemos removerlos de ninguna parte.
+
+Además, para que las consultas (`FutureBuilder`) no dupliquen tarjetas en la pantalla ahora que un empleado puede estar en ambas listas al mismo tiempo, corregí la función **`_obtenerCapacitaciones`** y unifiqué la lógica para que determine el estado real de forma precisa.
+
+Aquí tienes el código completo corregido:
+
+```dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -28,21 +37,19 @@ class _ContainerPerfilEmpleadoCuatroState
         .toLowerCase();
   }
 
-  // 🔍 Ejecuta ambas consultas en paralelo en Firestore
-  Future<Map<String, List<DocumentSnapshot>>> _obtenerCapacitaciones(
+  // 🔍 Ejecuta la consulta de forma correcta basándose únicamente en los asignados
+  Future<List<DocumentSnapshot>> _obtenerCapacitaciones(
     String rutLimpio,
   ) async {
     final coleccion = FirebaseFirestore.instance.collection('capacitaciones');
 
-    final resultados = await Future.wait([
-      coleccion.where('empleadosRealizaron', arrayContains: rutLimpio).get(),
-      coleccion.where('empleadosAsignados', arrayContains: rutLimpio).get(),
-    ]);
+    // Buscamos todas las capacitaciones donde el empleado esté asignado originalmente
+    final resultado = await coleccion.where('empleadosAsignados', arrayContains: rutLimpio).get();
 
-    return {'realizadas': resultados[0].docs, 'pendientes': resultados[1].docs};
+    return resultado.docs;
   }
 
-  // 🔄 Cambia el estado de la capacitación en Firestore
+  // 🔄 Cambia el estado de la capacitación en Firestore sin borrar al empleado de asignados
   Future<void> _cambiarEstadoCapacitacion({
     required String idDocumento,
     required String rutLimpio,
@@ -54,15 +61,13 @@ class _ContainerPerfilEmpleadoCuatroState
 
     try {
       if (esRealizadaActual) {
-        // Pasa de Realizada a Pendiente
+        // Pasa de Realizada a Pendiente: Solo lo sacamos de los que realizaron
         await docRef.update({
           'empleadosRealizaron': FieldValue.arrayRemove([rutLimpio]),
-          'empleadosAsignados': FieldValue.arrayUnion([rutLimpio]),
         });
       } else {
-        // Pasa de Pendiente a Realizada
+        // Pasa de Pendiente a Realizada: Lo sumamos a realizaron, y lo DEJAMOS en asignados
         await docRef.update({
-          'empleadosAsignados': FieldValue.arrayRemove([rutLimpio]),
           'empleadosRealizaron': FieldValue.arrayUnion([rutLimpio]),
         });
       }
@@ -107,7 +112,7 @@ class _ContainerPerfilEmpleadoCuatroState
             empleadoSnapshot.data!.data() as Map<String, dynamic>;
         final rutLimpio = _limpiarRut(empleadoData['rut']?.toString() ?? '');
 
-        return FutureBuilder<Map<String, List<DocumentSnapshot>>>(
+        return FutureBuilder<List<DocumentSnapshot>>(
           future: _obtenerCapacitaciones(rutLimpio),
           builder: (context, capSnapshot) {
             if (capSnapshot.hasError) return _buildErrorWidget();
@@ -115,26 +120,27 @@ class _ContainerPerfilEmpleadoCuatroState
               return const Center(child: CircularProgressIndicator());
             }
 
-            final realizadas = capSnapshot.data?['realizadas'] ?? [];
-            final pendientes = capSnapshot.data?['pendientes'] ?? [];
-
-            // Lista unificada para meter todas las tarjetas juntas
+            final documentos = capSnapshot.data ?? [];
             final List<Map<String, dynamic>> todasLasCapacitaciones = [];
 
-            for (var doc in realizadas) {
+            for (var doc in documentos) {
+              final data = doc.data() as Map<String, dynamic>;
+              
+              // Extraemos la lista de los que realizaron para verificar si este RUT específico ya está allí
+              final realizararonLista = data['empleadosRealizaron'] is List
+                  ? List.from(data['empleadosRealizaron'])
+                  : [];
+
+              // Es realizada para ESTE empleado si su RUT ya figura en la lista de los que completaron
+              final bool esteEmpleadoLaHizo = realizararonLista.contains(rutLimpio);
+
               todasLasCapacitaciones.add({
                 'id': doc.id,
-                'data': doc.data() as Map<String, dynamic>,
-                'esRealizada': true,
+                'data': data,
+                'esRealizada': esteEmpleadoLaHizo,
               });
             }
-            for (var doc in pendientes) {
-              todasLasCapacitaciones.add({
-                'id': doc.id,
-                'data': doc.data() as Map<String, dynamic>,
-                'esRealizada': false,
-              });
-            }
+
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               padding: const EdgeInsets.all(20),
@@ -196,7 +202,7 @@ class _ContainerPerfilEmpleadoCuatroState
                           curso['fechaFin'],
                         );
 
-                        // Configuración de la etiqueta de estado sin exceso de color
+                        // Configuración de la etiqueta de estado
                         final Color colorEstado = esRealizada
                             ? verdePrincipal
                             : Colors.orange;
@@ -210,13 +216,10 @@ class _ContainerPerfilEmpleadoCuatroState
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(14),
-                            boxShadow:
-                                const [], // ❌ Eliminamos por completo el sombreado gris
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Fila superior: Título del curso y Etiqueta de Estado
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -228,13 +231,11 @@ class _ContainerPerfilEmpleadoCuatroState
                                       style: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors
-                                            .black87, // 🟢 Título en color Negro
+                                        color: Colors.black87,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  // Badge de Estado plano, sutil e interactivo
                                   InkWell(
                                     onTap: () {
                                       showDialog(
@@ -323,8 +324,7 @@ class _ContainerPerfilEmpleadoCuatroState
                                       institucion.toString(),
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color:
-                                            verdePrincipal, // 🟢 Texto de Institución en Verde
+                                        color: verdePrincipal,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -346,8 +346,7 @@ class _ContainerPerfilEmpleadoCuatroState
                                     'Vence: $fechaVencimiento',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color:
-                                          verdePrincipal, // 🟢 Texto de Fecha en Verde
+                                      color: verdePrincipal,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -367,7 +366,6 @@ class _ContainerPerfilEmpleadoCuatroState
     );
   }
 
-  
   Widget _buildErrorWidget() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -398,3 +396,5 @@ class _ContainerPerfilEmpleadoCuatroState
     );
   }
 }
+
+```

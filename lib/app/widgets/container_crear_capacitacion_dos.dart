@@ -70,10 +70,12 @@ class _ContainerCrearCapacitacionDosState
     _actualizarEstado();
   }
 
+  // Devuelve el formato plano (Ej: 123456781)
   String _limpiarRutEspecifico(String rutOriginal) {
     return rutOriginal.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
   }
 
+  // Devuelve el formato con puntos y guion (Ej: 12.345.678-1)
   String _formatearRut(String input) {
     final clean = input.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
 
@@ -120,8 +122,11 @@ class _ContainerCrearCapacitacionDosState
 
   void _actualizarEstado() {
     bool rutsValidos = _rutControllers.isNotEmpty;
+    
     for (var controller in _rutControllers) {
-      if (_limpiarRutEspecifico(controller.text).length < 7) {
+      final textoLimpio = _limpiarRutEspecifico(controller.text);
+      // Un RUT válido limpio tiene entre 7 y 9 caracteres (Ej: 12345678K)
+      if (textoLimpio.length < 7 || textoLimpio.length > 9) {
         rutsValidos = false;
         break;
       }
@@ -165,29 +170,69 @@ class _ContainerCrearCapacitacionDosState
 
         empleadosAsignados = snapshot.docs.map((e) => e.id).toList();
       } else {
-        final rutsALimpiar = _rutControllers
-            .map((c) => _limpiarRutEspecifico(c.text))
-            .where((rut) => rut.isNotEmpty)
-            .toList();
+        List<String> rutsInexistentesOErrores = [];
 
-        final referencias = rutsALimpiar.map((rut) {
-          return FirebaseFirestore.instance.collection('empleados').doc(rut).get();
-        }).toList();
+        // 🔥 GESTIÓN ULTRA-FLEXIBLE DE BÚSQUEDA DE RUTS
+        for (var controller in _rutControllers) {
+          final textoOriginal = controller.text.trim();
+          if (textoOriginal.isEmpty) continue;
 
-        final resultadosDocs = await Future.wait(referencias);
-        List<String> rutsInexistentes = [];
+          // 1. Formato Todo Junto (Ej: 123456781) -> Remueve puntos y guiones
+          final rutTodoJunto = textoOriginal.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
+          
+          // 2. Formato Chileno Estándar (Ej: 12.345.678-1)
+          final rutConPuntosYGuion = _formatearRut(textoOriginal);
 
-        for (int i = 0; i < resultadosDocs.length; i++) {
-          if (!resultadosDocs[i].exists) {
-            rutsInexistentes.add(rutsALimpiar[i]);
+          // 3. Formato Solo Guion (Ej: 12345678-1)
+          String rutSoloGuion = rutTodoJunto;
+          if (rutTodoJunto.length > 1) {
+            rutSoloGuion = "${rutTodoJunto.substring(0, rutTodoJunto.length - 1)}-${rutTodoJunto.substring(rutTodoJunto.length - 1)}";
           }
+
+          // --- RONDA DE CONSULTAS A FIRESTORE ---
+          
+          // Intento 1: Buscar todo junto (Como está en tu BD: 123456781)
+          var docRef = FirebaseFirestore.instance.collection('empleados').doc(rutTodoJunto);
+          var snapshot = await docRef.get();
+
+          if (snapshot.exists) {
+            empleadosAsignados.add(rutTodoJunto);
+            continue; 
+          }
+
+          // Intento 2: Buscar por Texto Exacto (por si el usuario lo ingresó manual)
+          docRef = FirebaseFirestore.instance.collection('empleados').doc(textoOriginal);
+          snapshot = await docRef.get();
+          if (snapshot.exists) {
+            empleadosAsignados.add(textoOriginal);
+            continue;
+          }
+
+          // Intento 3: Buscar con puntos y guion (12.345.678-1)
+          docRef = FirebaseFirestore.instance.collection('empleados').doc(rutConPuntosYGuion);
+          snapshot = await docRef.get();
+          if (snapshot.exists) {
+            empleadosAsignados.add(rutConPuntosYGuion);
+            continue;
+          }
+
+          // Intento 4: Buscar solo con guion (12345678-1)
+          docRef = FirebaseFirestore.instance.collection('empleados').doc(rutSoloGuion);
+          snapshot = await docRef.get();
+          if (snapshot.exists) {
+            empleadosAsignados.add(rutSoloGuion);
+            continue;
+          }
+
+          // Si no entra en ninguno, guardamos el formato con puntos y guion para mostrar el error amigablemente
+          rutsInexistentesOErrores.add(rutConPuntosYGuion.isNotEmpty ? rutConPuntosYGuion : textoOriginal);
         }
 
-        if (rutsInexistentes.isNotEmpty) {
+        if (rutsInexistentesOErrores.isNotEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Los siguientes RUTs no existen: ${rutsInexistentes.join(", ")}'
+                'Los siguientes RUTs no existen en la BD: ${rutsInexistentesOErrores.join(", ")}'
               ),
               backgroundColor: Colors.redAccent,
             ),
@@ -195,8 +240,6 @@ class _ContainerCrearCapacitacionDosState
           setState(() => _isLoading = false);
           return;
         }
-
-        empleadosAsignados = rutsALimpiar;
       }
 
       await FirebaseFirestore.instance
