@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:proyecto_flutter/app/screens/admin_dashboard_screen.dart'; 
-import 'package:proyecto_flutter/app/screens/admin_create_screen.dart'; 
-import 'package:proyecto_flutter/app/screens/admin_workers_list_screen.dart'; 
+import 'package:proyecto_flutter/app/screens/admin_dashboard_screen.dart';
+import 'package:proyecto_flutter/app/screens/admin_create_screen.dart';
+import 'package:proyecto_flutter/app/screens/admin_workers_list_screen.dart';
 import 'package:proyecto_flutter/app/screens/admin_profile_screen.dart';
 import 'package:proyecto_flutter/app/screens/admin_auditoria_screen.dart';
-import 'package:proyecto_flutter/app/screens/login_screen.dart'; 
+import 'package:proyecto_flutter/app/screens/login_screen.dart';
 
 class AdminMainScreen extends StatefulWidget {
   const AdminMainScreen({super.key});
@@ -13,8 +13,10 @@ class AdminMainScreen extends StatefulWidget {
   @override
   State<AdminMainScreen> createState() => _AdminMainScreenState();
 }
-class _AdminMainScreenState extends State<AdminMainScreen> with WidgetsBindingObserver {
-  int _currentIndex = 0; 
+
+class _AdminMainScreenState extends State<AdminMainScreen>
+    with WidgetsBindingObserver {
+  int _currentIndex = 0;
   String _workersRoleFilter = 'todos';
   String _workersStatusFilter = 'todos';
 
@@ -29,16 +31,20 @@ class _AdminMainScreenState extends State<AdminMainScreen> with WidgetsBindingOb
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
       _destruirSesionAdminPorSeguridad();
     }
   }
 
   void _destruirSesionAdminPorSeguridad() async {
-    debugPrint("⚠️ Seguridad Admin: Detectado cierre o segundo plano. Destruyendo sesión activa...");
+    debugPrint(
+      "⚠️ Seguridad Admin: Detectado cierre o segundo plano. Destruyendo sesión activa...",
+    );
     try {
       await FirebaseAuth.instance.signOut();
     } catch (e) {
@@ -50,13 +56,13 @@ class _AdminMainScreenState extends State<AdminMainScreen> with WidgetsBindingOb
     setState(() {
       _workersRoleFilter = filtroRol;
       _workersStatusFilter = filtroEstado;
-      _currentIndex = 2; 
+      _currentIndex = 2;
     });
   }
 
   void _abrirAuditoria() {
     setState(() {
-      _currentIndex = 3; 
+      _currentIndex = 3;
     });
   }
 
@@ -71,18 +77,18 @@ class _AdminMainScreenState extends State<AdminMainScreen> with WidgetsBindingOb
         return AdminCreateScreen(
           onReturnToInicio: () {
             setState(() {
-              _currentIndex = 0; 
+              _currentIndex = 0;
             });
           },
         );
       case 2:
         return AdminWorkersListScreen(
-          key: ValueKey('${_workersRoleFilter}_${_workersStatusFilter}'), 
+          key: ValueKey('${_workersRoleFilter}_${_workersStatusFilter}'),
           initialRoleFilter: _workersRoleFilter,
           initialStatusFilter: _workersStatusFilter,
           onReturnToInicio: () {
             setState(() {
-              _currentIndex = 0; 
+              _currentIndex = 0;
             });
           },
         );
@@ -90,7 +96,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> with WidgetsBindingOb
         return AdminAuditoriaScreen(
           onReturnToInicio: () {
             setState(() {
-              _currentIndex = 0; 
+              _currentIndex = 0;
             });
           },
         );
@@ -116,9 +122,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> with WidgetsBindingOb
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
-      body: SafeArea(
-        child: _buildPage(_currentIndex), 
-      ),
+      body: SafeArea(child: _buildPage(_currentIndex)),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -134,14 +138,37 @@ class _AdminMainScreenState extends State<AdminMainScreen> with WidgetsBindingOb
         selectedItemColor: const Color(0xFF2E7D32),
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        selectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
         unselectedLabelStyle: const TextStyle(fontSize: 12),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Inicio'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_add_alt_1_outlined), activeIcon: Icon(Icons.person_add_alt_1), label: 'Crear'),
-          BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Trabajadores'),
-          BottomNavigationBarItem(icon: Icon(Icons.history_outlined), activeIcon: Icon(Icons.history), label: 'Auditoría'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Mi perfil'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_add_alt_1_outlined),
+            activeIcon: Icon(Icons.person_add_alt_1),
+            label: 'Crear',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline),
+            activeIcon: Icon(Icons.people),
+            label: 'Trabajadores',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history_outlined),
+            activeIcon: Icon(Icons.history),
+            label: 'Auditoría',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Mi perfil',
+          ),
         ],
       ),
     );

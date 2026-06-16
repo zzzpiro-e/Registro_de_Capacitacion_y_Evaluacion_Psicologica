@@ -7,14 +7,13 @@ import 'package:proyecto_flutter/app/utils/text_utils.dart';
 class AdminWorkersListScreen extends StatefulWidget {
   final String initialRoleFilter;
   final String initialStatusFilter;
-  // 🟢 1. Declaramos el callback requerido
-  final VoidCallback onReturnToInicio; 
+  final VoidCallback? onReturnToInicio;
 
   const AdminWorkersListScreen({
     super.key,
     this.initialRoleFilter = 'todos',
     this.initialStatusFilter = 'todos',
-    required this.onReturnToInicio, // 🟢 2. Lo exigimos en el constructor
+    this.onReturnToInicio,
   });
 
   @override
@@ -90,7 +89,9 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF1F3F4),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF757575).withOpacity(0.4)),
+                      border: Border.all(
+                        color: const Color(0xFF757575).withOpacity(0.4),
+                      ),
                     ),
                     child: TextField(
                       controller: _adminPasswordController,
@@ -137,7 +138,9 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF008744),
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () async {
                     String passwordInput = _adminPasswordController.text.trim();
@@ -257,10 +260,7 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
           .collection('trabajadores')
           .doc(uid)
           .delete();
-      await FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(uid)
-          .delete();
+      await FirebaseFirestore.instance.collection('usuarios').doc(uid).delete();
       _mostrarSnackBar(
         'Trabajador eliminado de la base de datos de forma permanente.',
         Colors.black87,
@@ -371,9 +371,24 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        buildChoice('Todos', 'todos', tempRole, (value) => tempRole = value),
-                        buildChoice('RRHH', 'rrhh', tempRole, (value) => tempRole = value),
-                        buildChoice('Psicólogos', 'psicologo', tempRole, (value) => tempRole = value),
+                        buildChoice(
+                          'Todos',
+                          'todos',
+                          tempRole,
+                          (value) => tempRole = value,
+                        ),
+                        buildChoice(
+                          'RRHH',
+                          'rrhh',
+                          tempRole,
+                          (value) => tempRole = value,
+                        ),
+                        buildChoice(
+                          'Psicólogos',
+                          'psicologo',
+                          tempRole,
+                          (value) => tempRole = value,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -382,9 +397,24 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        buildChoice('Todos', 'todos', tempStatus, (value) => tempStatus = value),
-                        buildChoice('Activo', 'activo', tempStatus, (value) => tempStatus = value),
-                        buildChoice('Desactivado', 'desactivado', tempStatus, (value) => tempStatus = value),
+                        buildChoice(
+                          'Todos',
+                          'todos',
+                          tempStatus,
+                          (value) => tempStatus = value,
+                        ),
+                        buildChoice(
+                          'Activo',
+                          'activo',
+                          tempStatus,
+                          (value) => tempStatus = value,
+                        ),
+                        buildChoice(
+                          'Desactivado',
+                          'desactivado',
+                          tempStatus,
+                          (value) => tempStatus = value,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 28),
@@ -394,14 +424,22 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.grey),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             onPressed: () => Navigator.pop(context, {
                               'role': 'todos',
                               'status': 'todos',
                             }),
-                            child: const Text('Limpiar', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Limpiar',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -411,14 +449,19 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                               backgroundColor: const Color(0xFF008744),
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             onPressed: () => Navigator.pop(context, {
                               'role': tempRole,
                               'status': tempStatus,
                             }),
-                            child: const Text('Aplicar Filtros', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Aplicar Filtros',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ],
@@ -440,17 +483,25 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
     }
   }
 
+  // Manejo de redirección unificada de salida
+  void _manejarSalida() {
+    if (widget.onReturnToInicio != null) {
+      widget.onReturnToInicio!();
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color verdeBoton = Color(0xFF008744);
     const Color fondoGrisPantalla = Color(0xFFF5F5F5);
 
-    // 🟢 3. Envolvemos el Scaffold con el PopScope para atrapar el botón físico/gesto de atrás
     return PopScope(
-      canPop: false, // Cancelamos la destrucción nativa de la pantalla
+      canPop: widget.onReturnToInicio == null,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        widget.onReturnToInicio(); // Forzamos el salto a la pestaña de Inicio
+        _manejarSalida();
       },
       child: Scaffold(
         backgroundColor: fondoGrisPantalla,
@@ -459,9 +510,12 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
-            // 🟢 4. Cambiamos el Navigator.pop por nuestro callback de la Navbar
-            onPressed: () => widget.onReturnToInicio(), 
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: verdeBoton,
+              size: 22,
+            ),
+            onPressed: _manejarSalida,
           ),
           title: const Text(
             'Lista de Trabajadores',
@@ -493,15 +547,21 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                         Icons.search,
                         color: Color(0xFF757575),
                         size: 22,
-                    ),
+                      ),
                     ),
                     Expanded(
                       child: TextField(
                         controller: _searchController,
-                        style: const TextStyle(color: Colors.black87, fontSize: 16),
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 16,
+                        ),
                         decoration: const InputDecoration(
                           hintText: 'Buscar por nombre o RUT...',
-                          hintStyle: TextStyle(color: Color(0xFF757575), fontSize: 15),
+                          hintStyle: TextStyle(
+                            color: Color(0xFF757575),
+                            fontSize: 15,
+                          ),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(vertical: 14),
                         ),
@@ -551,15 +611,22 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
 
                   final listaTrabajadores = snapshot.data!.docs.where((doc) {
                     final datos = doc.data() as Map<String, dynamic>;
-                    final nombre = TextUtils.quitarTildes((datos['nombre'] ?? '').toString());
-                    final rut = TextUtils.quitarTildes((datos['rut']?.toString() ?? ''));
+                    final nombre = TextUtils.quitarTildes(
+                      (datos['nombre'] ?? '').toString(),
+                    );
+                    final rut = TextUtils.quitarTildes(
+                      (datos['rut']?.toString() ?? ''),
+                    );
                     final rol = (datos['rol'] ?? '').toString().toLowerCase();
                     final bool esActivo = (datos['activo'] ?? true) == true;
 
                     final coincideBusqueda =
-                        _query.isEmpty || nombre.contains(_query) || rut.contains(_query);
+                        _query.isEmpty ||
+                        nombre.contains(_query) ||
+                        rut.contains(_query);
                     final coincideRol =
-                        _selectedRoleFilter == 'todos' || rol == _selectedRoleFilter;
+                        _selectedRoleFilter == 'todos' ||
+                        rol == _selectedRoleFilter;
                     final coincideEstado =
                         _selectedStatusFilter == 'todos' ||
                         (_selectedStatusFilter == 'activo' && esActivo) ||
@@ -581,7 +648,8 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(24.0, 12.0, 24.0, 24.0),
                     itemCount: listaTrabajadores.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 14),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 14),
                     itemBuilder: (context, index) {
                       var doc = listaTrabajadores[index];
                       var datos = doc.data() as Map<String, dynamic>;
@@ -616,19 +684,22 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
     required bool isPsychologist,
     required bool isActive,
   }) {
-    final Color chipColor = isPsychologist ? const Color(0xFFE3F2FD) : const Color(0xFFF3E5F5);
-    final Color chipTextColor = isPsychologist ? const Color(0xFF1E88E5) : const Color(0xFF8E24AA);
-    final Color stateTextColor = isActive ? const Color(0xFF008744) : const Color(0xFFC62828);
+    final Color chipColor = isPsychologist
+        ? const Color(0xFFE3F2FD)
+        : const Color(0xFFF3E5F5);
+    final Color chipTextColor = isPsychologist
+        ? const Color(0xFF1E88E5)
+        : const Color(0xFF8E24AA);
+    final Color stateTextColor = isActive
+        ? const Color(0xFF008744)
+        : const Color(0xFFC62828);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFEAEAEA),
-          width: 1.5,
-        ),
+        border: Border.all(color: const Color(0xFFEAEAEA), width: 1.5),
       ),
       child: Row(
         children: [
@@ -667,7 +738,10 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
                     ),
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: chipColor,
                         borderRadius: BorderRadius.circular(12),
@@ -723,12 +797,20 @@ class _AdminWorkersListScreenState extends State<AdminWorkersListScreen> {
             children: [
               IconButton(
                 tooltip: 'Editar trabajador',
-                icon: const Icon(Icons.edit_outlined, color: Color(0xFF008744), size: 22),
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: Color(0xFF008744),
+                  size: 22,
+                ),
                 onPressed: () => _abrirEdicion(uid),
               ),
               IconButton(
                 tooltip: 'Eliminar de forma permanente',
-                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 22,
+                ),
                 onPressed: () => _eliminarTrabajador(uid, name),
               ),
             ],

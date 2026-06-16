@@ -13,6 +13,7 @@ class PerfilRRHHScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text(
           'Perfil Analista RRHH',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),

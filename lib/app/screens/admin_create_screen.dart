@@ -5,13 +5,13 @@ import 'dart:math';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:proyecto_flutter/app/services/auditoria_service.dart';
-import 'package:proyecto_flutter/app/screens/admin_dashboard_screen.dart'; 
+import 'package:proyecto_flutter/app/screens/admin_dashboard_screen.dart';
 
 class AdminCreateScreen extends StatefulWidget {
-  // Callback añadido para comunicarle al dashboard que cambie de índice
-  final VoidCallback onReturnToInicio;
+  // Callback opcional unificado para comunicarle al dashboard que cambie de índice
+  final VoidCallback? onReturnToInicio;
 
-  const AdminCreateScreen({super.key, required this.onReturnToInicio});
+  const AdminCreateScreen({super.key, this.onReturnToInicio});
 
   @override
   State<AdminCreateScreen> createState() => _AdminCreateScreenState();
@@ -36,7 +36,7 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
   bool _isRutValid = false;
   String? _usuarioError;
   bool _isUsuarioValid = false;
-  String? _correoPersonalError = null;
+  String? _correoPersonalError;
   bool _isCorreoPersonalValid = false;
   String? _telefonoError;
   bool _isTelefonoValid = false;
@@ -73,7 +73,8 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
   }
 
   void _generarClaveAleatoria() {
-    const caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const caracteres =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = Random();
     String claveNueva = List.generate(
       6,
@@ -131,7 +132,9 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
       if (response.statusCode == 200) {
         print('📧 EmailJS: Correo enviado con éxito.');
       } else {
-        print('🚨 EmailJS falló con estado: ${response.statusCode} - ${response.body}');
+        print(
+          '🚨 EmailJS falló con estado: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       print('🚨 Error de conexión al enviar el correo: $e');
@@ -200,8 +203,10 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
 
   void _formatearTelefonoEnVivo(String valor) {
     String numeros = valor.replaceAll(RegExp(r'[^0-9]'), '');
-    if (numeros.startsWith('569') && numeros.length > 3) numeros = numeros.substring(3);
-    if (numeros.startsWith('9') && numeros.length == 9) numeros = numeros.substring(1);
+    if (numeros.startsWith('569') && numeros.length > 3)
+      numeros = numeros.substring(3);
+    if (numeros.startsWith('9') && numeros.length == 9)
+      numeros = numeros.substring(1);
 
     if (numeros.length == 8 || numeros.length == 9) {
       String telefonoFormateado = '+56 9 $numeros';
@@ -336,8 +341,10 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     const String firebaseApiKey = "AIzaSyC7IGrKKNXWW9zU2-EC4rwT8Jh5rB5HBrQ";
 
     try {
-      final urlAuth = Uri.parse('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$firebaseApiKey');
-      
+      final urlAuth = Uri.parse(
+        'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$firebaseApiKey',
+      );
+
       final responseAuth = await http.post(
         urlAuth,
         headers: {'Content-Type': 'application/json'},
@@ -350,7 +357,8 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
 
       if (responseAuth.statusCode != 200) {
         final errorBody = jsonDecode(responseAuth.body);
-        String mensajeError = errorBody['error']['message'] ?? 'Error al crear credenciales';
+        String mensajeError =
+            errorBody['error']['message'] ?? 'Error al crear credenciales';
         if (mensajeError == 'EMAIL_EXISTS') {
           mensajeError = 'Ese nombre de usuario corporativo ya está tomado.';
         }
@@ -417,7 +425,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
         '¡Trabajador creado y credenciales enviadas!',
         const Color(0xFF2E7D32),
       );
-
     } catch (e) {
       _mostrarSnackBar(e.toString().replaceAll('Exception: ', ''), Colors.red);
     } finally {
@@ -441,16 +448,27 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
     );
   }
 
+  // Método auxiliar unificado para gestionar la acción de salida
+  void _manejarSalida() {
+    if (widget.onReturnToInicio != null) {
+      widget.onReturnToInicio!();
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color verdeBoton = Color(0xFF008744);
     const Color fondoGrisPantalla = Color(0xFFF5F5F5);
 
     return PopScope(
-      canPop: false, // Bloqueamos el retroceso del sistema para manejarlo internamente
+      canPop:
+          widget.onReturnToInicio ==
+          null, // Permite pop nativo solo si no se provee el callback
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        widget.onReturnToInicio(); // Invoca el callback para cambiar al índice de Inicio
+        _manejarSalida();
       },
       child: Scaffold(
         backgroundColor: fondoGrisPantalla,
@@ -459,16 +477,18 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: verdeBoton, size: 22),
-            onPressed: () {
-              widget.onReturnToInicio(); // Invoca el callback al presionar la flecha
-            },
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: verdeBoton,
+              size: 22,
+            ),
+            onPressed: _manejarSalida,
           ),
           title: const Text(
             'Crear Trabajador',
             style: TextStyle(
-              color: Color(0xFF202124), 
-              fontWeight: FontWeight.bold, 
+              color: Color(0xFF202124),
+              fontWeight: FontWeight.bold,
               fontSize: 22,
             ),
           ),
@@ -476,7 +496,10 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
         body: SafeArea(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 24.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -491,16 +514,13 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-
                 _buildInputField(
                   label: 'RUT *',
                   hint: '12.345.678-9',
                   controller: _rutController,
                   focusNode: _rutFocusNode,
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'[0-9kK\.\-]'),
-                    ),
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9kK\.\-]')),
                     RutFormatter(),
                   ],
                 ),
@@ -511,7 +531,9 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                     child: Text(
                       _rutError!,
                       style: TextStyle(
-                        color: _isRutValid ? const Color(0xFF388E3C) : Colors.red,
+                        color: _isRutValid
+                            ? const Color(0xFF388E3C)
+                            : Colors.red,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -519,7 +541,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                   ),
                 ],
                 const SizedBox(height: 20),
-
                 _buildInputField(
                   label: 'Usuario Corporativo *',
                   hint: 'ej: jperez',
@@ -544,7 +565,9 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                     child: Text(
                       _usuarioError!,
                       style: TextStyle(
-                        color: _isUsuarioValid ? const Color(0xFF388E3C) : Colors.red,
+                        color: _isUsuarioValid
+                            ? const Color(0xFF388E3C)
+                            : Colors.red,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -552,7 +575,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                   ),
                 ],
                 const SizedBox(height: 20),
-
                 _buildInputField(
                   label: 'Correo Personal (Notificación) *',
                   hint: 'ejemplo@gmail.com',
@@ -567,7 +589,9 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                     child: Text(
                       _correoPersonalError!,
                       style: TextStyle(
-                        color: _isCorreoPersonalValid ? const Color(0xFF388E3C) : Colors.red,
+                        color: _isCorreoPersonalValid
+                            ? const Color(0xFF388E3C)
+                            : Colors.red,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -575,7 +599,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                   ),
                 ],
                 const SizedBox(height: 20),
-
                 _buildInputField(
                   label: 'Teléfono',
                   hint: 'Ej: 91234567',
@@ -592,7 +615,9 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                     child: Text(
                       _telefonoError!,
                       style: TextStyle(
-                        color: _isTelefonoValid ? const Color(0xFF388E3C) : Colors.red,
+                        color: _isTelefonoValid
+                            ? const Color(0xFF388E3C)
+                            : Colors.red,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -600,7 +625,6 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                   ),
                 ],
                 const SizedBox(height: 20),
-
                 const Padding(
                   padding: EdgeInsets.only(bottom: 8.0, left: 2),
                   child: Text(
@@ -631,7 +655,10 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                         color: Color(0xFF757575),
                       ),
                       dropdownColor: Colors.white,
-                      style: const TextStyle(color: Colors.black87, fontSize: 16),
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                      ),
                       items: <String>['RRHH', 'Psicólogo'].map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
@@ -645,21 +672,16 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 _buildInputField(
                   label: 'Clave Provisoria Autogenerada *',
                   hint: 'Generando...',
                   controller: _claveController,
                   suffixIcon: IconButton(
-                    icon: const Icon(
-                      Icons.refresh,
-                      color: Color(0xFF757575),
-                    ),
+                    icon: const Icon(Icons.refresh, color: Color(0xFF757575)),
                     onPressed: _generarClaveAleatoria,
                   ),
                 ),
                 const SizedBox(height: 36),
-
                 SizedBox(
                   width: double.infinity,
                   height: 54,
@@ -668,7 +690,10 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
                       backgroundColor: verdeBoton,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
-                        side: const BorderSide(color: Color(0xFF007038), width: 1),
+                        side: const BorderSide(
+                          color: Color(0xFF007038),
+                          width: 1,
+                        ),
                       ),
                       elevation: 1,
                     ),
@@ -751,7 +776,10 @@ class _AdminCreateScreenState extends State<AdminCreateScreen> {
             style: const TextStyle(color: Colors.black87, fontSize: 16),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(color: Color(0xFF757575), fontSize: 15),
+              hintStyle: const TextStyle(
+                color: Color(0xFF757575),
+                fontSize: 15,
+              ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
